@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                     const opt = document.createElement('option')
                     opt.value = id
                     // OpenAI shape has no `multiplier`; fall back to id-only label.
-                    opt.textContent = m.multiplier != null ? `${id} (×${m.multiplier})` : id
+                    opt.textContent = m.name || (m.multiplier != null ? `${id} (×${m.multiplier})` : id)
                     sel.appendChild(opt)
                 }
                 const ids = models.map(m => m.id || m)
