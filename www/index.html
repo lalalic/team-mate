@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetMate — Live AI Meeting Assistant for Microsoft Teams</title>
+    <meta name="description" content="Real-time AI suggestions, live minutes, cross-meeting memory — all inside your Teams tab. No bot. No admin. Pay only for what you use.">
+    <style>
+        :root {
+            --accent: #5865F2;
+            --accent-light: #7983F5;
+            --dark: #1F2937;
+            --gray: #6B7280;
+            --light: #F3F4F6;
+            --white: #FFFFFF;
+            --green: #10B981;
+            --radius: 12px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--dark); line-height: 1.6; }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, var(--accent) 0%, #4338CA 100%);
+            color: var(--white);
+            padding: 80px 24px 60px;
+            text-align: center;
+        }
+        .hero h1 { font-size: 2.6rem; font-weight: 800; margin-bottom: 16px; letter-spacing: -0.02em; }
+        .hero p { font-size: 1.2rem; max-width: 600px; margin: 0 auto 32px; opacity: 0.92; }
+        .hero .cta {
+            display: inline-block; padding: 14px 32px; background: var(--white); color: var(--accent);
+            font-weight: 700; font-size: 1rem; border-radius: 8px; text-decoration: none;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .hero .cta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .hero .sub { display: block; margin-top: 12px; font-size: 0.85rem; opacity: 0.7; }
+
+        /* Sections */
+        section { padding: 64px 24px; max-width: 960px; margin: 0 auto; }
+        section h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 12px; text-align: center; letter-spacing: -0.01em; }
+        section .lead { text-align: center; color: var(--gray); margin-bottom: 40px; max-width: 640px; margin-left: auto; margin-right: auto; }
+
+        /* Feature grid */
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px; }
+        .feature {
+            background: var(--white); border: 1px solid #E5E7EB; border-radius: var(--radius);
+            padding: 28px; transition: box-shadow 0.2s;
+        }
+        .feature:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        .feature .icon { font-size: 1.6rem; margin-bottom: 12px; }
+        .feature h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+        .feature p { color: var(--gray); font-size: 0.95rem; }
+
+        /* Pricing comparison */
+        .pricing-bg { background: var(--light); }
+        .pricing-section { max-width: 960px; margin: 0 auto; padding: 64px 24px; }
+        .pricing-table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 0.95rem; }
+        .pricing-table th, .pricing-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #E5E7EB; }
+        .pricing-table th { font-weight: 600; background: var(--white); }
+        .pricing-table tr.highlight { background: #EEF2FF; font-weight: 600; }
+        .pricing-table tr.highlight td { color: var(--accent); }
+
+        /* How it works */
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; text-align: center; counter-reset: step; }
+        .step { position: relative; padding: 20px; }
+        .step::before {
+            counter-increment: step; content: counter(step);
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px; background: var(--accent); color: var(--white);
+            font-weight: 700; border-radius: 50%; margin-bottom: 12px; font-size: 1.1rem;
+        }
+        .step h4 { font-size: 1rem; margin-bottom: 6px; }
+        .step p { color: var(--gray); font-size: 0.9rem; }
+
+        /* Video */
+        .video-wrap { text-align: center; margin: 40px auto; max-width: 720px; }
+        .video-wrap video { width: 100%; border-radius: var(--radius); box-shadow: 0 4px 24px rgba(0,0,0,0.12); }
+
+        /* CTA bottom */
+        .cta-bottom {
+            background: var(--dark); color: var(--white); text-align: center;
+            padding: 48px 24px; border-radius: var(--radius); margin: 40px auto; max-width: 960px;
+        }
+        .cta-bottom h2 { color: var(--white); margin-bottom: 8px; }
+        .cta-bottom p { color: #9CA3AF; margin-bottom: 24px; }
+        .cta-bottom a {
+            display: inline-block; padding: 14px 32px; background: var(--accent); color: var(--white);
+            font-weight: 700; font-size: 1rem; border-radius: 8px; text-decoration: none;
+        }
+
+        /* Footer */
+        footer { text-align: center; padding: 32px 24px; color: var(--gray); font-size: 0.85rem; }
+        footer a { color: var(--accent); text-decoration: none; }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 1.8rem; }
+            .hero p { font-size: 1rem; }
+            section { padding: 40px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+    <h1>Your AI co&#8209;pilot inside Microsoft Teams</h1>
+    <p>Real-time suggestions while you speak. Live minutes. Cross-meeting memory. All inside your tab &mdash; no bot joins, no one else sees it.</p>
+    <a class="cta" href="https://chromewebstore.google.com/detail/immkojolaicdjhkbbhkldmndhfjbehmf">Install Free from Chrome Web Store</a>
+    <span class="sub">Pay-as-you-go &middot; ~$2/month typical &middot; No signup required</span>
+</div>
+
+<!-- Demo video -->
+<section>
+    <div class="video-wrap">
+        <video src="team-mate-demo.mp4" controls poster="screenshots/logo-128.png" preload="metadata">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+</section>
+
+<!-- Features -->
+<section>
+    <h2>Everything happens in the call</h2>
+    <p class="lead">MeetMate watches the live captions and helps you &mdash; silently, privately, in real time.</p>
+    <div class="features">
+        <div class="feature">
+            <div class="icon">💬</div>
+            <h3>Smart Suggestions</h3>
+            <p>The AI proposes what you could say next &mdash; phrased professionally in the meeting's language. Tap to use or dismiss.</p>
+        </div>
+        <div class="feature">
+            <div class="icon">📋</div>
+            <h3>Live Minutes</h3>
+            <p>Decisions, action items, and owners update automatically as the conversation unfolds. Leave every meeting with notes you didn't type.</p>
+        </div>
+        <div class="feature">
+            <div class="icon">🧠</div>
+            <h3>Cross-Meeting Memory</h3>
+            <p>Remembers who said what last week. Recurring meetings recall your goal, the team's decisions, and open items &mdash; automatically.</p>
+        </div>
+        <div class="feature">
+            <div class="icon">📚</div>
+            <h3>Your Knowledge, In-Call</h3>
+            <p>Drop design docs, briefs, or reference files into MeetMate. When a relevant topic comes up, the AI cites your own material.</p>
+        </div>
+        <div class="feature">
+            <div class="icon">🌐</div>
+            <h3>Instant Translation</h3>
+            <p>One tap translates what's being said into your preferred language. Also polishes your own words before you speak.</p>
+        </div>
+        <div class="feature">
+            <div class="icon">🔒</div>
+            <h3>Private &amp; Personal</h3>
+            <p>Runs in your Chrome profile. No bot joins the call. No admin needed. Transcripts stay on your device except when sent to the AI model.</p>
+        </div>
+    </div>
+</section>
+
+<!-- How it works -->
+<section>
+    <h2>Up and running in 60 seconds</h2>
+    <p class="lead">No account. No configuration. No IT ticket.</p>
+    <div class="steps">
+        <div class="step">
+            <h4>Install</h4>
+            <p>Add MeetMate from the Chrome Web Store. One click.</p>
+        </div>
+        <div class="step">
+            <h4>Join a meeting</h4>
+            <p>Open Microsoft Teams in Chrome and join any meeting as usual.</p>
+        </div>
+        <div class="step">
+            <h4>Turn on captions</h4>
+            <p>Enable live captions in Teams. MeetMate hooks into the caption stream automatically.</p>
+        </div>
+        <div class="step">
+            <h4>Get help</h4>
+            <p>Suggestions, translations, and minutes appear in a private panel only you can see.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing -->
+<div class="pricing-bg">
+    <div class="pricing-section">
+        <h2>10&times; cheaper than the alternatives</h2>
+        <p class="lead">MeetMate bills per-use. Most users spend $1&ndash;3 per month.</p>
+        <table class="pricing-table">
+            <thead>
+                <tr><th>Tool</th><th>Price</th><th>Works without IT?</th><th>Helps live?</th></tr>
+            </thead>
+            <tbody>
+                <tr class="highlight"><td>MeetMate</td><td>~$2/mo (pay-as-you-go)</td><td>✅ Yes</td><td>✅ Yes</td></tr>
+                <tr><td>Microsoft Copilot for Teams</td><td>$30/user/mo</td><td>❌ Needs tenant license</td><td>✅ Yes</td></tr>
+                <tr><td>Otter Pro</td><td>$17/mo flat</td><td>✅ Yes</td><td>❌ Post-meeting only</td></tr>
+                <tr><td>Fireflies</td><td>$18/mo flat</td><td>✅ Yes</td><td>❌ Post-meeting only</td></tr>
+                <tr><td>ChatGPT in another tab</td><td>$20/mo or free</td><td>✅ Yes</td><td>❌ No audio access</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- CTA bottom -->
+<div class="cta-bottom">
+    <h2>Stop freezing in meetings</h2>
+    <p>Install MeetMate and get your first meeting assisted &mdash; free credits included.</p>
+    <a href="https://chromewebstore.google.com/detail/immkojolaicdjhkbbhkldmndhfjbehmf">Add to Chrome &mdash; Free</a>
+</div>
+
+<!-- Footer -->
+<footer>
+    <p>
+        MeetMate &copy; 2024&ndash;2026 &middot;
+        <a href="privacy.html">Privacy Policy</a> &middot;
+        <a href="support.html">Support</a>
+    </p>
+    <p style="margin-top:8px;">Not affiliated with Microsoft Corporation.</p>
+</footer>
+
+</body>
+</html>

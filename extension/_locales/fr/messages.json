@@ -1,0 +1,80 @@
+{
+    "appName": {
+        "message": "MeetMate — Faits en direct, Savoir, Coach & Mémoire · Teams"
+    },
+    "appDesc": {
+        "message": "Faits en direct, vos docs, un coach vocal et m\u00e9moire de r\u00e9union \u2014 dans Teams. IA \u00e9v\u00e9nementielle, ~10\u00d7 moins cher. Pas de bot."
+    },
+    "rephrasePrompt": {
+        "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
+    },
+    "suggestionPrompt": {
+        "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
+    },
+    "quickPrompts": {
+        "message": "Sum: Résumez la réunion.\n?Répondre: Que puis-je répondre maintenant ?\n?Réponse: Suggérer une bonne réponse pour la dernière question\nActions: Mettez en évidence les actions à entreprendre à la suite de cette réunion ?\nProblèmes: Mettez en évidence les principaux défis ou problèmes discutés lors de la réunion.\nComptes rendus: Faire un compte rendu de la réunion."
+    },
+    "meetingGoal": {
+        "message": "Optionnel : Décrivez l'objectif/thème de cette réunion..."
+    },
+    "needTopup": {
+        "message": "Rechargez d'abord ! C'est très très bon marché à utiliser."
+    },
+    "topup": {
+        "message": "Recharger pour l'assistant IA"
+    },
+    "autoDownload": {
+        "message": "Téléchargement automatique des sous-titres en direct"
+    },
+    "setupTitle": {
+        "message": "Configuration avancée"
+    },
+    "testHello": {
+        "message": "Test : Bonjour"
+    },
+    "shortcut": {
+        "message": "Invites de raccourci"
+    },
+    "shortcutDesc": {
+        "message": "À un clic de l'IA pour chaque ligne. Les actions commençant par '*' seront automatiquement déclenchées en quittant la réunion."
+    },
+    "instruction": {
+        "message": "Instruction de l'IA de réunion"
+    },
+    "enableMeeting": {
+        "message": "Activer pendant la réunion."
+    },
+    "suggestionPrompt_placeholder": {
+        "message": "instruction d'IA, message système"
+    },
+    "videoInstruction": {
+        "message": "Instruction vidéo de l'IA"
+    },
+    "enabledRephrasing": {
+        "message": "Activer après application des transcriptions à la réunion enregistrée."
+    },
+    "rephrasePrompt_placeholder": {
+        "message": "instruction d'IA, message système"
+    },
+    "languageMarker": {
+        "message": "Marqueur de langue[?]"
+    },
+    "meetingMarker": {
+        "message": "Marqueur de réunion[!]"
+    },
+    "enabledLanguageFlag": {
+        "message": "Un bouton pour signaler l'attention linguistique sur une transcription."
+    },
+    "enabledMeetingFlag": {
+        "message": "Un bouton pour signaler l'attention sur le contenu d'une transcription."
+    },
+    "languageAttention": {
+        "message": "Attention linguistique"
+    },
+    "meetingAttention": {
+        "message": "Attention à la réunion"
+    },
+    "buyMeBear": {
+        "message": "Achetez-moi une bière"
+    }
+}

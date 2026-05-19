@@ -1,0 +1,80 @@
+{
+    "appName": {
+        "message": "MeetMate — 팩트, 지식, 스피킹 코치, 메모리 for Teams"
+    },
+    "appDesc": {
+        "message": "라이브 팩트, 내 지식, 스피킹 코치, 회의 메모리 — Teams 안에서. 이벤트 기반 AI, ~10배 저렴. 봇 없음."
+    },
+    "rephrasePrompt": {
+        "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
+    },
+    "suggestionPrompt": {
+        "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
+    },
+    "quickPrompts": {
+        "message": "Sum: 회의를 요약합니다.\n?Respond: 지금 어떻게 대답할 수 있나요?\n?Answer: 마지막 질문에 좋은 답변을 제안합니다.\nActions: 이 회의에서 나온 행동 항목을 강조합니다.\nIssues: 회의에서 논의된 주요 도전과 문제를 강조합니다.\nMinutes: 회의록을 작성합니다."
+    },
+    "meetingGoal": {
+        "message": "선택 사항: 이번 미팅의 목표/테마를 설명하세요..."
+    },
+    "needTopup": {
+        "message": "우선 충전하세요! 사용하기 매우 매우 싸요."
+    },
+    "topup": {
+        "message": "AI 어시스턴트 충전"
+    },
+    "autoDownload": {
+        "message": "실시간 자막 자동 다운로드"
+    },
+    "setupTitle": {
+        "message": "고급 설정"
+    },
+    "testHello": {
+        "message": "테스트: 안녕하세요"
+    },
+    "shortcut": {
+        "message": "단축키 프롬프트"
+    },
+    "shortcutDesc": {
+        "message": "각 줄마다 AI로 한 번에 클릭하여 액세스할 수 있습니다.'*'로 시작하는 작업은 회의에서 나갈 때 자동으로 실행됩니다"
+    },
+    "instruction": {
+        "message": "회의 AI 지침"
+    },
+    "enableMeeting": {
+        "message": "회의 중 활성화합니다."
+    },
+    "suggestionPrompt_placeholder": {
+        "message": "AI 지침, 시스템 메시지"
+    },
+    "videoInstruction": {
+        "message": "비디오 AI 지침"
+    },
+    "enabledRephrasing": {
+        "message": "기록된 회의에 대한 대본을 적용한 후 활성화합니다."
+    },
+    "rephrasePrompt_placeholder": {
+        "message": "AI 지침, 시스템 메시지"
+    },
+    "languageMarker": {
+        "message": "언어 표시기[?]"
+    },
+    "meetingMarker": {
+        "message": "회의 표시기[!]"
+    },
+    "enabledLanguageFlag": {
+        "message": "대본에서 언어 주의를 플래그하는 버튼입니다."
+    },
+    "enabledMeetingFlag": {
+        "message": "대본에서 콘텐츠 주의를 플래그하는 버튼입니다."
+    },
+    "languageAttention": {
+        "message": "언어 주의"
+    },
+    "meetingAttention": {
+        "message": "회의 주의"
+    },
+    "buyMeBear": {
+        "message": "맥주 사주세요"
+    }
+}

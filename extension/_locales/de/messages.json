@@ -1,0 +1,80 @@
+{
+    "appName": {
+        "message": "MeetMate: MSTeams Live-KI Meeting-Assistent"
+    },
+    "appDesc": {
+        "message": "Live-KI an Ihrer Seite in Microsoft Teams. Themenchips bei Erwähnung, Entwürfe beim Sprechen. Kein Bot."
+    },
+    "rephrasePrompt": {
+        "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
+    },
+    "suggestionPrompt": {
+        "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
+    },
+    "quickPrompts": {
+        "message": "Summe: Zusammenfassung des Meetings.\n?Antworten: Was kann ich jetzt antworten?\n?Antwort: Schlag eine gute Antwort auf die letzte Frage vor.\nAktionen: Hebe die Aktionspunkte hervor, die aus diesem Meeting hervorgehen.\nProbleme: Hebe die Hauptprobleme oder Themen hervor, die in der Besprechung diskutiert wurden.\nProtokoll: Erstelle ein Besprechungsprotokoll für das Meeting."
+    },
+    "meetingGoal": {
+        "message": "Optionale Beschreibung: Beschreiben Sie das Ziel/Thema dieses Treffens..."
+    },
+    "needTopup": {
+        "message": "Zuerst aufladen! Es ist sehr sehr günstig zu benutzen."
+    },
+    "topup": {
+        "message": "Aufladen für KI-Assistent"
+    },
+    "autoDownload": {
+        "message": "Automatischer Download von Live-Untertiteln"
+    },
+    "setupTitle": {
+        "message": "Erweiterte Einrichtung"
+    },
+    "testHello": {
+        "message": "Test: Hallo"
+    },
+    "shortcut": {
+        "message": "Tastenkürzel"
+    },
+    "shortcutDesc": {
+        "message": "Ein Klick entfernt von KI für jede Zeile. Aktionen mit Beginn '*' werden automatisch ausgelöst, wenn das Meeting verlassen wird"
+    },
+    "instruction": {
+        "message": "Besprechungs-KI-Anleitung"
+    },
+    "enableMeeting": {
+        "message": "Während des Meetings aktivieren."
+    },
+    "suggestionPrompt_placeholder": {
+        "message": "KI-Anleitung, Systemnachricht"
+    },
+    "videoInstruction": {
+        "message": "Video-KI-Anleitung"
+    },
+    "enabledRephrasing": {
+        "message": "Aktivieren, nachdem die Transkripte auf das aufgezeichnete Meeting angewendet wurden."
+    },
+    "rephrasePrompt_placeholder": {
+        "message": "KI-Anleitung, Systemnachricht"
+    },
+    "languageMarker": {
+        "message": "Sprachmarkierung[?]"
+    },
+    "meetingMarker": {
+        "message": "Besprechungs-Marker[!]"
+    },
+    "enabledLanguageFlag": {
+        "message": "Eine Schaltfläche zum Markieren der Sprachaufmerksamkeit in einem Transkript."
+    },
+    "enabledMeetingFlag": {
+        "message": "Eine Schaltfläche zum Markieren der Inhaltsaufmerksamkeit in einem Transkript."
+    },
+    "languageAttention": {
+        "message": "Sprachauffälligkeit"
+    },
+    "meetingAttention": {
+        "message": "Besprechungsaufmerksamkeit"
+    },
+    "buyMeBear": {
+        "message": "Kauf mir ein Bier"
+    }
+}

@@ -1,0 +1,98 @@
+{
+    "appName": {
+        "message": "MeetMate \u2014 Live Facts, Knowledge, Speaking Coach & Memory for Teams"
+    },
+    "appDesc": {
+        "message": "Live facts, your knowledge, a speaking coach, meeting memory \u2014 inside Teams. Event-driven AI, ~10\u00d7 cheaper. No bot, no audio."
+    },
+    "rephrasePrompt": {
+        "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
+    },
+    "suggestionPrompt": {
+        "message": "You are an in-meeting AI assistant for {author}.\n\nMeeting: {name}\nUser's goal/theme: {goal}\nParticipants (so far): {participants}\n\n--- live transcripts (most recent at the bottom) ---\n{transcripts}\n--- end transcripts ---\n\nWhen the user types a question, answer concisely using the transcripts as context. Match the language of the user's message. Keep answers under 120 words unless the user asks for more (e.g. minutes/summary). When asked for minutes/summary, output Markdown with sections: Summary, Decisions, Action Items (with owner if known), Open Questions."
+    },
+    "autoSuggestPrompt": {
+        "message": "You are listening to a live meeting. New transcript chunk just arrived:\n\n{chunk}\n\nFull recent context:\n{transcripts}\n\nDecide ONE action and reply on a single line, prefixed with the keyword:\n  SUGGEST: <≤25-word reply the user ({author}) could say next>\n  RESEARCH: <one short fact or pointer relevant to current topic>\n  SILENT\nOutput exactly one line. No quotes, no markdown."
+    },
+    "minutesPrompt": {
+        "message": "The meeting just ended. Produce minutes in Markdown for {name}. Sections: Summary (3-5 bullets), Decisions, Action Items (owner if known), Open Questions. Use the transcripts."
+    },
+    "quickPrompts": {
+        "message": "Sum: Summarize the meeting.\n?Respond: What can I respond now?\n?Answer: Suggest a good answer for the last question\nActions: Highlight the action items coming out of this meeting?\nIssues: Highlight the main challenges or issues discussed in the meeting.\nMinutes: make a meeting minutes for the meeting"
+    },
+    "testHello": {
+        "message": "Test: Hello"
+    },
+    "topup": {
+        "message": "Top up for AI Assistant"
+    },
+    "autoDownload": {
+        "message": "Auto Download Live Captions"
+    },
+    "setupTitle": {
+        "message": "Advanced Setup"
+    },
+    "toggleAIChat": {
+        "message": "Toggle AI Chat"
+    },
+    "translateRecent": {
+        "message": "Translate recent captions to my preferred language"
+    },
+    "liveMinutes": {
+        "message": "Toggle live minutes panel"
+    },
+    "meetingGoal": {
+        "message": "Optional: describe this meeting goal/theme..."
+    },
+    "needTopup": {
+        "message": "Top up first!It's very very cheap to use."
+    },
+    "onWayBuy": {
+        "message": "On the way to buy ..."
+    },
+    "shortcut": {
+        "message": "Shortcut Prompts"
+    },
+    "shortcutDesc": {
+        "message": "a click away from AI for each line. Action with beginning '*' will be automatically triggered when leaving meeting. "
+    },
+    "instruction": {
+        "message": "Meeting AI Instruction"
+    },
+    "enableMeeting": {
+        "message": "Enable during meeting."
+    },
+    "suggestionPrompt_placeholder": {
+        "message": "ai instruction,system message"
+    },
+    "videoInstruction": {
+        "message": "Video AI Instruction"
+    },
+    "enabledRephrasing": {
+        "message": "Enable after applying transcripts to recorded meeting."
+    },
+    "rephrasePrompt_placeholder": {
+        "message": "ai instruction,system message"
+    },
+    "languageMarker": {
+        "message": "Language Marker[?]"
+    },
+    "meetingMarker": {
+        "message": "Meeting Marker[!]"
+    },
+    "enabledLanguageFlag": {
+        "message": "A button to flag language attention on a transcript."
+    },
+    "enabledMeetingFlag": {
+        "message": "A button to flag content attention on a transcript."
+    },
+    "languageAttention": {
+        "message": "language attention"
+    },
+    "meetingAttention": {
+        "message": "meeting attention"
+    },
+    "buyMeBear": {
+        "message": "Buy me beer"
+    }
+}

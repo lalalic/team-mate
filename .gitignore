@@ -1,0 +1,17 @@
+# Local marketing/demo workspace — videos, hooks research, screenshots.
+# Not part of the shipped extension.
+.market/
+.DS_Store
+
+# Build artifacts (webpack output goes into extension/*.js).
+node_modules/
+*.map
+*.LICENSE.txt
+*.zip
+extension/main.js
+extension/background.js
+extension/content.js
+extension/play.js
+extension/setup.js
+yarn-error.log
+.env

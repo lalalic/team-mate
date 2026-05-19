@@ -1,0 +1,1139 @@
+/* ---------- MeetMate in-meeting UI -------------------------------------- *
+ * Goals: clean, professional, neutral palette that doesn't fight Teams.
+ * Uses system font stack, soft shadows, refined spacing.
+ * ----------------------------------------------------------------------- */
+
+#aichat {
+    position: absolute;
+    z-index: 9999999;
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 170px);
+    right: 16px;
+    bottom: 64px;
+    background: #ffffff;
+    border: 1px solid #e3e5e8;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+        Helvetica, Arial, sans-serif;
+    color: #1f2328;
+    overflow: hidden;
+}
+
+/* "Meeting goal" pinned input at the top -------------------------------- */
+#aichat > input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 0;
+    border-bottom: 1px solid #e3e5e8;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1f2328;
+    background: #fafbfc;
+    outline: none;
+}
+#aichat > input::placeholder {
+    color: #8b949e;
+    font-weight: 400;
+}
+#aichat > input:focus {
+    background: #ffffff;
+    border-bottom-color: #6366f1;
+}
+
+/* Quick-action chip row ------------------------------------------------- */
+#aichat > header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    background: #f6f8fa;
+    border-bottom: 1px solid #e3e5e8;
+}
+#aichat > header > button {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #1f2328;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+#aichat > header > button:hover {
+    background: #f3f4f6;
+    border-color: #6366f1;
+}
+
+/* Message stream -------------------------------------------------------- */
+#aichat > div {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    background: #ffffff;
+    scrollbar-width: thin;
+}
+#aichat > div::-webkit-scrollbar { width: 6px; }
+#aichat > div::-webkit-scrollbar-thumb { background: #d0d7de; border-radius: 3px; }
+
+#aichat > div > div {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+#aichat span.icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-size: 60%;
+    background-repeat: no-repeat;
+    background-position: center;
+    flex-shrink: 0;
+    border: 1px solid #e3e5e8;
+}
+#aichat .user span.icon {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/images/user.svg');
+    background-color: #eff4ff;
+    border-color: #c7d2fe;
+}
+#aichat .assistant span.icon {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/images/robot.svg');
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+#aichat .message {
+    flex: 1;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: normal;
+    word-wrap: break-word;
+}
+#aichat .user .message {
+    background: #eff4ff;
+    color: #1e3a8a;
+}
+#aichat .assistant .message {
+    background: #f6f8fa;
+    color: #1f2328;
+}
+
+/* Composer textarea ---------------------------------------------------- */
+#aichat > textarea {
+    height: 64px;
+    border: 0;
+    border-top: 1px solid #e3e5e8;
+    padding: 10px 14px;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #1f2328;
+    background: #ffffff;
+}
+#aichat > textarea::placeholder { color: #8b949e; }
+#aichat > textarea:focus { background: #fafbfc; }
+#aichat > textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ---------- Floating action buttons (bottom-right) -------------------- */
+#actionButtonContainer {
+    position: absolute;
+    z-index: 99999;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 8px;
+}
+
+#actionButtonContainer > button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid #d0d7de;
+    background-color: #ffffff;
+    background-size: 55%;
+    background-repeat: no-repeat;
+    background-position: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    color: transparent;
+    font-size: 0;
+}
+#actionButtonContainer > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    border-color: #6366f1;
+}
+#actionButtonContainer > button:active {
+    transform: translateY(0);
+}
+
+button[role=language] {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/images/language.svg');
+}
+button[role=meeting] {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/images/meeting.svg');
+}
+button[role=aisuggestion] {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/images/suggestion.svg');
+}
+button[role=payment] {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/images/payment.svg');
+}
+button[role=translate],
+#actionButtonContainer > button[role=translate] {
+    background-image: none;
+    color: #1f2328;
+    font-size: 20px;
+    line-height: 1;
+}
+button[role=translate]:hover,
+#actionButtonContainer > button[role=translate]:hover {
+    color: #4338ca;
+}
+button[role=minutes],
+#actionButtonContainer > button[role=minutes] {
+    background-image: none;
+    color: #1f2328;
+    font-size: 20px;
+    line-height: 1;
+}
+button[role=minutes]:hover,
+#actionButtonContainer > button[role=minutes]:hover {
+    color: #b45309;
+}
+
+/* Attention button — no icon; subtle dot indicator. */
+button[role=attention],
+#actionButtonContainer > button[role=attention] {
+    background-image: none;
+    color: transparent;
+    position: relative;
+}
+button[role=attention]::after,
+#actionButtonContainer > button[role=attention]::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #9ca3af;
+    transform: translate(-50%, -50%);
+    transition: background 120ms ease, box-shadow 120ms ease, width 120ms ease, height 120ms ease;
+}
+button[role=attention]:hover::after,
+#actionButtonContainer > button[role=attention]:hover::after {
+    background: #6b7280;
+}
+button[role=attention].doing::after,
+#actionButtonContainer > button[role=attention].doing::after {
+    background: #ef4444;
+    width: 10px;
+    height: 10px;
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.18);
+}
+
+/* Conversation state badge — phase pill at the top center. */
+#phaseBadge {
+    position: absolute;
+    z-index: 9999998;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    border-radius: 999px;
+    background: #e0e7ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    pointer-events: none;
+    max-width: 360px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#phaseBadge[data-phase=intro]      { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+#phaseBadge[data-phase=discussion] { background: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
+#phaseBadge[data-phase=decision]   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+#phaseBadge[data-phase=qna]        { background: #dcfce7; color: #166534; border-color: #86efac; }
+#phaseBadge[data-phase=wrap]       { background: #fce7f3; color: #9d174d; border-color: #fbcfe8; }
+
+/* Live minutes side panel — sits to the LEFT of #aichat so they coexist. */
+#liveMinutes {
+    position: fixed;
+    z-index: 9999998;
+    top: 160px;
+    right: 372px; /* sit to the LEFT of the rail (rail = right:16 width:340 → 16+340+16 gap) */
+    bottom: 80px;
+    width: 340px;
+    display: flex;
+    flex-direction: column;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.04);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #1f2328;
+    overflow: hidden;
+}
+#liveMinutes .meetmate-minutes-header {
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+    background: #fef3c7;
+    border-bottom: 1px solid #fde68a;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+#liveMinutes .meetmate-minutes-status {
+    font-size: 11px;
+    font-weight: 400;
+    color: #b45309;
+    opacity: 0.8;
+}
+#liveMinutes .meetmate-minutes-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+#liveMinutes .meetmate-minutes-body h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+    margin: 14px 0 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #fde68a;
+}
+#liveMinutes .meetmate-minutes-body h3:first-child { margin-top: 0; }
+#liveMinutes .meetmate-minutes-body h4 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #b45309;
+    margin: 10px 0 4px;
+}
+#liveMinutes .meetmate-minutes-body ul { margin: 0 0 8px 18px; padding: 0; }
+#liveMinutes .meetmate-minutes-body li { margin: 2px 0; }
+#liveMinutes .meetmate-minutes-body p { margin: 4px 0; }
+#liveMinutes .meetmate-minutes-body code {
+    background: rgba(146, 64, 14, 0.08);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+/* Toast / status message ---------------------------------------------- */
+#liveAI-message {
+    margin: 0;
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999999;
+    padding: 8px 16px;
+    background: rgba(31, 35, 40, 0.92);
+    color: #ffffff;
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+/* Pulsing indicator for in-flight actions ----------------------------- */
+.doing {
+    animation: meetmate-pulse 1.6s ease-in-out infinite;
+}
+@keyframes meetmate-pulse {
+    0%, 100% {
+        box-shadow: 0 2px 6px rgba(99, 102, 241, 0.18),
+                    0 0 0 0 rgba(99, 102, 241, 0.45);
+    }
+    50% {
+        box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25),
+                    0 0 0 8px rgba(99, 102, 241, 0);
+    }
+}
+
+/* --- Loop-session suggestion bubble (v3.0) --- */
+.meetmate-bubble {
+    background: rgba(20, 20, 30, 0.92);
+    color: #fff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    max-width: 380px;
+    font-size: 13px;
+    line-height: 1.45;
+}
+.meetmate-bubble-text { margin-bottom: 8px; }
+.meetmate-bubble-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+.meetmate-bubble-chips button.meetmate-chip {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: inherit;
+}
+.meetmate-bubble-chips button.meetmate-chip:hover {
+    background: rgba(255,255,255,0.22);
+}
+
+/* Chat-panel variant of chips (light background) — overrides the dark
+ * floating-bubble styling when chips render inside #aichat .assistant. */
+#aichat .assistant .meetmate-bubble-chips button.meetmate-chip {
+    background: #eef2ff;
+    color: #1d4ed8;
+    border: 1px solid #c7d2fe;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+#aichat .assistant .meetmate-bubble-chips button.meetmate-chip:hover {
+    background: #dbe4ff;
+    border-color: #a5b4fc;
+    color: #1e40af;
+}
+#aichat .assistant .meetmate-bubble-chips button.meetmate-chip:active {
+    background: #c7d2fe;
+}
+
+/* Chip in-flight + resolved + failed states */
+.meetmate-bubble-chips button.meetmate-chip:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.meetmate-bubble-chips button.meetmate-chip-running {
+    background: #fef3c7 !important;
+    border-color: #fcd34d !important;
+    color: #92400e !important;
+    animation: meetmate-pulse 1.4s ease-in-out infinite;
+}
+.meetmate-bubble-chips button.meetmate-chip-resolved {
+    background: #dcfce7 !important;
+    border-color: #86efac !important;
+    color: #166534 !important;
+    opacity: 0.85;
+    cursor: default;
+}
+.meetmate-bubble-chips button.meetmate-chip-failed {
+    background: #fee2e2 !important;
+    border-color: #fca5a5 !important;
+    color: #991b1b !important;
+}
+.meetmate-bubble-chips button.meetmate-chip-expired {
+    background: #f3f4f6 !important;
+    border-color: #e5e7eb !important;
+    color: #9ca3af !important;
+    opacity: 0.5;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+.meetmate-chip-spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: meetmate-spin 0.9s linear infinite;
+    vertical-align: -1px;
+    margin-right: 4px;
+}
+@keyframes meetmate-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* MeetMate small status pill (top-right of action button container).
+ * Used for: connected status, live captions indicator, minutes-saved
+ * confirmation. Subtle and auto-fades; never goes into the chat panel. */
+#meetmate-status {
+    position: absolute;
+    z-index: 99999;
+    right: 16px;
+    bottom: 110px;
+    background: rgba(31, 35, 40, 0.92);
+    color: #fff;
+    font: 500 12px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding: 6px 12px;
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 200ms ease, transform 200ms ease;
+    white-space: nowrap;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#meetmate-status.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* --- Persistent assistant bubble (chat panel) action row ---------------- */
+#aichat .assistant {
+    cursor: pointer;
+}
+#aichat .assistant .meetmate-msg-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+#aichat .assistant .meetmate-kind {
+    margin-right: 4px;
+    font-weight: 600;
+}
+.meetmate-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
+}
+#aichat .assistant:hover .meetmate-actions {
+    opacity: 1;
+}
+button.meetmate-action {
+    appearance: none;
+    border: 1px solid #d0d0d8;
+    background: #f5f5f8;
+    color: #444;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.4;
+    cursor: pointer;
+    font-family: inherit;
+}
+button.meetmate-action:hover {
+    background: #e8e8f0;
+    color: #111;
+    border-color: #b0b0bc;
+}
+button.meetmate-action:active {
+    background: #dcdce6;
+}
+/* Floating bubble strips .assistant + .meetmate-actions, but inherits chip styling */
+
+/* =========================================================================
+ * MeetMate v4.1 — 4-state UX scaffolding
+ * - #meetmate-center : top-center overlay for states 1 (talking) / 2 (mentioned) / 3 (toggled)
+ * - #meetmate-rail   : thin right strip for state 4 (idle) + Ask bar
+ * - #meetmate-translation : docked panel for continuous translation toggle
+ * ========================================================================= */
+
+#meetmate-center {
+    position: fixed;
+    z-index: 9999998;
+    top: 160px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-12px);
+    max-width: 720px;
+    min-width: 360px;
+    padding: 14px 18px 12px;
+    background: rgba(255,255,255,0.98);
+    border: 1px solid #e3e5e8;
+    border-radius: 14px;
+    box-shadow: 0 14px 38px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.06);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #1f2328;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 200ms ease;
+}
+#meetmate-center.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+/* Per-state border accents: 1 talking=violet, 2 mentioned=amber, 3 toggled=blue */
+#meetmate-center[data-state="1"] { border-color: #c4b5fd; box-shadow: 0 14px 38px rgba(99,102,241,0.18), 0 0 0 1px rgba(99,102,241,0.12); }
+#meetmate-center[data-state="2"] { border-color: #fcd34d; box-shadow: 0 14px 38px rgba(245,158,11,0.18), 0 0 0 1px rgba(245,158,11,0.18); }
+#meetmate-center[data-state="3"] { border-color: #93c5fd; box-shadow: 0 14px 38px rgba(59,130,246,0.18), 0 0 0 1px rgba(59,130,246,0.12); }
+
+#meetmate-center .mm-c-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+#meetmate-center .mm-c-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #1f2328;
+    font-size: 11px;
+    font-weight: 600;
+}
+#meetmate-center[data-state="1"] .mm-c-badge { background: #ede9fe; color: #5b21b6; }
+#meetmate-center[data-state="2"] .mm-c-badge { background: #fef3c7; color: #92400e; }
+#meetmate-center[data-state="3"] .mm-c-badge { background: #dbeafe; color: #1e40af; }
+
+#meetmate-center .mm-c-close {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+    line-height: 1;
+}
+#meetmate-center .mm-c-close:hover { color: #1f2328; }
+
+#meetmate-center .mm-c-body {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #1f2328;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+#meetmate-center .mm-c-body strong { font-weight: 600; }
+
+#meetmate-center .mm-c-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+#meetmate-center .mm-c-chips button {
+    appearance: none;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 999px;
+    padding: 5px 13px;
+    font: 500 12px/1.3 inherit;
+    color: #1f2328;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+#meetmate-center .mm-c-chips button:hover {
+    background: #f6f8fa;
+    border-color: #6366f1;
+}
+#meetmate-center .mm-c-chips button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* ── Center panel: multi-section layout (SUGGEST top / FACT mid / RESEARCH bottom) ── */
+#meetmate-center .mm-c-section {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #eef0f3;
+}
+#meetmate-center .mm-c-section:first-of-type { border-top: 0; padding-top: 0; margin-top: 6px; }
+#meetmate-center .mm-c-section-head {
+    font: 600 11px/1.2 inherit;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+#meetmate-center .mm-c-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+#meetmate-center .mm-c-entry {
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 1px solid #eef0f3;
+}
+#meetmate-center .mm-c-entry-suggest {
+    background: #fef9c3;
+    border-color: #fde68a;
+}
+#meetmate-center .mm-c-entry-fact {
+    background: #eff6ff;
+    border-color: #dbeafe;
+}
+#meetmate-center .mm-c-entry-research {
+    background: #fdf2f8;
+    border-color: #fbcfe8;
+}
+#meetmate-center .mm-c-entry-body {
+    font-size: 14px;
+    line-height: 1.45;
+    color: #1f2328;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+#meetmate-center .mm-c-entry-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+#meetmate-center .mm-c-entry-chips button {
+    appearance: none;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font: 500 12px/1.3 inherit;
+    color: #1f2328;
+    cursor: pointer;
+}
+#meetmate-center .mm-c-entry-chips button:hover {
+    background: #f6f8fa;
+    border-color: #6366f1;
+}
+#meetmate-center .mm-c-entry-chips button:disabled { opacity: 0.6; cursor: default; }
+
+/* Reply-variant interactions */
+#meetmate-center .mm-c-entry-clickable {
+    cursor: pointer;
+    transition: transform 0.08s, box-shadow 0.12s, opacity 0.2s, background 0.15s;
+}
+#meetmate-center .mm-c-entry-clickable:hover {
+    background: #fef3c7;
+    box-shadow: 0 0 0 2px rgba(251,191,36,0.35);
+}
+#meetmate-center .mm-c-entry-chosen {
+    background: #d1fae5 !important;
+    border-color: #6ee7b7 !important;
+    box-shadow: 0 0 0 2px rgba(16,185,129,0.3);
+}
+#meetmate-center .mm-c-entry-chosen .mm-c-entry-body::before {
+    content: "✓  ";
+    color: #059669;
+    font-weight: 700;
+}
+#meetmate-center .mm-c-entry-dimmed {
+    opacity: 0.45;
+    filter: saturate(0.6);
+}
+
+/* Drill-down trail: chosen entries get a connecting indicator on the left edge */
+#meetmate-center .mm-c-section-body { position: relative; }
+#meetmate-center .mm-c-entry-chosen {
+    position: relative;
+    margin-left: 12px;
+}
+#meetmate-center .mm-c-entry-chosen::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    width: 8px;
+    height: 2px;
+    background: #6ee7b7;
+}
+/* Refined drafts (batch >= 2) nested slightly under their parent. */
+#meetmate-center .mm-c-entry-suggest[data-batch="2"],
+#meetmate-center .mm-c-entry-suggest[data-batch="3"],
+#meetmate-center .mm-c-entry-suggest[data-batch="4"],
+#meetmate-center .mm-c-entry-suggest[data-batch="5"],
+#meetmate-center .mm-c-entry-suggest[data-batch="6"] {
+    margin-left: 18px;
+    border-left: 2px solid #fde68a;
+}
+
+/* Topic label header inside a reply branch */
+#meetmate-center .mm-c-entry-topic {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #92400e;
+    margin-bottom: 4px;
+}
+#meetmate-center .mm-c-entry-chosen .mm-c-entry-topic { color: #047857; }
+#meetmate-center .mm-c-entry-dimmed .mm-c-entry-topic { color: #6b7280; }
+
+/* Attention badge variant */
+#meetmate-center[data-attention="1"] { border-color: #fda4af; box-shadow: 0 14px 38px rgba(244,63,94,0.18), 0 0 0 1px rgba(244,63,94,0.18); }
+
+/* Rail attention toggle button (🎯) */
+#meetmate-rail .mm-r-attention {
+    appearance: none;
+    background: transparent;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    transition: background 0.12s, border-color 0.12s;
+}
+#meetmate-rail .mm-r-attention:hover { background: #f6f8fa; border-color: #6366f1; }
+#meetmate-rail .mm-r-attention.on {
+    background: #fee2e2;
+    border-color: #fda4af;
+    box-shadow: 0 0 0 2px rgba(244,63,94,0.15);
+}
+
+/* SUGGEST entries in the rail are now clickable ("I'll say this") */
+#meetmate-rail .mm-r-kind-suggest.mm-r-clickable {
+    cursor: pointer;
+}
+#meetmate-rail .mm-r-kind-suggest.mm-r-clickable:hover {
+    background: #fef3c7;
+}
+
+/* ── Right rail (state 4 idle + Ask bar always visible) ───────────────── */
+#meetmate-rail {
+    position: fixed;
+    z-index: 9999997;
+    top: 160px;
+    right: 16px;
+    bottom: 80px;
+    width: 340px;
+    background: rgba(255,255,255,0.98);
+    border: 1px solid #e3e5e8;
+    border-radius: 12px;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.10);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #1f2328;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+#meetmate-rail.collapsed { width: 44px; }
+#meetmate-rail .mm-r-head {
+    display: flex;
+    align-items: stretch;
+    padding: 6px 8px;
+    border-bottom: 1px solid #e3e5e8;
+    background: #fafbfc;
+}
+#meetmate-rail .mm-r-context {
+    flex: 1 1 auto;
+    width: 100%;
+    height: 32px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #1f2328;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+#meetmate-rail .mm-r-context:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+#meetmate-rail .mm-r-context::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+}
+#meetmate-rail .mm-r-context-saved {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: #10b981;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 4px;
+    padding: 2px 6px;
+    pointer-events: none;
+}
+#meetmate-rail .mm-r-head { position: relative; }
+#meetmate-rail .mm-r-toggle {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0 4px;
+    line-height: 1;
+}
+#meetmate-rail .mm-r-chips {
+    flex: 0 0 auto;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 35%;
+}
+#meetmate-rail .mm-r-log {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid #eef0f2;
+    background: #fafbfc;
+}
+#meetmate-rail .mm-r-log-entry {
+    font: 400 13px/1.5 inherit;
+    color: #1f2328;
+    word-break: break-word;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: background 0.12s, border-color 0.12s;
+}
+#meetmate-rail .mm-r-log-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+#meetmate-rail .mm-r-log-icon {
+    flex: 0 0 auto;
+    font-size: 14px;
+    line-height: 1.4;
+}
+#meetmate-rail .mm-r-log-text {
+    flex: 1 1 auto;
+    white-space: pre-wrap;
+}
+#meetmate-rail .mm-r-clickable {
+    cursor: pointer;
+}
+#meetmate-rail .mm-r-clickable:hover {
+    background: #f3f4f6;
+    border-color: #d0d7de;
+}
+/* kind borders removed; icon column is the sole kind cue */
+#meetmate-rail .mm-r-kind-fact,
+#meetmate-rail .mm-r-kind-research,
+#meetmate-rail .mm-r-kind-suggest { border-left: none; }
+/* User-asked rows: slightly emphasized, distinct title weight. */
+#meetmate-rail .mm-r-kind-userask {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+}
+#meetmate-rail .mm-r-kind-userask .mm-r-log-text {
+    font-weight: 600;
+    color: #1e1b4b;
+}
+#meetmate-rail .mm-r-kind-userask:hover {
+    background: #e0e7ff;
+    border-color: #a5b4fc;
+}
+#meetmate-rail .mm-r-log-detail {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: #f6f8fa;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #24292f;
+}
+#meetmate-rail .mm-r-loading {
+    color: #6b7280;
+    font-style: italic;
+    font-size: 11px;
+}
+#meetmate-rail.collapsed .mm-r-chips,
+#meetmate-rail.collapsed .mm-r-log,
+#meetmate-rail.collapsed .mm-r-asker,
+#meetmate-rail.collapsed .mm-r-head .mm-r-title { display: none; }
+
+#meetmate-rail .mm-r-chip {
+    appearance: none;
+    text-align: left;
+    background: #ffffff;
+    border: 1px solid #e3e5e8;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font: 500 12px/1.35 inherit;
+    color: #1f2328;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+    white-space: normal;
+    word-break: break-word;
+}
+#meetmate-rail .mm-r-chip:hover { background: #f6f8fa; border-color: #6366f1; }
+#meetmate-rail .mm-r-chip .mm-r-chip-kind {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+}
+#meetmate-rail .mm-r-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+#meetmate-rail .mm-r-chip-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+#meetmate-rail .mm-r-chip .mm-r-chip-icon {
+    flex: 0 0 auto;
+    font-size: 14px;
+    line-height: 1.35;
+}
+#meetmate-rail .mm-r-chip .mm-r-chip-text {
+    flex: 1 1 auto;
+}
+#meetmate-rail .mm-r-chip-detail {
+    padding: 8px 10px;
+    background: #f6f8fa;
+    border-radius: 6px;
+    font: 400 12px/1.5 inherit;
+    color: #24292f;
+    text-align: left;
+    white-space: pre-wrap;
+}
+#meetmate-rail .mm-r-chip-fact,
+#meetmate-rail .mm-r-chip-research,
+#meetmate-rail .mm-r-chip-suggest { border-left: none; }
+
+/* Ask bar pinned at rail bottom */
+#meetmate-rail .mm-r-asker {
+    border-top: 1px solid #e3e5e8;
+    padding: 8px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    background: #fafbfc;
+}
+#meetmate-rail .mm-r-asker input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font: 500 12px/1.3 inherit;
+    color: #1f2328;
+    outline: none;
+    background: #ffffff;
+}
+#meetmate-rail .mm-r-asker input:focus { border-color: #6366f1; }
+#meetmate-rail .mm-r-asker button {
+    appearance: none;
+    background: #6366f1;
+    border: 0;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+#meetmate-rail .mm-r-asker button:hover { background: #4f46e5; }
+#meetmate-rail .mm-r-asker button.mm-r-quickhelp {
+    background: #ffffff;
+    color: #6366f1;
+    border: 1px solid #c7d2fe;
+    font-weight: 700;
+}
+#meetmate-rail .mm-r-asker button.mm-r-quickhelp:hover {
+    background: #eef2ff;
+}
+
+/* ── Translation panel (continuous translate toggle ON) ─────────────────
+ * Rendered AS A CHILD of Teams' live-captions wrapper so it looks like a
+ * native section. JS sets position:absolute + top/left at runtime. */
+#meetmate-translation {
+    z-index: 9999996;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    font-family: inherit;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* JS sets position:absolute + top:0 left:0 max-width:100% max-height:50% */
+}
+#meetmate-translation .mm-t-head { display: none; }
+#meetmate-translation .mm-t-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+    font-family: inherit;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+#meetmate-translation .mm-t-line {
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+#meetmate-translation .mm-t-speaker {
+    display: block;
+    font-weight: 700;
+    font-size: 14px;
+    color: inherit;
+    margin: 0;
+}
+#meetmate-translation .mm-t-text {
+    font-size: 14px;
+    line-height: 1.4;
+    color: inherit;
+    opacity: 0.95;
+}
+
+/* Legacy #aichat is hidden when v4.1 UI is active (default).
+ * Re-enable via conf.useLegacyUI=true → body.meetmate-legacy. */
+body:not(.meetmate-legacy) #aichat { display: none !important; }
+body.meetmate-legacy #meetmate-center,
+body.meetmate-legacy #meetmate-rail,
+body.meetmate-legacy #meetmate-translation { display: none !important; }

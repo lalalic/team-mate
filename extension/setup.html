@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title data-i18n="setupTitle">MeetMate · Settings</title>
+        <script src="setup.js"></script>
+        <link rel="stylesheet" href="content.css">
+        <style>
+            :root {
+                --fg: #111827;
+                --muted: #6b7280;
+                --border: #e5e7eb;
+                --bg: #f3f4f6;
+                --card: #ffffff;
+                --accent: #2563eb;
+                --good: #059669;
+                --warn-bg: #fff3cd; --warn-fg: #856404;
+                --bad-bg: #f8d7da;  --bad-fg: #721c24;
+            }
+            * { box-sizing: border-box; }
+            body {
+                margin: 0;
+                background: var(--bg);
+                color: var(--fg);
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            .container {
+                max-width: 820px;
+                margin: 32px auto;
+                padding: 0 20px 64px;
+            }
+            .app-title {
+                margin: 0 0 24px;
+                font-size: 22px;
+                font-weight: 600;
+                color: var(--fg);
+                display: flex; align-items: center; gap: 10px;
+            }
+            .app-title .badge {
+                font-size: 11px;
+                background: var(--accent); color: #fff;
+                padding: 2px 8px; border-radius: 999px;
+                font-weight: 500;
+            }
+            .card {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 20px 22px;
+                margin-bottom: 16px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            }
+            .card h3 {
+                margin: 0 0 4px;
+                font-size: 15px;
+                font-weight: 600;
+                color: var(--fg);
+            }
+            .card .desc {
+                margin: 0 0 16px;
+                color: var(--muted);
+                font-size: 13px;
+            }
+            .row {
+                display: grid;
+                grid-template-columns: 180px 1fr;
+                gap: 12px 18px;
+                align-items: start;
+                margin-bottom: 14px;
+            }
+            .row:last-child { margin-bottom: 0; }
+            .row > label {
+                color: var(--fg);
+                font-weight: 500;
+                padding-top: 6px;
+            }
+            .row .hint {
+                grid-column: 2;
+                color: var(--muted);
+                font-size: 12px;
+                margin-top: 4px;
+            }
+            input[type="text"], input[type="number"], select, textarea {
+                width: 100%;
+                padding: 8px 10px;
+                font-size: 13px;
+                font-family: inherit;
+                color: var(--fg);
+                background: #fff;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                outline: none;
+                transition: border-color 0.15s, box-shadow 0.15s;
+            }
+            input:focus, select:focus, textarea:focus {
+                border-color: var(--accent);
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            }
+            textarea { min-height: 100px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+            input[type="number"] { max-width: 140px; }
+            select { max-width: 240px; }
+            button {
+                cursor: pointer;
+                font-family: inherit;
+                font-size: 13px;
+                padding: 7px 14px;
+                border: 1px solid var(--border);
+                background: #fff;
+                color: var(--fg);
+                border-radius: 6px;
+                transition: background 0.15s, border-color 0.15s;
+            }
+            button:hover { background: var(--bg); border-color: #cbd5e1; }
+            button.primary {
+                background: var(--good);
+                border-color: var(--good);
+                color: #fff;
+                font-weight: 600;
+            }
+            button.primary:hover { background: #047857; border-color: #047857; }
+            button.subtle { font-size: 12px; padding: 4px 10px; color: var(--muted); }
+            .balance-row {
+                display: flex; align-items: center; gap: 16px;
+                flex-wrap: wrap;
+            }
+            .topup-tiers {
+                display: flex; gap: 8px; margin-left: auto;
+            }
+            .topup-tier { min-width: 60px; }
+            .balance-display {
+                font-size: 24px;
+                font-weight: 600;
+                color: var(--good);
+            }
+            #usagePanel {
+                background: var(--bg);
+                padding: 12px 14px;
+                border-radius: 8px;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 13px;
+                color: var(--fg);
+            }
+            #usagePanel.warn { background: var(--warn-bg); color: var(--warn-fg); }
+            #usagePanel.bad  { background: var(--bad-bg);  color: var(--bad-fg); }
+            #memoryShortPanel {
+                background: var(--bg);
+                padding: 10px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                max-height: 180px;
+                overflow: auto;
+            }
+            #memoryShortPanel ul { margin: 0; padding-left: 18px; }
+            #memoryShortPanel li { margin: 4px 0; }
+            .footer {
+                text-align: center;
+                color: var(--muted);
+                font-size: 12px;
+                padding-top: 12px;
+            }
+            .footer a { color: var(--muted); }
+            .save-status {
+                font-size: 12px; color: var(--good);
+                margin-left: 8px; opacity: 0;
+                transition: opacity 0.3s;
+            }
+            .save-status.show { opacity: 1; }
+        </style>
+    </head>
+    <body style="display: none;">
+        <div class="container">
+            <h1 class="app-title">MeetMate <span class="badge">Settings</span></h1>
+
+            <!-- Account / billing -->
+            <div class="card">
+                <h3>Account</h3>
+                <p class="desc">Top up credits to use the AI assistant during your meetings.</p>
+                <div class="balance-row">
+                    <div>
+                        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">Balance</div>
+                        <div class="balance-display">$<span id="balance">0.00</span></div>
+                    </div>
+                    <div class="topup-tiers">
+                        <button data-amount="1"   class="primary topup-tier">$1</button>
+                        <button data-amount="10"  class="primary topup-tier">$10</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model & context -->
+            <div class="card">
+                <h3>Agent</h3>
+                <p class="desc">Choose the model and tell the assistant about you.</p>
+                <div class="row">
+                    <label for="relayModel">Model</label>
+                    <div>
+                        <select id="relayModel">
+                            <option value="gpt-4.1">gpt-4.1</option>
+                            <option value="gpt-5.4">gpt-5.4</option>
+                        </select>
+                        <div class="hint" style="grid-column:auto">Used for in-meeting suggestions, chat, and minutes.</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="preferredLanguage">Preferred language</label>
+                    <div>
+                        <select id="preferredLanguage">
+                            <option value="English">English</option>
+                            <option value="中文 (Chinese)">中文 (Chinese)</option>
+                            <option value="日本語 (Japanese)">日本語 (Japanese)</option>
+                            <option value="한국어 (Korean)">한국어 (Korean)</option>
+                            <option value="Español (Spanish)">Español (Spanish)</option>
+                            <option value="Français (French)">Français (French)</option>
+                            <option value="Deutsch (German)">Deutsch (German)</option>
+                            <option value="Português (Portuguese)">Português (Portuguese)</option>
+                            <option value="Русский (Russian)">Русский (Russian)</option>
+                            <option value="العربية (Arabic)">العربية (Arabic)</option>
+                            <option value="हिन्दी (Hindi)">हिन्दी (Hindi)</option>
+                        </select>
+                        <div class="hint" style="grid-column:auto">The language you read most fluently. Used by the 🌐 Translate toolbar button.</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="userContext">Your context</label>
+                    <div>
+                        <textarea id="userContext" style="min-height:280px" placeholder="Markdown. Use sections like ## About me, ## People I meet with, ## How I want the agent to help, ## Knowledge, ## Goals."></textarea>
+                        <div class="hint" style="grid-column:auto">
+                            Injected into the agent system prompt as the user_context block.
+                            <button id="userContextReset" class="subtle" style="margin-left:6px">Reset to template</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Memory -->
+            <div class="card">
+                <h3>Memory</h3>
+                <p class="desc">Auto-distilled after each meeting. Loaded into the next meeting's system prompt. You can edit long-term facts directly below.</p>
+                <div class="row">
+                    <label for="memoryLong">Long-term facts</label>
+                    <div>
+                        <textarea id="memoryLong" placeholder="One fact per line. Saved automatically." style="min-height:140px"></textarea>
+                        <div class="hint" style="grid-column:auto">
+                            <span id="memoryLongCount">0</span> facts &middot;
+                            <span class="save-status" id="memoryLongStatus">Saved ✓</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <label>Recent meetings</label>
+                    <div>
+                        <div id="memoryShortPanel"><em style="color:var(--muted)">(empty)</em></div>
+                        <div class="hint" style="grid-column:auto;margin-top:8px">
+                            Edit any summary inline (autosaves), or click × to remove a single meeting.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Knowledge (uploaded docs the assistant can reference in meetings) -->
+            <div class="card">
+                <h3>Knowledge</h3>
+                <p class="desc">
+                    Drop in design docs, briefs, or notes. The assistant
+                    indexes them and can recall passages by topic during
+                    meetings via its <code>recall_knowledge</code> tool.
+                </p>
+                <div class="row">
+                    <label>Documents</label>
+                    <div>
+                        <input type="file" id="knowledgeUpload"
+                            multiple
+                            accept=".txt,.md,.markdown,.json,.html,.csv,text/*"
+                        />
+                        <div class="hint" style="grid-column:auto">
+                            Plain text / markdown only (<code>.txt</code>, <code>.md</code>, <code>.json</code>, <code>.csv</code>, <code>.html</code>).
+                            For PDF / DOCX / PPT, convert first at
+                            <a href="https://convertio.co/" target="_blank" rel="noopener">convertio.co</a>
+                            (e.g. pdf&nbsp;→&nbsp;txt).
+                            Stored locally in <code>chrome.storage.local</code>. ~5&nbsp;MB total cap.
+                        </div>
+                    </div>
+                </div>
+                <div id="knowledgeList" style="margin-top:10px"></div>
+            </div>
+
+            <div class="footer">
+                <a href='https://ai.qili2.com' target='_blank'>@ai.qili2</a>
+            </div>
+        </div>
+    </body>
+</html>
+

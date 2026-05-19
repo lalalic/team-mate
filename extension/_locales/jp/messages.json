@@ -1,0 +1,80 @@
+{
+    "appName": {
+        "message": "MeetMate — 要点・ナレッジ・コーチ・記憶 for Teams"
+    },
+    "appDesc": {
+        "message": "ライブ要点、あなたのナレッジ、発言コーチ、会議記憶 — Teams内。イベント駆動AI、コスト約10分の1。ボットなし。"
+    },
+    "rephrasePrompt": {
+        "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
+    },
+    "suggestionPrompt": {
+        "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
+    },
+    "quickPrompts": {
+        "message": "Sum: 会議を要約します。\n?Respond: 今、どのように返答すればよいですか？\n?Answer: 最後の質問に良い回答を提案します。\nActions: この会議から出た行動項目を強調しますか？\nIssues: 会議で議論された主要な課題や問題を強調します。\nMinutes: 会議の議事録を作成します。"
+    },
+    "meetingGoal": {
+        "message": "オプション：このミーティングの目標/テーマを説明してください..."
+    },
+    "needTopup": {
+        "message": "まずチャージしてください！ 使うのは非常に非常に安いです。"
+    },
+    "topup": {
+        "message": "AIアシスタントのチャージ"
+    },
+    "autoDownload": {
+        "message": "ライブキャプションの自動ダウンロード"
+    },
+    "setupTitle": {
+        "message": "高度な設定"
+    },
+    "testHello": {
+        "message": "テスト：こんにちは"
+    },
+    "shortcut": {
+        "message": "ショートカットプロンプト"
+    },
+    "shortcutDesc": {
+        "message": "各行に対して AI からクリックでアクセスできます. '*'で始まるアクションは、会議を離れると自動的にトリガーされます。"
+    },
+    "instruction": {
+        "message": "会議 AI 指示"
+    },
+    "enableMeeting": {
+        "message": "会議中に有効にする。"
+    },
+    "suggestionPrompt_placeholder": {
+        "message": "AI 指示、システムメッセージ"
+    },
+    "videoInstruction": {
+        "message": "ビデオ AI 指示"
+    },
+    "enabledRephrasing": {
+        "message": "記録された会議の転写を適用した後に有効にします。"
+    },
+    "rephrasePrompt_placeholder": {
+        "message": "AI 指示、システムメッセージ"
+    },
+    "languageMarker": {
+        "message": "言語マーカー[?]"
+    },
+    "meetingMarker": {
+        "message": "会議マーカー[!]"
+    },
+    "enabledLanguageFlag": {
+        "message": "転写における言語注意をフラグするボタン。"
+    },
+    "enabledMeetingFlag": {
+        "message": "転写におけるコンテンツの注意をフラグするボタン。"
+    },
+    "languageAttention": {
+        "message": "言語の注意"
+    },
+    "meetingAttention": {
+        "message": "会議の注意"
+    },
+    "buyMeBear": {
+        "message": "ビールを買ってください"
+    }
+}
