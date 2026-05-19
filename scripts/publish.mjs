@@ -6,15 +6,13 @@
  *   1. Verify clean git working tree (or accept --dirty)
  *   2. Bump version (`patch` | `minor` | `major` | explicit `x.y.z`) in
  *      package.json + extension/manifest.json
- *   3. Run `yarn build` (webpack production + zip → team-mate.zip)
- *   4. Upload team-mate.zip to the Chrome Web Store via the API
+ *   3. Run `npm test` + `npm run build` → team-mate.zip
+ *   4. Upload team-mate.zip via CWS dashboard (browser-harness CDP)
  *   5. Submit for review (or leave as draft with --draft)
  *
- * Required environment variables (load from .env via `dotenv` if present):
- *   CWS_EXTENSION_ID    — Chrome Web Store extension id
- *   CWS_CLIENT_ID       — Google OAuth client id
- *   CWS_CLIENT_SECRET   — Google OAuth client secret
- *   CWS_REFRESH_TOKEN   — Google OAuth refresh token (offline scope)
+ * Prerequisites:
+ *   - Chrome running with --remote-debugging-port (browser-harness connected)
+ *   - Logged in to CWS developer console
  *
  * Usage:
  *   node scripts/publish.mjs                  # bump patch, build, upload, submit
@@ -24,12 +22,6 @@
  *   node scripts/publish.mjs --draft          # upload only, do NOT submit
  *   node scripts/publish.mjs --dry-run        # everything except the upload
  *   node scripts/publish.mjs --dirty          # allow uncommitted changes
- *
- * Credentials setup (one-time):
- *   See scripts/PUBLISH.md for the OAuth dance — short version:
- *     1. Create OAuth client (type: "Desktop") in Google Cloud Console
- *     2. Run scripts/cws-oauth.mjs to mint a refresh token
- *     3. Drop CWS_* env vars into team-mate/.env (gitignored)
  */
 
 import { execSync, spawnSync } from "node:child_process"
@@ -53,27 +45,7 @@ const DRAFT = flag("draft")
 const DRY = flag("dry-run")
 const ALLOW_DIRTY = flag("dirty")
 
-// ─── .env ───────────────────────────────────────────────────────────────────
-const envPath = resolve(ROOT, ".env")
-if (existsSync(envPath)) {
-    for (const line of readFileSync(envPath, "utf8").split("\n")) {
-        const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/)
-        if (m && !process.env[m[1]]) {
-            let v = m[2]
-            if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
-                v = v.slice(1, -1)
-            process.env[m[1]] = v
-        }
-    }
-}
-
-const need = ["CWS_EXTENSION_ID", "CWS_CLIENT_ID", "CWS_CLIENT_SECRET", "CWS_REFRESH_TOKEN"]
-const missing = need.filter((k) => !process.env[k])
-if (missing.length && !DRY) {
-    console.error(`✗ Missing env vars: ${missing.join(", ")}`)
-    console.error("  See scripts/PUBLISH.md to set them up.")
-    process.exit(1)
-}
+// No env vars needed — upload is done via browser-harness (scripts/cws-upload.py)
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const sh = (cmd, opts = {}) => {
@@ -132,56 +104,22 @@ if (!existsSync(zipPath)) {
     process.exit(1)
 }
 
-// ─── 4. upload via CWS API ──────────────────────────────────────────────────
-const uploadAndPublish = async () => {
-    const { default: chromeWebstoreUpload } = await import("chrome-webstore-upload")
-    const webstore = chromeWebstoreUpload({
-        extensionId: process.env.CWS_EXTENSION_ID,
-        clientId: process.env.CWS_CLIENT_ID,
-        clientSecret: process.env.CWS_CLIENT_SECRET,
-        refreshToken: process.env.CWS_REFRESH_TOKEN,
-    })
-
-    console.log("▶ Uploading team-mate.zip to Chrome Web Store…")
-    const { createReadStream } = await import("node:fs")
-    const uploadRes = await webstore.uploadExisting(createReadStream(zipPath))
-    console.log("  upload:", JSON.stringify(uploadRes, null, 2))
-    if (uploadRes.uploadState === "FAILURE") {
-        console.error("✗ Upload failed.")
-        process.exit(1)
-    }
-
-    if (DRAFT) {
-        console.log("✓ Uploaded as draft. Submit manually from the dev console.")
-        return
-    }
-
-    console.log("▶ Submitting for review (publish)…")
-    const pubRes = await webstore.publish("default")
-    console.log("  publish:", JSON.stringify(pubRes, null, 2))
-    const status = pubRes.status || []
-    if (status.includes("OK") || status.includes("ITEM_PENDING_REVIEW")) {
-        console.log(`✓ v${newVersion} submitted for review.`)
-    } else {
-        console.warn(`⚠ Publish returned unexpected status: ${status.join(", ")}`)
-    }
+// ─── 4. upload via CWS dashboard (browser-harness) ──────────────────────────
+const uploadViaDashboard = async () => {
+    const submitFlag = DRAFT ? "" : " --submit"
+    console.log(`▶ Uploading team-mate.zip via CWS dashboard…${DRAFT ? " (draft only)" : ""}`)
+    sh(`python3 scripts/cws-upload.py${submitFlag}`)
 }
 
 if (DRY) {
     console.log("✓ Dry-run complete. team-mate.zip ready but not uploaded.")
     console.log(`  Would publish version ${newVersion} (DRAFT=${DRAFT})`)
-    console.log(`\n  ⚠ After uploading, update the long description manually:`)
-    console.log(`    https://chrome.google.com/webstore/devconsole/b6ef2f52-fb3e-4af5-bbbf-ad73d2b79348/${process.env.CWS_EXTENSION_ID || 'immkojolaicdjhkbbhkldmndhfjbehmf'}/edit/listing`)
-    console.log(`    Copy from: .market/store-listing.md (## description section)`)
     process.exit(0)
 }
 
-uploadAndPublish().then(() => {
-    console.log(`\n  ⚠ Long description, screenshots, and privacy fields must be updated manually.`)
-    console.log(`    Dev console: https://chrome.google.com/webstore/devconsole/b6ef2f52-fb3e-4af5-bbbf-ad73d2b79348/${process.env.CWS_EXTENSION_ID || 'immkojolaicdjhkbbhkldmndhfjbehmf'}/edit/listing`)
-    console.log(`    Copy from: .market/store-listing.md`)
-    console.log(`\n    Or run:  node scripts/listing-clipboard.mjs   to copy the description to clipboard.`)
+uploadViaDashboard().then(() => {
+    console.log(`\n✓ v${newVersion} uploaded to Chrome Web Store.`)
 }).catch((e) => {
-    console.error("✗ Publish failed:", e?.response?.body || e?.message || e)
+    console.error("✗ Publish failed:", e?.message || e)
     process.exit(1)
 })

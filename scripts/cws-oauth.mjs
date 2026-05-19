@@ -18,13 +18,11 @@
 import { readFileSync, appendFileSync, existsSync } from "node:fs"
 import { resolve, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
-import readline from "node:readline/promises"
-import { stdin as input, stdout as output } from "node:process"
+import { createServer } from "node:http"
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const envPath = resolve(ROOT, ".env")
 const SCOPE = "https://www.googleapis.com/auth/chromewebstore"
-const REDIRECT = "urn:ietf:wg:oauth:2.0:oob"
 
 // load existing .env
 if (existsSync(envPath)) {
@@ -41,6 +39,13 @@ if (!CID || !CSECRET) {
     process.exit(1)
 }
 
+// Start a local server to capture the OAuth redirect
+const server = createServer()
+const port = await new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", () => resolve(server.address().port))
+})
+const REDIRECT = `http://localhost:${port}`
+
 const authUrl = new URL("https://accounts.google.com/o/oauth2/auth")
 authUrl.searchParams.set("client_id", CID)
 authUrl.searchParams.set("redirect_uri", REDIRECT)
@@ -51,11 +56,24 @@ authUrl.searchParams.set("prompt", "consent")
 
 console.log("\n▶ Open this URL in a browser signed in to the CWS publisher account:\n")
 console.log("   " + authUrl.toString() + "\n")
-console.log("After consent you'll get a code. Paste it below.\n")
 
-const rl = readline.createInterface({ input, output })
-const code = (await rl.question("code: ")).trim()
-rl.close()
+const code = await new Promise((resolve, reject) => {
+    server.on("request", (req, res) => {
+        const url = new URL(req.url, REDIRECT)
+        const code = url.searchParams.get("code")
+        const error = url.searchParams.get("error")
+        res.writeHead(200, { "Content-Type": "text/html" })
+        if (code) {
+            res.end("<h2>✓ Authorization received. You can close this tab.</h2>")
+            resolve(code)
+        } else {
+            res.end(`<h2>✗ Error: ${error || "unknown"}</h2>`)
+            reject(new Error(error || "no code"))
+        }
+    })
+    setTimeout(() => reject(new Error("Timed out waiting for OAuth redirect")), 120_000)
+})
+server.close()
 
 const body = new URLSearchParams({
     code,
