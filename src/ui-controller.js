@@ -14,8 +14,8 @@
 //   ui.applyState({state, payload})        // call after classifyState()
 //   ui.renderSuggestion({kind, text, options})  // routes to rail
 //   ui.addIdleChip({kind, text, action})        // for state-4 rail chips
-//   ui.pushTranslation({speaker, text})         // append to translation panel
-//   ui.setTranslateOn(boolean)                  // show/hide translation panel
+//   ui.pushTranslation({speaker, text})         // no-op (translation feature retired)
+//   ui.setTranslateOn(boolean)                  // no-op (translation feature retired)
 //   ui.dismissCenter()                          // no-op (kept for API compat)
 //   ui.destroy()
 
@@ -65,11 +65,13 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
     `)
     rail.classList.add("shouldRemove")
 
-    const translation = ensureEl("meetmate-translation", `
-        <div class="mm-t-body"></div>
-    `)
-    translation.classList.add("shouldRemove")
+    // Translation panel was removed 2026-05 — continuous-translation feature retired.
+    // Detached stub kept so legacy callers (pushTranslation/setTranslateOn) don't crash.
+    try { document.getElementById("meetmate-translation")?.remove() } catch (_) {}
+    const translation = document.createElement("div")
+    translation.id = "meetmate-translation"
     translation.style.display = "none"
+    translation.innerHTML = `<div class="mm-t-body"></div>`
 
     // Wire close on center (no-op handler retained for API compatibility;
     // the element is detached so the listener never fires in practice).
@@ -155,52 +157,7 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
         _ctxLast = (v || "").trim()
     }
 
-    // Wire translation close → no-op (close button removed; toggle off via 🌐 button only)
-
-    // Sync translation panel position: attach it AS A CHILD of Teams' Live
-    // Captions wrapper so it looks like a native section of the captions UI.
-    // Positioned absolute at the top-left of the wrapper, occupying the upper
-    // portion so the native caption lines flow underneath.
-    const TEAMS_CAPTIONS_SEL = '[data-tid="closed-caption-renderer-wrapper"]'
-    let _ttRO = null
-    function alignTranslationToCaptions() {
-        try {
-            const wrap = document.querySelector(TEAMS_CAPTIONS_SEL)
-            if (!wrap) return
-            // Adopt the translation element as a child of the captions wrapper
-            // (once) so it inherits Teams' layout context. Becomes a native
-            // sibling block in the captions DOM.
-            if (translation.parentElement !== wrap) {
-                try { wrap.appendChild(translation) } catch (_) {}
-                // Ensure relative parent so absolute positioning anchors here.
-                try {
-                    const cs = getComputedStyle(wrap)
-                    if (cs.position === "static") wrap.style.position = "relative"
-                } catch (_) {}
-            }
-            // Reset any prior fixed positioning leftover from older runs.
-            translation.style.position = "absolute"
-            translation.style.top = "0"
-            translation.style.left = "0"
-            translation.style.right = "auto"
-            translation.style.bottom = "auto"
-            translation.style.width = "auto"
-            translation.style.height = "auto"
-            translation.style.maxWidth = "100%"
-            translation.style.maxHeight = "100%"
-            translation.style.height = "100%"
-        } catch (_) {}
-    }
-    function attachCaptionsObserver() {
-        try {
-            const wrap = document.querySelector(TEAMS_CAPTIONS_SEL)
-            if (!wrap || _ttRO) return
-            _ttRO = new ResizeObserver(alignTranslationToCaptions)
-            _ttRO.observe(wrap)
-            window.addEventListener("resize", alignTranslationToCaptions)
-            alignTranslationToCaptions()
-        } catch (_) {}
-    }
+    // (Translation-panel close + caption-alignment helpers removed 2026-05.)
 
     // ── Internal state ────────────────────────────────────────────────────
     let currentState = 4
@@ -405,36 +362,12 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
         chipsEl.appendChild(b)
     }
 
-    function pushTranslation({ speaker, text } = {}) {
-        const body = translation.querySelector(".mm-t-body")
-        // Cap to last 20 lines
-        while (body.children.length >= 20) body.removeChild(body.firstChild)
-        const line = document.createElement("div")
-        line.className = "mm-t-line"
-        const nameEl = document.createElement("div")
-        nameEl.className = "mm-t-speaker"
-        nameEl.textContent = speaker || "Speaker"
-        const textEl = document.createElement("div")
-        textEl.className = "mm-t-text"
-        textEl.textContent = text || ""
-        line.appendChild(nameEl)
-        line.appendChild(textEl)
-        body.appendChild(line)
-        body.scrollTop = body.scrollHeight
+    function pushTranslation(/* { speaker, text } */) {
+        // (Continuous-translation feature retired; no-op kept for API compat.)
     }
 
-    function setTranslateOn(on) {
-        translation.style.display = on ? "flex" : "none"
-        if (on) {
-            // Retry alignment a few times in case Teams captions wrapper
-            // hasn't appeared yet.
-            attachCaptionsObserver()
-            let tries = 0
-            const t = setInterval(() => {
-                alignTranslationToCaptions()
-                if (++tries >= 10) clearInterval(t)
-            }, 300)
-        }
+    function setTranslateOn(/* on */) {
+        // (Continuous-translation feature retired; no-op kept for API compat.)
     }
 
     function dismissCenter() {
@@ -539,8 +472,6 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
     }
 
     function destroy() {
-        try { _ttRO?.disconnect?.(); _ttRO = null } catch (_) {}
-        try { window.removeEventListener("resize", alignTranslationToCaptions) } catch (_) {}
         try { window.removeEventListener("meetmate:attention-toggle", _attHandler) } catch (_) {}
         try { center.remove() } catch (_) {}
         try { rail.remove() } catch (_) {}

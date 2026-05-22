@@ -312,7 +312,6 @@ export async function makePredictAPI() {
             user_context: (conf.userContext || "").trim() || "(none)",
             memory: memoryBlock || "(empty)",
             knowledge_index: knowledgeIndex || "(none)",
-            preferred_language: (conf.preferredLanguage || "English").trim(),
         });
     }
 
@@ -476,7 +475,7 @@ export async function makePredictAPI() {
 export async function makeLoopClient({ meetingId, name, transcripts, history }) {
     const conf = await getConf();
     const promptTemplate = await loadAgentPrompt();
-    const memoryBlock = await formatMemoryForPrompt();
+    const memoryBlock = await formatMemoryForPrompt(name);
     const knowledgeIndex = await formatKnowledgeIndex();
 
     const systemMessage = fillTemplate(promptTemplate, {
@@ -487,17 +486,15 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
         user_context: (conf.userContext || "").trim() || "(none)",
         memory: memoryBlock || "(empty)",
         knowledge_index: knowledgeIndex || "(none)",
-        preferred_language: (conf.preferredLanguage || "English").trim(),
     });
 
     let onSuggestionCbs = [];
     let onMinutesCb = null;
     let onLiveMinutesCb = null;
-    let onPhaseCb = null;
     let onConnectedCb = null;
     // Generic "any tool was invoked" listeners — used by askLoop so a chip
     // tap can resolve to ✓ even if the model silently calls save_memory /
-    // update_live_minutes / set_phase instead of producing a new bubble.
+    // update_live_minutes instead of producing a new bubble.
     let onAnyToolCbs = [];
     const fireAnyTool = (tool, args) => {
         for (const cb of onAnyToolCbs) {
@@ -551,11 +548,6 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
             fireAnyTool('update_live_minutes', { markdown });
             return { ok: true };
         },
-        async setPhase({ phase, note }) {
-            try { onPhaseCb?.({ phase, note }); } catch (e) { console.warn(e); }
-            fireAnyTool('set_phase', { phase, note });
-            return { ok: true };
-        },
         async saveMemory({ facts, summary }) {
             try {
                 if (summary) await appendShort({ name: name || "(untitled)", summary });
@@ -584,7 +576,7 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
     const loop = createLoopSession({
         meetingId,
         systemMessage,
-        model: conf.relayModel || "deepseek-chat",
+        model: conf.relayModel || "deepseek-v4-flash",
         handlers,
     });
 
@@ -600,11 +592,10 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
         },
         onMinutes: (fn) => { onMinutesCb = fn; },
         onLiveMinutes: (fn) => { onLiveMinutesCb = fn; },
-        onPhase: (fn) => { onPhaseCb = fn; },
         onConnected: (fn) => { onConnectedCb = fn; },
         // Push a user message and resolve with the FIRST model response —
         // a send_suggestion payload, or { ack: true, tool } if the model
-        // silently called save_memory / update_live_minutes / set_phase
+        // silently called save_memory / update_live_minutes
         // (e.g. a goal-binding chip that just persists state). Resolves
         // null on timeout. Used by the chat panel and chip taps.
         askLoop: (text, { timeoutMs = 30000 } = {}) => new Promise((resolve) => {
@@ -644,77 +635,7 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
     };
 }
 
-/**
- * Build a DEDICATED translator loop session, isolated from the main agent
- * loop. Each caption pushed via `pushCaption(speaker, text)` becomes one
- * `user_msg` event. The model replies with a single `send_suggestion` whose
- * text is the translated caption (prefixed with the speaker name), then
- * parks. No memory / minutes / FACT / RESEARCH machinery — translator only.
- *
- * Returns: { start, pushCaption, end, onTranslation(fn) }
- */
-export async function makeTranslatorClient({ meetingId }) {
-    const conf = await getConf();
-    const pref = (conf.preferredLanguage || "English").trim();
-
-    const systemMessage = [
-        `You are a REAL-TIME meeting captions translator.`,
-        `Target language: ${pref}.`,
-        ``,
-        `Each \`user_msg\` event delivers ONE caption line in the form:`,
-        `    Speaker: text`,
-        ``,
-        `For every such event you MUST:`,
-        `  1. Call \`send_suggestion\` ONCE with:`,
-        `       kind: "SUGGEST"`,
-        `       text: "<Speaker>: <translation in ${pref}>"`,
-        `       options: []`,
-        `     The translation must be ONLY the rendered ${pref} text — no`,
-        `     commentary, no quotes, no parentheses, no romanisation.`,
-        `     If the caption is already in ${pref}, echo the original text verbatim.`,
-        `  2. Then call \`wait_for_event\`.`,
-        ``,
-        `Do NOT call: save_memory, save_minutes, update_live_minutes, set_phase,`,
-        `get_snapshot. Do NOT emit FACT or RESEARCH bubbles. Translator only.`,
-    ].join("\n");
-
-    let onTranslationCb = null;
-
-    const handlers = {
-        getSnapshot: () => ({ transcripts: [], history: [], name: "", participants: [], memory: "" }),
-        sendSuggestion({ kind, text, options }) {
-            const decoded = typeof text === "string"
-                ? text.replace(/\\n/g, "\n").replace(/\\t/g, "\t")
-                : text;
-            try { onTranslationCb?.({ text: decoded }); } catch (e) { console.warn(e); }
-            return { ok: true };
-        },
-        saveMinutes: async () => ({ ok: true }),
-        updateLiveMinutes: async () => ({ ok: true }),
-        setPhase: async () => ({ ok: true }),
-        saveMemory: async () => ({ ok: true }),
-        onConnected: () => {},
-    };
-
-    const loop = createLoopSession({
-        meetingId: `${meetingId || "meeting"}-translator`,
-        systemMessage,
-        model: conf.relayModel || "deepseek-chat",
-        handlers,
-        bootstrapUser: "Translator ready. Call `wait_for_event` and wait for caption events.",
-    });
-
-    return {
-        start: () => loop.start(),
-        pushCaption: (speaker, text) => {
-            if (!text) return;
-            const line = `${speaker || "Speaker"}: ${text}`;
-            loop.pushUserMsg(line);
-        },
-        end: () => loop.end(),
-        onTranslation: (fn) => { onTranslationCb = fn; },
-    };
-}
+// (makeTranslatorClient was removed 2026-05 — continuous-translation feature retired.)
 
 // --- UI (unchanged from previous version, but uses new makePredictAPI) -------
 
@@ -759,49 +680,13 @@ export async function createUI({ uiContainer = document.body, transcripts, histo
         container.classList.add('shouldRemove');
         uiContainer.appendChild(container);
 
-        // --- Global Translate TOGGLE (v4.1) --------------------------------
-        // Click → toggle continuous translation mode (conf.continuousTranslate).
-        // When ON, the side panel #meetmate-translation streams a rolling
-        // translation of the opposite-language captions into the user's
-        // preferred language. When OFF, translation is on-demand (one-shot)
-        // via the same model. UI plumbing is handled in content.js via the
-        // 'meetmate:translate-toggle' custom event.
-        const translate = document.createElement('button');
-        translate.title = chrome.i18n.getMessage('translateRecent') || 'Continuous translation';
-        translate.role = 'translate';
-        translate.id = 'translateButton';
-        translate.classList.add('actionButton');
-        translate.textContent = '\u{1F310}'; // 🌐
-        // Reflect persisted state on init.
-        (async () => {
-            try {
-                const c = await getConf();
-                if (c.continuousTranslate) translate.classList.add('doing');
-            } catch (_) {}
-        })();
-        translate.addEventListener('click', async () => {
-            try {
-                const c = await getConf();
-                const next = !c.continuousTranslate;
-                await changeConf({ continuousTranslate: next });
-                translate.classList.toggle('doing', !!next);
-                window.dispatchEvent(new CustomEvent('meetmate:translate-toggle', { detail: { on: !!next } }));
-                if (!next) return;
-                // One-shot prime: also ask the loop to translate the last few
-                // captions so the user sees something in the panel immediately.
-                const lang = (c.preferredLanguage || 'English').trim();
-                window.__meetmate?.pushUserMsg?.(
-                    `[TRANSLATE_PRIME to ${lang}] Continuous translation is now ON. Translate the LAST 1-3 non-${lang} captions into ${lang} so the user has context. Then for every subsequent caption, do nothing extra — the translation panel handles it separately.`
-                );
-            } catch (e) { console.warn(e) }
-        });
-        container.appendChild(translate);
+        // (Continuous-translation toggle removed 2026-05 — feature retired.)
 
         // --- Global Live Minutes button ------------------------------------
         // Tap → toggle the live minutes panel.
         const minutesPanel = createLiveMinutesUI();
         const minutes = document.createElement('button');
-        minutes.title = chrome.i18n.getMessage('liveMinutes') || 'Live minutes';
+        minutes.title = chrome.i18n.getMessage('liveMinutes') || 'Current topic';
         minutes.role = 'minutes';
         minutes.id = 'liveMinutesButton';
         minutes.classList.add('actionButton');
@@ -841,8 +726,8 @@ export async function createUI({ uiContainer = document.body, transcripts, histo
         panel.classList.add('shouldRemove');
         panel.style.visibility = 'hidden';
         panel.innerHTML = `
-            <div class="meetmate-minutes-header">\ud83d\udccb Live minutes <span class="meetmate-minutes-status">waiting for first decision\u2026</span></div>
-            <div class="meetmate-minutes-body"><em style="color:#9ca3af">As decisions, action items, owners, and deadlines are mentioned, they'll appear here.</em></div>
+            <div class="meetmate-minutes-header">📌 Current Topic <span class="meetmate-minutes-status">listening…</span></div>
+            <div class="meetmate-minutes-body"><em style="color:#9ca3af">The current discussion topic will appear here.</em></div>
         `;
         uiContainer.appendChild(panel);
         return panel;
@@ -890,7 +775,7 @@ export async function createUI({ uiContainer = document.body, transcripts, histo
                     const tool = payload.tool || 'tool';
                     const ackText = ({
                         save_memory: '✓ Noted.',
-                        update_live_minutes: '✓ Live minutes updated — see the 📋 panel.',
+                        update_live_minutes: '✓ Topic updated — see the 📌 panel.',
                         set_phase: `✓ Phase: ${payload.args?.phase || ''}`.trim(),
                     })[tool] || `✓ Done (${tool}).`;
                     const msg = { role: "assistant", content: ackText, kind: 'SUGGEST' };

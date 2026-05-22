@@ -871,55 +871,9 @@ button.meetmate-action:active {
     background: #eef2ff;
 }
 
-/* ── Translation panel (continuous translate toggle ON) ─────────────────
- * Rendered AS A CHILD of Teams' live-captions wrapper so it looks like a
- * native section. JS sets position:absolute + top/left at runtime. */
-#meetmate-translation {
-    z-index: 9999996;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    font-family: inherit;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 220px;
-    width: 50%;
-    /* JS sets position:absolute + top:0 left:0 max-width:100% max-height:50% */
-}
-#meetmate-translation .mm-t-head { display: none; }
-#meetmate-translation .mm-t-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 12px;
-    font-family: inherit;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-#meetmate-translation .mm-t-line {
-    padding: 0;
-    border: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-#meetmate-translation .mm-t-speaker {
-    display: block;
-    font-weight: 700;
-    font-size: 14px;
-    color: inherit;
-    margin: 0;
-}
-#meetmate-translation .mm-t-text {
-    font-size: 14px;
-    line-height: 1.4;
-    color: inherit;
-    opacity: 0.95;
-}
+/* Translation panel (#meetmate-translation) was removed 2026-05 along with
+ * the continuous-translate toggle. Stale nodes from cached builds are hidden. */
+#meetmate-translation { display: none !important; }
 
 /* Legacy #aichat is hidden when v4.1 UI is active (default).
  * Re-enable via conf.useLegacyUI=true → body.meetmate-legacy. */

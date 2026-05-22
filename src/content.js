@@ -1,4 +1,4 @@
-const {createUI, changeConf, since, isV2, getMeetingName, makeLoopClient, makeTranslatorClient, renderAssistantBubble, getConf} = require("./util")
+const {createUI, changeConf, since, isV2, getMeetingName, makeLoopClient, renderAssistantBubble, getConf} = require("./util")
 const {resetRelayClient} = require("./relay")
 const {classifyState} = require("./state-machine")
 const {createUIController} = require("./ui-controller")
@@ -46,7 +46,7 @@ async function init(){
     let _captionBatch=[]        // captions to flush in next pushCaption
     let _flushTimer=null
     let _loop=null              // active LoopSession for the current meeting
-    let _translator=null        // dedicated translator LoopSession (isolated from main agent)
+    // (continuous-translation runtime removed 2026-05)
     // v4.1 UI controller (4-state) — initialized in startTranscription
     let _ui = null
     let _uiState = 4
@@ -54,11 +54,6 @@ async function init(){
     let _lastSpeakRefreshAt = 0  // wall-clock of last mid-speech [SPEAKING_REFRESH] push
     let _lastSpeakRefreshCount = 0 // transcripts.length at that point
     let _askBar = { active: false, query: "", ts: 0, dismissed: false }
-    // FIFO of pending translation requests. We use this to route the next
-    // assistant suggestion(s) to the translation panel instead of the center
-    // overlay. Each entry is the speaker name so we can label the rendered
-    // line correctly.
-    let _pendingTranslations = []
     // FIFO of pending FACT/RESEARCH detail requests (from rail-log clicks).
     // Each: { id, kind, ts }
     let _pendingDetails = []
@@ -66,6 +61,8 @@ async function init(){
     // Each: { id, ts }
     let _pendingAskAnswers = []
     let _stateTimer = null      // periodic re-classify to expire stickies
+    // Extras for VTT export: translations + LLM suggestions
+    let _extras = []
 
     // Expose user-message hook so the chat panel (util.js#createAIChatUI) can
     // route its input into the loop session as head-of-queue user_msg events.
@@ -182,25 +179,10 @@ async function init(){
     // measure recency from insertion time (Time field is mm:ss only).
     function stampCaption(t) { if (t && !t._ts) t._ts = Date.now(); return t }
 
-    // Called from caption-ingest sites. Reclassifies UI state and, when
-    // continuous-translate is on AND the caption isn't already in the user's
-    // preferred language, asks the DEDICATED translator session to translate
-    // it into the panel. The translator is fully isolated from _loop so
-    // captions don't pollute the main agent's context.
+    // Called from caption-ingest sites. Reclassifies UI state.
+    // (Continuous-translation hook was removed 2026-05.)
     async function onCaptionForState(t) {
         try { reclassifyState() } catch (_) {}
-        try {
-            const conf = await getConf().catch(() => null)
-            if (!conf?.continuousTranslate || !_translator || !t?.Text) return
-            const pref = (conf.preferredLanguage || 'English').trim()
-            // Best-effort: skip lines that look like they're in the preferred
-            // language already (basic ascii/latin heuristic). Real detection
-            // is delegated to the model, which we instruct via the prompt.
-            const looksLatin = /^[\x00-\x7F\s.,!?'"\u2010-\u2019]+$/.test(t.Text)
-            const prefLooksLatin = /^[A-Za-z][a-zA-Z\s]*$/.test(pref)
-            if (looksLatin && prefLooksLatin) return  // probably already English
-            _translator.pushCaption(t.Name || 'Speaker', t.Text)
-        } catch (e) { console.warn('[meetmate] translate hook failed', e) }
     }
 
     function checkCaptions(container=document, isLast) {
@@ -260,7 +242,65 @@ async function init(){
             }
         }
     }
-    
+
+    // ── React fiber caption polling (Teams v2) ─────────────────────────
+    // Teams v2 uses a virtual list that only renders visible items. The
+    // MutationObserver misses ~50% of captions. Polling React's internal
+    // `currentEntries` array via the fiber gives 100% coverage.
+    let _fiberPollTimer = null
+    const _fiberSeenIds = new Set()
+
+    function _getFiberEntries() {
+        try {
+            const el = document.querySelector('[data-tid="closed-caption-v2-virtual-list-content"]')
+            if (!el) return null
+            const fiberKey = Object.keys(el).find(k => k.startsWith('__reactFiber'))
+            if (!fiberKey) return null
+            let fiber = el[fiberKey]
+            // Walk up to find the component with currentEntries
+            for (let i = 0; i < 10 && fiber; i++) {
+                const entries = fiber.memoizedProps?.currentEntries
+                if (Array.isArray(entries) && entries.length) return entries
+                fiber = fiber.return
+            }
+        } catch (_) {}
+        return null
+    }
+
+    function _pollFiberCaptions() {
+        const entries = _getFiberEntries()
+        if (!entries) return
+        for (const entry of entries) {
+            if (!entry.id || _fiberSeenIds.has(entry.id)) continue
+            if (!entry.isFinal) continue  // skip partial/in-progress entries
+            _fiberSeenIds.add(entry.id)
+            const Name = entry.user?.displayName || 'Speaker'
+            const Text = (entry.text || '').trim()
+            if (!Text) continue
+            // Dedup against DOM-captured transcripts
+            const lastT = transcripts[transcripts.length - 1]
+            if (lastT && lastT.Text === Text && lastT.Name === Name) continue
+            // Also check last few entries for dedup (DOM may have captured with slight text diff)
+            const isDup = transcripts.slice(-5).some(t => t.Text === Text && t.Name === Name)
+            if (isDup) continue
+            const t = stampCaption({ Name, Text, Time: since(startTime) })
+            transcripts.push(t)
+            chrome.runtime.sendMessage({ message: "update_transcripts", count: transcripts.length })
+            try { scheduleAutoSuggest(t) } catch (_) {}
+            try { onCaptionForStatus() } catch (_) {}
+            try { onCaptionForState(t) } catch (_) {}
+        }
+    }
+
+    function startFiberPolling() {
+        if (_fiberPollTimer) return
+        _fiberPollTimer = setInterval(_pollFiberCaptions, 800)
+    }
+    function stopFiberPolling() {
+        if (_fiberPollTimer) { clearInterval(_fiberPollTimer); _fiberPollTimer = null }
+        _fiberSeenIds.clear()
+    }
+
     let observerOnIframe=false
     let _endPollTimer=null   // polling fallback: detect meeting-end even when
                              // no DOM mutations fire after Leave.
@@ -344,6 +384,9 @@ async function init(){
             checkCaptions(container)
         })
         containerObserver.observe(container, { subtree:true, childList:true })
+        // Start React fiber polling for Teams v2 (catches captions missed by
+        // the MutationObserver due to virtual-list rendering).
+        try { startFiberPolling() } catch (_) {}
         transcripts.splice(0)
         history.splice(0)
         createUI({transcripts, history})
@@ -367,27 +410,8 @@ async function init(){
                 history,
             })
             _loop.onSuggestion(showSuggestion)
-            // ── Dedicated translator session (isolated from main agent) ─────
-            // Captions translated for the panel are sent here, NOT to _loop,
-            // so the main agent's context is not polluted by caption-by-
-            // caption translation turns.
-            try {
-                _translator = await makeTranslatorClient({ meetingId })
-                _translator.onTranslation(({ text }) => {
-                    try {
-                        // Translator returns "Speaker: <translated text>" — parse it.
-                        const raw = String(text || '').trim()
-                        const idx = raw.indexOf(':')
-                        let speaker = 'Speaker', body = raw
-                        if (idx > 0 && idx < 40) {
-                            speaker = raw.slice(0, idx).trim() || 'Speaker'
-                            body = raw.slice(idx + 1).trim() || raw
-                        }
-                        _ui?.pushTranslation({ speaker, text: body })
-                    } catch (_) {}
-                })
-                _translator.start().catch(e => console.warn('[meetmate] translator start', e))
-            } catch (e) { console.warn('[meetmate] translator init failed', e) }
+            // (Dedicated translator session removed 2026-05 — continuous-
+            // translation feature retired. Captions feed only the main loop.)
             // ── v4.1 UI controller ────────────────────────────────────────
             try {
                 const conf = await getConf().catch(() => null)
@@ -431,15 +455,23 @@ async function init(){
                             try { reclassifyState() } catch (_) {}
                             setTimeout(() => { _askBar.active = false }, 1500)
                         },
-                        onTranslateToggle: (on) => {
-                            // Reflect into _ui state; CSS already drives panel visibility.
-                            _ui?.setTranslateOn(!!on)
+                        onTranslateToggle: () => {
+                            // (Continuous-translation feature retired — callback no-op.)
                         },
                         onContextSet: (ctx) => {
-                            // Persist meeting context locally and push to the
-                            // loop so subsequent FACT/RESEARCH/SUGGEST decisions
-                            // can use it.
-                            try { chrome?.storage?.local?.set?.({ meetmateContext: ctx || "" }) } catch (_) {}
+                            // Persist meeting context locally KEYED BY MEETING
+                            // NAME so recurring meetings each keep their own
+                            // purpose/goal.
+                            const mtgName = getMeetingName() || ""
+                            try {
+                                chrome?.storage?.local?.get?.(['meetmateContexts'], (res) => {
+                                    const map = (res && res.meetmateContexts) || {}
+                                    if (mtgName) map[mtgName] = ctx || ""
+                                    // Also store as fallback for unnamed meetings
+                                    map['__last__'] = ctx || ""
+                                    chrome?.storage?.local?.set?.({ meetmateContexts: map })
+                                })
+                            } catch (_) {}
                             try {
                                 if (ctx) {
                                     _loop?.pushUserMsg?.(`[MEETING_CONTEXT] ${ctx}`)
@@ -472,14 +504,18 @@ async function init(){
                             } catch (_) {}
                         },
                     })
-                    // Reflect current persisted toggle on init
-                    if (conf?.continuousTranslate) _ui.setTranslateOn(true)
+                    // (continuous-translation init removed 2026-05)
                     // Restore previously-saved meeting context (if any) and
                     // push it to the loop so the model has the context
-                    // available from turn 0.
+                    // available from turn 0. Only load context that matches
+                    // the current meeting title — don't load stale context
+                    // from a different meeting.
                     try {
-                        chrome?.storage?.local?.get?.(['meetmateContext'], (res) => {
-                            const ctx = (res && res.meetmateContext) || ""
+                        const mtgName = getMeetingName() || ""
+                        chrome?.storage?.local?.get?.(['meetmateContexts'], (res) => {
+                            const map = (res && res.meetmateContexts) || {}
+                            // Only load context for THIS meeting title
+                            const ctx = (mtgName && map[mtgName]) || ""
                             if (ctx) {
                                 _ui.setContextValue?.(ctx)
                                 try { _loop?.pushUserMsg?.(`[MEETING_CONTEXT] ${ctx}`) } catch (_) {}
@@ -499,9 +535,8 @@ async function init(){
             }
             // Subtle status pill instead of a chat-panel bubble.
             _loop.onConnected?.(() => showStatus('\u2713 Connected \u2014 watching captions', 4000))
-            // Live minutes: model calls update_live_minutes whenever a new
-            // decision/action/owner/deadline is mentioned. Pipe the markdown
-            // into the side panel.
+            // Current topic: model calls update_live_minutes to show what's
+            // being discussed right now. Pipe the markdown into the side panel.
             _loop.onLiveMinutes?.(({ markdown }) => {
                 try {
                     const panel = document.getElementById('liveMinutes')
@@ -518,9 +553,6 @@ async function init(){
                 } catch (_) {}
             })
             // Conversation state tracker: phase badge (REMOVED in v4.1 —
-            // user feedback was that the badge "doesn't help anything").
-            // We still subscribe to keep the loop happy but render nothing.
-            _loop.onPhase?.(() => { /* intentionally a no-op in v4.1 */ })
             // End-of-meeting confirmation that the user actually sees in the UI.
             _loop.onMinutes?.(() => {
                 showStatus('\u2713 Minutes saved \u2014 open the popup to review', 6000)
@@ -530,6 +562,8 @@ async function init(){
     }
 
     function stopTranscription() {
+        // Ensure UI cleanup runs even if intermediate steps throw.
+        try {
         //add last transcript
         checkStatus(document.body, true)
         transcripts.forEach(a=>{
@@ -539,7 +573,8 @@ async function init(){
         timer && clearInterval(timer);
         if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = null }
         if (_stateTimer) { clearInterval(_stateTimer); _stateTimer = null }
-        try { _ui?.destroy(); _ui = null; _uiState = 4; _uiStateEnter = 0; _askBar = { active:false, query:"", ts:0, dismissed:false }; _pendingTranslations = []; _pendingDetails = []; _pendingAskAnswers = [] } catch (_) {}
+        try { stopFiberPolling() } catch (_) {}
+        try { _ui?.destroy(); _ui = null; _uiState = 4; _uiStateEnter = 0; _askBar = { active:false, query:"", ts:0, dismissed:false }; _pendingDetails = []; _pendingAskAnswers = [] } catch (_) {}
         // Flush any remaining captions before signaling end.
         if (_captionBatch.length && _loop) {
             try { _loop.pushCaption(_captionBatch.splice(0)) } catch(_) {}
@@ -549,16 +584,12 @@ async function init(){
         // before we disconnect.
         const loopRef = _loop
         _loop = null
-        const transRef = _translator
-        _translator = null
         if (loopRef) {
             (async () => {
                 try { await loopRef.end() } catch(_) {}
-                try { await transRef?.end() } catch(_) {}
                 try { resetRelayClient() } catch(_) {}
             })()
         } else {
-            try { transRef?.end() } catch(_) {}
             try { resetRelayClient() } catch(_) {}
         }
 
@@ -566,17 +597,20 @@ async function init(){
             message: "stop_capture", 
             transcripts,
             history,
+            extras: _extras,
             name: getMeetingName()
         });
         timer=null
         startTime=null
         transcripts.splice(0)
         history.splice(0)
+        _extras = []
         if (containerObserver) { containerObserver.disconnect(); containerObserver=null }
-
+        } finally {
         // Tear down any UI the assistant injected (chat panel, action buttons, bubbles).
-        Array.from(document.querySelectorAll('.shouldRemove')).forEach(a=>a.remove())
-        if (messageContainer) { messageContainer.innerHTML = ''; if (messageTimer) { clearTimeout(messageTimer); messageTimer = 0 } }
+        // In the finally block so cleanup runs even if earlier steps threw.
+        try { Array.from(document.querySelectorAll('.shouldRemove')).forEach(a=>a.remove()) } catch (_) {}
+        try { if (messageContainer) { messageContainer.innerHTML = ''; if (messageTimer) { clearTimeout(messageTimer); messageTimer = 0 } } } catch (_) {}
         // Persistent statusPill: just clear its content / state so it doesn't
         // bleed across meetings.
         try {
@@ -586,6 +620,7 @@ async function init(){
             if (_statusClearTimer) { clearTimeout(_statusClearTimer); _statusClearTimer = 0 }
             _captionCountForStatus = 0
         } catch(_) {}
+        }
     }
 
     const messageContainer=document.createElement('div')
@@ -656,15 +691,13 @@ async function init(){
         // back-compat (its CSS is hidden when v4.1 UI is active).
         try {
             history.push({ role: "assistant", content: text || "", kind, options })
-            // NOTE: translation bubbles are NOT routed here anymore — they are
-            // produced by the dedicated _translator session and pushed
-            // directly to _ui.pushTranslation via the onTranslation callback.
+            _extras.push({ type: 'suggestion', kind: kind || 'SUGGEST', text: text || '', Time: since(startTime) })
             if (_ui) {
                 // If a FACT/RESEARCH detail expansion was just requested, route
                 // the next reply to populateDetail on that entry instead of as
                 // a fresh log line.
                 const now = Date.now()
-                while (_pendingDetails.length && (now - _pendingDetails[0].ts) > 12000) _pendingDetails.shift()
+                while (_pendingDetails.length && (now - _pendingDetails[0].ts) > 60000) _pendingDetails.shift()
                 if (_pendingDetails.length) {
                     const pd = _pendingDetails.shift()
                     try { _ui.populateDetail?.(pd.id, text || "") } catch (_) {}
@@ -679,6 +712,7 @@ async function init(){
                     const pa = _pendingAskAnswers.shift()
                     try { _ui.populateDetail?.(pa.id, text || "") } catch (_) {}
                     try { _ui.renderSuggestion({ kind, text, options }) } catch (e) { console.warn(e) }
+                    _askBar.dismissed = true
                     return
                 }
                 try { _ui.renderSuggestion({ kind, text, options }) } catch (e) { console.warn(e) }
@@ -764,12 +798,7 @@ async function init(){
         speech_polish_language_mismatch: [
             { Name: 'Raymond Li', Text: '嗯那个 Phoenix 的事情我们大概下周可能差不多能搞定吧。', delayMs: 0 },
         ],
-        translate_button_current_intent: [
-            { Name: 'Bob Kim', Text: "Let's hand the floor to the customer.", delayMs: 0 },
-            { Name: '客户 (Acme)', Text: '我们最担心的是迁移之后的性能回退，特别是高峰期的延迟和错误率。', delayMs: 2500 },
-            { Name: '客户 (Acme)', Text: '你们有什么具体的回滚方案？', delayMs: 5000 },
-            { Name: '__toolbar_click__', Text: 'translate', delayMs: 7000 },
-        ],
+        // (translate_button_current_intent demo scenario removed 2026-05.)
         live_minutes_decision_action: [
             { Name: 'Alice Chen', Text: 'Decision: we ship Phoenix dual-write to 100% of traffic on Nov 15.', delayMs: 0 },
             { Name: 'Bob Kim', Text: 'Raymond, can you own the rollback runbook by Nov 10?', delayMs: 3000 },
@@ -805,9 +834,7 @@ async function init(){
         ],
 
         // Customer speaks Mandarin, three accumulating lines. Used by
-        // `translation` (toggle continuous translation, panel rolls
-        // English) and `knowledge-grounded` (line 3 references the
-        // migration doc).
+        // `knowledge-grounded` (line 3 references the migration doc).
         arc_customer_block: [
             { Name: '客户 (Acme)', Text: 'Raymond，你们 Phoenix 迁移什么时候能完成？', delayMs: 0 },
             { Name: '客户 (Acme)', Text: '我们月底要给董事会汇报。', delayMs: 3000 },
@@ -899,8 +926,6 @@ async function init(){
                 case 'replay':       if (d.detail) replayScenario(d.detail); break
                 case 'tap_chip':     if (d.detail) tapChipByLabel(d.detail); break
                 case 'inject_caption': window.__meetmate?.injectCaption?.(d.detail || {}); break
-                case 'translate_toggle': _ui?.setTranslateOn(!!d.on); break
-                case 'push_translation': _ui?.pushTranslation?.({ speaker: d.speaker, text: d.text }); break
                 case 'log_to_rail':  _ui?.logToRail?.({ kind: d.kind || 'SUGGEST', text: d.text }); break
                 case 'center_state': _ui?.applyState?.({ state: d.state, payload: d.payload || {} }); break
                 case 'center_suggest': _ui?.renderSuggestion?.({ kind: d.kind || 'SUGGEST', text: d.text, options: d.options || [] }); break
@@ -911,9 +936,7 @@ async function init(){
             }
         } catch (_) {}
     })
-    document.addEventListener('meetmate:translate-toggle', (e) => {
-        try { _ui?.setTranslateOn(!!e?.detail?.on) } catch (_) {}
-    })
+    // (meetmate:translate-toggle listener removed 2026-05 — continuous-translation feature retired.)
 
     // DOM-based trigger for CDP/automation: set data-replay="<scenario>" or
     // data-inject-caption='{"Name":"...","Text":"..."}' on document.body.
