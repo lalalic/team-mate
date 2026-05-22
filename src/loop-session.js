@@ -98,21 +98,6 @@ const TOOLS = [
     {
         type: "function",
         function: {
-            name: "update_live_minutes",
-            description:
-                "Update the LIVE minutes panel during the meeting. Send the FULL current " +
-                "minutes markdown each time (replaces the panel). Sections to include when " +
-                "present: ## Decisions, ## Action items (with owner + deadline), ## Open questions.",
-            parameters: {
-                type: "object",
-                required: ["markdown"],
-                properties: { markdown: { type: "string" } },
-            },
-        },
-    },
-    {
-        type: "function",
-        function: {
             name: "save_memory",
             description:
                 "Persist distilled facts and a one-paragraph summary to long/short-term memory. " +
@@ -166,7 +151,6 @@ const TOOLS = [
 const HANDLER_KEY = {
     get_snapshot: "getSnapshot",
     send_suggestion: "sendSuggestion",
-    update_live_minutes: "updateLiveMinutes",
     save_memory: "saveMemory",
     save_minutes: "saveMinutes",
     recall_knowledge: "recallKnowledge",
@@ -194,13 +178,11 @@ const COMPACT_USER = [
     "1. Call `save_memory` with the most important durable facts (≤ 8) and a",
     "   one-paragraph summary of everything that has been said so far in this",
     "   meeting (≤ 60 words).",
-    "2. Call `update_live_minutes` with the FULL current minutes markdown so",
-    "   nothing is lost.",
-    "3. Then end with `wait_for_event` as usual.",
+    "2. Then end with `wait_for_event` as usual.",
     "",
     "After this turn completes, the conversation history will be truncated and",
-    "replaced with your summary. Memory + live minutes persist independently in",
-    "storage, so they are NOT lost.",
+    "replaced with your summary. Memory persists independently in storage,",
+    "so it is NOT lost.",
 ].join("\n")
 
 export function createLoopSession({ meetingId, systemMessage, model, handlers, onEvent, bootstrapUser } = {}) {

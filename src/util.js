@@ -463,8 +463,7 @@ export async function makePredictAPI() {
  *   pushUserMsg(text)      — user typed in chat or tapped a chip (head-of-queue)
  *   end()                  — send {event:'end'}, give model time, then disconnect
  *   onSuggestion(fn)       — register callback for send_suggestion tool calls
- *   onMinutes(fn)          — register callback for save_minutes tool calls
- *
+ *   onMinutes(fn)          — register callback for save_minutes tool calls *
  * @param {object} opts
  * @param {string} opts.meetingId
  * @param {string} opts.goal
@@ -490,7 +489,6 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
 
     let onSuggestionCbs = [];
     let onMinutesCb = null;
-    let onLiveMinutesCb = null;
     let onConnectedCb = null;
     // Generic "any tool was invoked" listeners — used by askLoop so a chip
     // tap can resolve to ✓ even if the model silently calls save_memory /
@@ -543,9 +541,9 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
             } catch {}
             return { ok: true };
         },
-        async updateLiveMinutes({ markdown }) {
-            try { onLiveMinutesCb?.({ markdown }); } catch (e) { console.warn(e); }
-            fireAnyTool('update_live_minutes', { markdown });
+        async updateLiveMinutes() {
+            // Live-minutes panel removed 2026-05 — tool retired. Stub kept so
+            // any legacy agent prompts still resolve cleanly.
             return { ok: true };
         },
         async saveMemory({ facts, summary }) {
@@ -591,7 +589,6 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
             return () => { onSuggestionCbs = onSuggestionCbs.filter(x => x !== fn); };
         },
         onMinutes: (fn) => { onMinutesCb = fn; },
-        onLiveMinutes: (fn) => { onLiveMinutesCb = fn; },
         onConnected: (fn) => { onConnectedCb = fn; },
         // Push a user message and resolve with the FIRST model response —
         // a send_suggestion payload, or { ack: true, tool } if the model
@@ -681,24 +678,8 @@ export async function createUI({ uiContainer = document.body, transcripts, histo
         uiContainer.appendChild(container);
 
         // (Continuous-translation toggle removed 2026-05 — feature retired.)
-
-        // --- Global Live Minutes button ------------------------------------
-        // Tap → toggle the live minutes panel.
-        const minutesPanel = createLiveMinutesUI();
-        const minutes = document.createElement('button');
-        minutes.title = chrome.i18n.getMessage('liveMinutes') || 'Current topic';
-        minutes.role = 'minutes';
-        minutes.id = 'liveMinutesButton';
-        minutes.classList.add('actionButton');
-        minutes.textContent = '\u{1F4CB}'; // 📋
-        minutes.addEventListener('click', () => {
-            const hidden = minutesPanel.style.visibility === 'hidden';
-            minutesPanel.style.visibility = hidden ? 'unset' : 'hidden';
-            minutes.classList.toggle('doing', !hidden);
-            // Live minutes sits to the LEFT of the idle rail (different slot)
-            // so they can coexist. No rail visibility toggle.
-        });
-        container.appendChild(minutes);
+        // (Live-minutes panel removed 2026-05 — minutes are appended to the
+        //  exported VTT at end-of-meeting only.)
 
         // --- Attention button (moved from rail header) ---------------------
         // Toggles forced display of the centered help panel. Dispatches a
@@ -718,19 +699,6 @@ export async function createUI({ uiContainer = document.body, transcripts, histo
         container.appendChild(attention);
 
         return container;
-    }
-
-    function createLiveMinutesUI() {
-        const panel = document.createElement('div');
-        panel.id = 'liveMinutes';
-        panel.classList.add('shouldRemove');
-        panel.style.visibility = 'hidden';
-        panel.innerHTML = `
-            <div class="meetmate-minutes-header">📌 Current Topic <span class="meetmate-minutes-status">listening…</span></div>
-            <div class="meetmate-minutes-body"><em style="color:#9ca3af">The current discussion topic will appear here.</em></div>
-        `;
-        uiContainer.appendChild(panel);
-        return panel;
     }
 
     function createAIChatUI() {

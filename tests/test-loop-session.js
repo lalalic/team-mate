@@ -111,7 +111,6 @@ await scenario("US-01: greeting bubble + park at start", async () => {
         systemMessage: "You are MeetMate for Raymond.",
         handlers: {
             sendSuggestion: a => { calls.push(["sendSuggestion", a]); return { ok: true } },
-            updateLiveMinutes: a => { calls.push(["updateLiveMinutes", a]); return { ok: true } },
             
             saveMemory: a => { calls.push(["saveMemory", a]); return { ok: true } },
             saveMinutes: a => { calls.push(["saveMinutes", a]); return { ok: true } },
@@ -155,7 +154,6 @@ await scenario("US-02: cross-language polish on user's Mandarin caption", async 
         systemMessage: "You are MeetMate for Raymond. preferred_language=en.",
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
-            updateLiveMinutes: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -205,7 +203,6 @@ await scenario("US-03: jargon question → RESEARCH then SUGGEST then park", asy
         systemMessage: "You are MeetMate for Raymond.",
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
-            updateLiveMinutes: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -278,7 +275,6 @@ await scenario("US-04: knowledge recall → FACT bubble citing source", async ()
         systemMessage: "You are MeetMate for Raymond. Knowledge index includes exstream-throughput-v3.md.",
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
-            updateLiveMinutes: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -363,7 +359,6 @@ await scenario("US-05: speaking state → topic branches → SPEAKING_REFRESH", 
         systemMessage: "You are MeetMate for Raymond.",
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
-            updateLiveMinutes: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -448,7 +443,6 @@ await scenario("US-06: attention_toggle + QUICK_HELP", async () => {
         systemMessage: "You are MeetMate for Raymond.",
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
-            updateLiveMinutes: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -521,7 +515,6 @@ await scenario("US-07: end → save_minutes + save_memory each fire once", async
         systemMessage: "You are MeetMate for Raymond.",
         handlers: {
             sendSuggestion: () => ({ ok: true }),
-            updateLiveMinutes: () => ({ ok: true }),
             saveMinutes: a => { saveMinutesCalls++; lastMinutes = a; return { ok: true } },
             saveMemory: a => { saveMemoryCalls++; lastMemory = a; return { ok: true } },
             getSnapshot: () => ({}),

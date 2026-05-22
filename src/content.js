@@ -3,37 +3,6 @@ const {resetRelayClient} = require("./relay")
 const {classifyState} = require("./state-machine")
 const {createUIController} = require("./ui-controller")
 
-// Tiny markdown -> HTML for the live minutes panel. Handles ## H2, ### H3,
-// `-`/`*`/`1.` lists, **bold**, and inline `code`. No HTML injection: input
-// is escaped first, then a small set of tokens is converted.
-function renderMinutesMarkdown(md) {
-    const esc = (s) => String(s).replace(/[<>&"]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' }[c]))
-    const lines = String(md || '').split('\n')
-    const out = []
-    let inList = false
-    const closeList = () => { if (inList) { out.push('</ul>'); inList = false } }
-    for (const raw of lines) {
-        const line = raw.trimEnd()
-        if (!line.trim()) { closeList(); continue }
-        let m
-        if ((m = line.match(/^###\s+(.*)$/))) { closeList(); out.push(`<h4>${esc(m[1])}</h4>`); continue }
-        if ((m = line.match(/^##\s+(.*)$/)))  { closeList(); out.push(`<h3>${esc(m[1])}</h3>`); continue }
-        if ((m = line.match(/^[-*]\s+(.*)$/)) || (m = line.match(/^\d+\.\s+(.*)$/))) {
-            if (!inList) { out.push('<ul>'); inList = true }
-            out.push(`<li>${inline(esc(m[1]))}</li>`); continue
-        }
-        closeList()
-        out.push(`<p>${inline(esc(line))}</p>`)
-    }
-    closeList()
-    return out.join('')
-    function inline(s) {
-        return s
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-    }
-}
-
 async function init(){
     const transcripts = Object.assign([],{
         toString(){
@@ -532,27 +501,10 @@ async function init(){
             }
             // Subtle status pill instead of a chat-panel bubble.
             _loop.onConnected?.(() => showStatus('\u2713 Connected \u2014 watching captions', 4000))
-            // Current topic: model calls update_live_minutes to show what's
-            // being discussed right now. Pipe the markdown into the side panel.
-            _loop.onLiveMinutes?.(({ markdown }) => {
-                try {
-                    _lastMinutes = markdown || ''
-                    const panel = document.getElementById('liveMinutes')
-                    if (!panel) return
-                    const body = panel.querySelector('.meetmate-minutes-body')
-                    const status = panel.querySelector('.meetmate-minutes-status')
-                    if (body) body.innerHTML = renderMinutesMarkdown(markdown || '')
-                    if (status) status.textContent = `updated ${new Date().toLocaleTimeString()}`
-                    // Auto-show the panel on first update.
-                    if (panel.style.visibility === 'hidden') {
-                        panel.style.visibility = 'unset'
-                        document.getElementById('liveMinutesButton')?.classList.add('doing')
-                    }
-                } catch (_) {}
-            })
-            // Conversation state tracker: phase badge (REMOVED in v4.1 —
-            // End-of-meeting confirmation that the user actually sees in the UI.
-            _loop.onMinutes?.(() => {
+            // Capture end-of-meeting minutes markdown so background.js can
+            // append it as a trailing NOTE block in the exported VTT.
+            _loop.onMinutes?.(({ markdown }) => {
+                _lastMinutes = markdown || ''
                 showStatus('\u2713 Minutes saved \u2014 open the popup to review', 6000)
             })
             await _loop.start()
