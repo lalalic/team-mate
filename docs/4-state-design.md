@@ -25,12 +25,7 @@ Sits next to you and:
 - ON suppresses ad-hoc translation inside states 1/2/3.
 - OFF: model decides per-context.
 
-### 📋 Live minutes
-- Auto-fills decisions/actions/owners as detected.
-- Hidden by default; opened via idle-rail chip "📋 Live minutes" (badge shows count of new entries).
-- Corner-docked (bottom-right by default), draggable.
-
-### 💬 Ask bar (always visible at bottom of right-rail)
+###  Ask bar (always visible at bottom of right-rail)
 - Thin input + quick-? button.
 - Type query → submit → State 3 sticky overlay.
 - Quick-? button: one-shot help based on last 3-5 captions (no typing).
@@ -77,7 +72,6 @@ Hysteresis & cooldowns:
 │  📚 Knowledge: Phoenix runbook                │
 │  💡 Fact: Q3 retention 38%                    │
 │  🌐 Translate floor                           │
-│  📋 Live minutes (3 new)                      │
 │  ─────────────────────                        │
 │  [Ask anything...]                ?           │  Ask bar always at bottom
 └────────────────────────────────────────────────┘
@@ -89,11 +83,6 @@ Hysteresis & cooldowns:
 │  We're worried about latency post-migration…          │
 │  ───────────────────────                              │
 └────────────────────────────────────────────────────────┘
-
-┌── #liveMinutes (corner-docked, default hidden) ──┐
-│  📋 Live minutes        updated 10:57            │
-│  Decisions / Action items / Open questions       │
-└──────────────────────────────────────────────────┘
 ```
 
 ## Removed from current build

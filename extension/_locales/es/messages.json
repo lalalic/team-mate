@@ -1,80 +1,80 @@
 {
-    "appName": {
-        "message": "MeetMate — Datos en vivo, Conocimiento, Coach y Memoria · Teams"
-    },
-    "appDesc": {
-        "message": "Datos en vivo, tu conocimiento, un coach de habla y memoria de reuniones \u2014 en Teams. IA por eventos, ~10\u00d7 m\u00e1s barato. Sin bot."
-    },
-    "rephrasePrompt": {
-        "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
-    },
-    "suggestionPrompt": {
-        "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
-    },
-    "quickPrompts": {
-        "message": "Suma: Resumir la reunión.\n?Responder: ¿Qué puedo responder ahora?\n?Respuesta: Sugiere una buena respuesta para la última pregunta.\nAcciones: ¿Destacar los elementos de acción que surgen de esta reunión?\nProblemas: ¿Destacar los principales desafíos o problemas discutidos en la reunión?\nMinutas: Hacer un acta de la reunión."
-    },
-    "meetingGoal": {
-        "message": "Opcional: describa el objetivo/tema de esta reunión..."
-    },
-    "needTopup": {
-        "message": "¡Recarga primero! Es muy muy barato de usar."
-    },
-    "topup": {
-        "message": "Recargar para Asistente de IA"
-    },
-    "autoDownload": {
-        "message": "Descarga automática de subtítulos en vivo"
-    },
-    "setupTitle": {
-        "message": "Configuración avanzada"
-    },
-    "testHello": {
-        "message": "Prueba: Hola"
-    },
-    "shortcut": {
-        "message": "Atajos de teclado"
-    },
-    "shortcutDesc": {
-        "message": "A un clic de la IA para cada línea. Las acciones con inicio '*' se activarán automáticamente al salir de la reunión"
-    },
-    "instruction": {
-        "message": "Instrucciones de la IA para reuniones"
-    },
-    "enableMeeting": {
-        "message": "Habilitar durante la reunión."
-    },
-    "suggestionPrompt_placeholder": {
-        "message": "instrucción de IA, mensaje del sistema"
-    },
-    "videoInstruction": {
-        "message": "Instrucciones de IA en vídeo"
-    },
-    "enabledRephrasing": {
-        "message": "Habilitar después de aplicar las transcripciones a la reunión grabada."
-    },
-    "rephrasePrompt_placeholder": {
-        "message": "instrucción de IA, mensaje del sistema"
-    },
-    "languageMarker": {
-        "message": "Marcador de idioma[?]"
-    },
-    "meetingMarker": {
-        "message": "Marcador de reunión[!]"
-    },
-    "enabledLanguageFlag": {
-        "message": "Un botón para señalar la atención del idioma en una transcripción."
-    },
-    "enabledMeetingFlag": {
-        "message": "Un botón para señalar la atención del contenido en una transcripción."
-    },
-    "languageAttention": {
-        "message": "Atención al idioma"
-    },
-    "meetingAttention": {
-        "message": "Atención a la reunión"
-    },
-    "buyMeBear": {
-        "message": "Cómprame una cerveza"
-    }
+  "appName": {
+    "message": "MeetMate — Datos en vivo, Conocimiento, Coach y Memoria · Teams"
+  },
+  "appDesc": {
+    "message": "Datos en vivo, tu conocimiento, un coach de habla y memoria de reuniones — en Teams. IA por eventos, ~10× más barato. Sin bot."
+  },
+  "rephrasePrompt": {
+    "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
+  },
+  "suggestionPrompt": {
+    "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
+  },
+  "quickPrompts": {
+    "message": "Suma: Resumir la reunión.\n?Responder: ¿Qué puedo responder ahora?\n?Respuesta: Sugiere una buena respuesta para la última pregunta.\nAcciones: ¿Destacar los elementos de acción que surgen de esta reunión?\nProblemas: ¿Destacar los principales desafíos o problemas discutidos en la reunión?\nMinutas: Hacer un acta de la reunión."
+  },
+  "meetingGoal": {
+    "message": "Opcional: describa el objetivo/tema de esta reunión..."
+  },
+  "needTopup": {
+    "message": "¡Recarga primero! Es muy muy barato de usar."
+  },
+  "topup": {
+    "message": "Recargar para Asistente de IA"
+  },
+  "autoDownload": {
+    "message": "Descarga automática de subtítulos en vivo"
+  },
+  "setupTitle": {
+    "message": "Configuración avanzada"
+  },
+  "testHello": {
+    "message": "Prueba: Hola"
+  },
+  "shortcut": {
+    "message": "Atajos de teclado"
+  },
+  "shortcutDesc": {
+    "message": "A un clic de la IA para cada línea. Las acciones con inicio '*' se activarán automáticamente al salir de la reunión"
+  },
+  "instruction": {
+    "message": "Instrucciones de la IA para reuniones"
+  },
+  "enableMeeting": {
+    "message": "Habilitar durante la reunión."
+  },
+  "suggestionPrompt_placeholder": {
+    "message": "instrucción de IA, mensaje del sistema"
+  },
+  "videoInstruction": {
+    "message": "Instrucciones de IA en vídeo"
+  },
+  "enabledRephrasing": {
+    "message": "Habilitar después de aplicar las transcripciones a la reunión grabada."
+  },
+  "rephrasePrompt_placeholder": {
+    "message": "instrucción de IA, mensaje del sistema"
+  },
+  "languageMarker": {
+    "message": "Marcador de idioma[?]"
+  },
+  "meetingMarker": {
+    "message": "Marcador de reunión[!]"
+  },
+  "enabledLanguageFlag": {
+    "message": "Un botón para señalar la atención del idioma en una transcripción."
+  },
+  "enabledMeetingFlag": {
+    "message": "Un botón para señalar la atención del contenido en una transcripción."
+  },
+  "languageAttention": {
+    "message": "Atención al idioma"
+  },
+  "meetingAttention": {
+    "message": "Atención a la reunión"
+  },
+  "buyMeBear": {
+    "message": "Cómprame una cerveza"
+  }
 }

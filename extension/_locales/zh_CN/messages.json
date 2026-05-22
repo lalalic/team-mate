@@ -1,80 +1,80 @@
 {
-    "appName": {
-        "message": "MeetMate — 实时要点、知识库、发言教练、记忆 for Teams"
-    },
-    "appDesc": {
-        "message": "实时要点、你的知识库、发言教练、会议记忆 — 就在 Teams 里。事件驱动 AI，成本降低 10 倍。无机器人、无录音。"
-    },
-    "rephrasePrompt": {
-        "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
-    },
-    "suggestionPrompt": {
-        "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
-    },
-    "quickPrompts": {
-        "message": "总结: 总结会议。\n?回应: 我现在可以如何回应？\n?答案: 为上一个问题提供一个好的答案\n行动: 强调本次会议的行动项？\n问题: 强调会议中讨论的主要挑战或问题。\n纪要: 为会议制作会议纪要。"
-    },
-    "meetingGoal": {
-        "message": "可选：描述本次会议的目标/主题"
-    },
-    "needTopup": {
-        "message": "先充值！使用起来非常非常便宜。"
-    },
-    "topup": {
-        "message": "为AI助手充值"
-    },
-    "autoDownload": {
-        "message": "自动下载实时字幕"
-    },
-    "setupTitle": {
-        "message": "高级设置"
-    },
-    "testHello": {
-        "message": "测试：你好"
-    },
-    "shortcut": {
-        "message": "快捷方式提示"
-    },
-    "shortcutDesc": {
-        "message": "一键点击，即可获取每一行的 AI 辅助。"
-    },
-    "instruction": {
-        "message": "会议 AI 指南"
-    },
-    "enableMeeting": {
-        "message": "会议期间启用。"
-    },
-    "suggestionPrompt_placeholder": {
-        "message": "AI 指南，系统消息"
-    },
-    "videoInstruction": {
-        "message": "视频 AI 指南"
-    },
-    "enabledRephrasing": {
-        "message": "在将会议记录应用于录制会议后启用。"
-    },
-    "rephrasePrompt_placeholder": {
-        "message": "AI 指南，系统消息"
-    },
-    "languageMarker": {
-        "message": "语言标记[?]"
-    },
-    "meetingMarker": {
-        "message": "会议标记[!]"
-    },
-    "enabledLanguageFlag": {
-        "message": "用于在记录中标记语言注意力的按钮。"
-    },
-    "enabledMeetingFlag": {
-        "message": "用于在记录中标记内容注意力的按钮。"
-    },
-    "languageAttention": {
-        "message": "语言注意力"
-    },
-    "meetingAttention": {
-        "message": "会议注意力"
-    },
-    "buyMeBear": {
-        "message": "请我喝啤酒"
-    }
+  "appName": {
+    "message": "MeetMate — 实时要点、知识库、发言教练、记忆 for Teams"
+  },
+  "appDesc": {
+    "message": "实时要点、你的知识库、发言教练、会议记忆 — 就在 Teams 里。事件驱动 AI，成本降低 10 倍。无机器人、无录音。"
+  },
+  "rephrasePrompt": {
+    "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
+  },
+  "suggestionPrompt": {
+    "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
+  },
+  "quickPrompts": {
+    "message": "总结: 总结会议。\n?回应: 我现在可以如何回应？\n?答案: 为上一个问题提供一个好的答案\n行动: 强调本次会议的行动项？\n问题: 强调会议中讨论的主要挑战或问题。\n纪要: 为会议制作会议纪要。"
+  },
+  "meetingGoal": {
+    "message": "可选：描述本次会议的目标/主题"
+  },
+  "needTopup": {
+    "message": "先充值！使用起来非常非常便宜。"
+  },
+  "topup": {
+    "message": "为AI助手充值"
+  },
+  "autoDownload": {
+    "message": "自动下载实时字幕"
+  },
+  "setupTitle": {
+    "message": "高级设置"
+  },
+  "testHello": {
+    "message": "测试：你好"
+  },
+  "shortcut": {
+    "message": "快捷方式提示"
+  },
+  "shortcutDesc": {
+    "message": "一键点击，即可获取每一行的 AI 辅助。"
+  },
+  "instruction": {
+    "message": "会议 AI 指南"
+  },
+  "enableMeeting": {
+    "message": "会议期间启用。"
+  },
+  "suggestionPrompt_placeholder": {
+    "message": "AI 指南，系统消息"
+  },
+  "videoInstruction": {
+    "message": "视频 AI 指南"
+  },
+  "enabledRephrasing": {
+    "message": "在将会议记录应用于录制会议后启用。"
+  },
+  "rephrasePrompt_placeholder": {
+    "message": "AI 指南，系统消息"
+  },
+  "languageMarker": {
+    "message": "语言标记[?]"
+  },
+  "meetingMarker": {
+    "message": "会议标记[!]"
+  },
+  "enabledLanguageFlag": {
+    "message": "用于在记录中标记语言注意力的按钮。"
+  },
+  "enabledMeetingFlag": {
+    "message": "用于在记录中标记内容注意力的按钮。"
+  },
+  "languageAttention": {
+    "message": "语言注意力"
+  },
+  "meetingAttention": {
+    "message": "会议注意力"
+  },
+  "buyMeBear": {
+    "message": "请我喝啤酒"
+  }
 }

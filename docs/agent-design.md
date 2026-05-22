@@ -27,7 +27,9 @@ Status: **design draft** · supersedes
 1. **Live captions in → contextual suggestions out.** The user pastes a
    suggestion into Teams chat with one click.
 2. **Long-form chat panel.** Free-form questions about the meeting.
-3. **Live minutes.** A constantly-updating markdown panel.
+3. **End-of-meeting minutes.** A structured markdown block (Summary,
+   Decisions, Action Items, Open Questions) appended to the exported VTT
+   as a trailing `NOTE Minutes` block when the user leaves the meeting.
 4. **Phase chip.** "Intro / Discussion / Decision / Wrap-up".
 5. **Memory across meetings.** Long-term facts + 10 most-recent meeting
    summaries.
@@ -187,14 +189,13 @@ Per-meeting `_messages` grows unbounded. To cap token cost:
   this meeting (tracked via `response.usage.prompt_tokens`),
   the client appends a special user message:
   `[COMPACT] Summarize everything above into a 1 000-token
-  paragraph. Emit any new facts via save_memory and any minutes
-  changes via update_live_minutes BEFORE returning the summary.
-  Then call wait_for_event.`
+  paragraph. Emit any new facts via save_memory BEFORE returning the
+  summary. Then call wait_for_event.`
 - The model runs those tools, then parks. The client takes the model's
   assistant text (the summary), replaces `_messages[1:]` with a single
   synthetic user message `[COMPACTED]\n<summary>\n`, and resumes.
-- Memory + minutes already persist independently in storage, so the
-  compaction is lossless on the things that matter.
+- Memory already persists independently in storage, so the compaction
+  is lossless on the things that matter.
 
 200K tokens is sized to comfortably fit the context window of any
 modern frontier model (gpt-4.1/o-mini are 200K+, claude-sonnet is
@@ -218,8 +219,8 @@ Rules — these are non-negotiable:
 2. The terminal tool of every reply is `wait_for_event`. Call it when
    you have no more side-effects to perform; it pauses you until the
    next event (caption, user_msg, tick, or end).
-3. Side-effect tools (`send_suggestion`, `update_live_minutes`,
-   `save_memory`) MUST come BEFORE `wait_for_event` in
+3. Side-effect tools (`send_suggestion`, `save_memory`,
+   `save_minutes`) MUST come BEFORE `wait_for_event` in
    the same reply.
 4. The `wait_for_event` result will arrive as a tool-message with
    shape `{"kind":"caption"|"user_msg"|"tick"|"end", ...payload}`.
@@ -245,10 +246,9 @@ Rules — these are non-negotiable:
 - Participants: {getParticipants() joined}
 ```
 
-Note: live minutes and recent captions are NOT in the system prompt.
-They flow in via the `tool` messages that resume from
-`wait_for_event` (each event payload includes the latest caption
-chunk and the most recent minutes snapshot). This keeps the system
+Note: recent captions are NOT in the system prompt. They flow in via
+the `tool` messages that resume from `wait_for_event` (each event
+payload includes the latest caption chunk). This keeps the system
 prompt small and stable, which lets the LLM cache it.
 
 ---
@@ -262,9 +262,8 @@ relay-v4 proxy forwards `tools` and `tool_choice` unchanged.
 |---|---|---|
 | **`wait_for_event`** | `{}` | **Park.** Client ends the HTTP turn; persists `_messages` in tab state; resumes on next event by appending a `tool` message with the event payload. |
 | `send_suggestion` | `{text, options?: string[]}` | Render a toast with copy buttons. |
-| `update_live_minutes` | `{markdown}` | Replace `minutes.md`; bump `minutes.version`; re-render side panel. |
 | `save_memory` | `{long_facts: string[], short_summary: {name, ts, summary}}` | `mergeLong` + `appendShort` from `memory.js`. |
-| `save_minutes` | `{markdown}` | End-of-meeting handoff: persist final minutes markdown. |
+| `save_minutes` | `{markdown}` | End-of-meeting handoff: captured into `_lastMinutes` and appended to the exported VTT as a trailing `NOTE Minutes` block. |
 | `get_snapshot` | `{}` | Returns `{transcripts, history, minutes}` — escape hatch when the model needs more than the streaming event view. |
 | `recall_knowledge` | `{query: string, limit?: number}` | TF-IDF search over user-uploaded reference docs (`chrome.storage.local.knowledge`). Returns up to N `{doc, chunk, score, snippet}` matches. See §8 (Knowledge). |
 
@@ -285,10 +284,12 @@ Add fields: `deviceId`, `apiKey` (bearer from register), `model`,
 **Unchanged.** Local-only. Tools `save_memory` / `mergeLong` /
 `appendShort` write here.
 
-### 7.3 `minutes` (NEW storage key)
-`{md: string, version: number}`. Owned by the
-`update_live_minutes` tool. Side panel subscribes to
-`chrome.storage.onChanged` for `minutes`.
+### 7.3 minutes (end-of-meeting only)
+The `save_minutes` tool fires once on the `end` event. Its markdown
+is captured into `_lastMinutes` in `content.js` and appended to the
+exported VTT as a trailing `NOTE Minutes` block by `background.js#save`.
+There is no live side panel — the live-minutes feature was retired
+in v4.3.
 
 ### 7.4 `history` (in-memory per tab)
 The chat panel's user-visible turn log. Capped at last M=20 turns.
@@ -439,8 +440,7 @@ New module:
    meeting (4 captions / 10 s) costs $X / hour at gpt-4.1 prices.
    Need a real measurement before shipping the auto-suggest UX.
 4. **Tool-loop budget.** 3 hops per turn is a guess; may need to
-   bump for `update_live_minutes` + `save_memory`
-   simultaneously.
+   bump for `save_minutes` + `save_memory` simultaneously (on `end`).
 5. **`get_snapshot` necessity.** If the rolling window is well-sized,
    is `get_snapshot` ever needed? Could be removed in v1.
 

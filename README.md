@@ -97,8 +97,7 @@ flowchart TB
 |---|---|---|
 | `get_snapshot` | extension | Pull current transcripts, history, name, participants, memory on demand |
 | `send_suggestion` | extension | Push a clickable bubble (kind: SUGGEST / RESEARCH / FACT; text + 1–4 chips). Up to 2 per turn. 60s text dedup. |
-| `update_live_minutes` | extension | Replace contents of the side `📋` Live Minutes panel with full markdown. Call when a new decision/action/owner/deadline appears. |
-| `save_minutes` | extension | End-of-meeting Markdown handoff (`minutes_ready` runtime message). |
+| `save_minutes` | extension | End-of-meeting Markdown handoff. Captured into `_lastMinutes` and appended to the exported VTT as a trailing `NOTE Minutes` block. |
 | `save_memory` | extension | Distilled facts (long-term) + summary (short-term). Also called mid-meeting once to persist `<MeetingName> goal`. |
 | `recall_knowledge` | extension | TF-IDF search over user-uploaded reference docs (`chrome.storage.local.knowledge`). Returns up to N `{doc, chunk, score, snippet}` matches. |
 | `wait_for_event` | client loop | Terminal park — ends the HTTP turn; resumes on next event. |
@@ -108,7 +107,6 @@ flowchart TB
 | Surface | Trigger | Purpose |
 |---|---|---|
 | `#aichat` chat panel | `aiChatButton` toggle / `send_suggestion` | Persistent assistant bubbles + free-text input. Chips show running → ✓ resolved / ✗ failed states. |
-| `#liveMinutes` side panel | `liveMinutesButton` (📋) / `update_live_minutes` | Glanceable Decisions / Action items / Open questions. Auto-shows on first update. |
 | `#meetmate-status` toast | various | Subtle, auto-fading status (caption count, connected, minutes-saved). |
 
 ## Lifecycle
@@ -337,7 +335,6 @@ window.dispatchEvent(new CustomEvent('meetmate:leave' }))
 | `user_mentioned_passive` | trigger 5 (mention) | Lightweight acknowledge bubble — not full draft |
 | `speech_polish_language_match` | trigger 6 strict | Polish only when >15 words + awkward |
 | `speech_polish_language_mismatch` | trigger 6 aggressive | Polish at >5 words → output in `preferredLanguage` |
-| `live_minutes_decision_action` | `update_live_minutes` | 📋 panel auto-shows with Decisions / Action items / Open questions |
 | `chip_click_lifecycle` | chip states | Amber spinner → green ✓ on resolve; red ✗ on failure |
 
 Two **special transcript markers** drive UI from inside a scenario

@@ -1,83 +1,83 @@
 {
-    "appName": {
-        "message": "MeetMate — Факты, Знания, Коуч и Память · Teams"
-    },
-    "appDesc": {
-        "message": "Факты, ваши доки, речевой коуч и память встреч — в Teams. Событийный AI, ~10× дешевле. Без бота."
-    },
-    "rephrasePrompt": {
-        "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
-    },
-    "suggestionPrompt": {
-        "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
-    },
-    "quickPrompts": {
-        "message": "Свод: Суммируйте встречу.\n?Ответить: Что я могу ответить сейчас?\n?Ответ: Предложите хороший ответ на последний вопрос\nДействия: Выделите предстоящие задачи после этой встречи?\nПроблемы: Выделите основные проблемы или вопросы, обсужденные на встрече.\nПротокол: составить протокол встречи"
-    },
-    "meetingGoal": {
-        "message": "Необязательно: опишите цель/тему этой встречи..."
-    },
-    "needTopup": {
-        "message": "Сначала пополните! Это очень очень дешево использовать."
-    },
-    "topup": {
-        "message": "Пополнить счет для помощника ИИ"
-    },
-    "autoDownload": {
-        "message": "Автоматическая загрузка живых субтитров"
-    },
-    "setupTitle": {
-        "message": "Расширенная настройка"
-    },
-    "testHello": {
-        "message": "Тест: Привет"
-    },
-    "onWayBuy": {
-        "message": "В пути к покупке ..."
-    },
-    "shortcut": {
-        "message": "Сокращенные подсказки"
-    },
-    "shortcutDesc": {
-        "message": "в один клик от ИИ для каждой строки. Действия, начинающиеся с '*', будут автоматически выполнены при выходе из собрания."
-    },
-    "instruction": {
-        "message": "Инструкция по встречам с ИИ"
-    },
-    "enableMeeting": {
-        "message": "Включить во время встречи."
-    },
-    "suggestionPrompt_placeholder": {
-        "message": "инструкция ИИ, системное сообщение"
-    },
-    "videoInstruction": {
-        "message": "Видеоинструкция по ИИ"
-    },
-    "enabledRephrasing": {
-        "message": "Включить после применения транскриптов к записанной встрече."
-    },
-    "rephrasePrompt_placeholder": {
-        "message": "инструкция ИИ, системное сообщение"
-    },
-    "languageMarker": {
-        "message": "Маркер языка[?]"
-    },
-    "meetingMarker": {
-        "message": "Маркер встречи[!]"
-    },
-    "enabledLanguageFlag": {
-        "message": "Кнопка для отметки внимания к языку на транскрипте."
-    },
-    "enabledMeetingFlag": {
-        "message": "Кнопка для отметки внимания к содержанию на транскрипте."
-    },
-    "languageAttention": {
-        "message": "внимание к языку"
-    },
-    "meetingAttention": {
-        "message": "внимание к встрече"
-    },
-    "buyMeBear": {
-        "message": "Купи мне пива"
-    }
+  "appName": {
+    "message": "MeetMate — Факты, Знания, Коуч и Память · Teams"
+  },
+  "appDesc": {
+    "message": "Факты, ваши доки, речевой коуч и память встреч — в Teams. Событийный AI, ~10× дешевле. Без бота."
+  },
+  "rephrasePrompt": {
+    "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
+  },
+  "suggestionPrompt": {
+    "message": "I'm {author}.\nThe following are transcripts of ongoing meeting. \n ------transcripts start -------\n {transcripts}\n ------transcripts end -------\n meeting title: {name} \n meeting goal/theme: {goal}\nYour response should always consider the transcripts.\nYou should response with the same language as user message."
+  },
+  "quickPrompts": {
+    "message": "Свод: Суммируйте встречу.\n?Ответить: Что я могу ответить сейчас?\n?Ответ: Предложите хороший ответ на последний вопрос\nДействия: Выделите предстоящие задачи после этой встречи?\nПроблемы: Выделите основные проблемы или вопросы, обсужденные на встрече.\nПротокол: составить протокол встречи"
+  },
+  "meetingGoal": {
+    "message": "Необязательно: опишите цель/тему этой встречи..."
+  },
+  "needTopup": {
+    "message": "Сначала пополните! Это очень очень дешево использовать."
+  },
+  "topup": {
+    "message": "Пополнить счет для помощника ИИ"
+  },
+  "autoDownload": {
+    "message": "Автоматическая загрузка живых субтитров"
+  },
+  "setupTitle": {
+    "message": "Расширенная настройка"
+  },
+  "testHello": {
+    "message": "Тест: Привет"
+  },
+  "onWayBuy": {
+    "message": "В пути к покупке ..."
+  },
+  "shortcut": {
+    "message": "Сокращенные подсказки"
+  },
+  "shortcutDesc": {
+    "message": "в один клик от ИИ для каждой строки. Действия, начинающиеся с '*', будут автоматически выполнены при выходе из собрания."
+  },
+  "instruction": {
+    "message": "Инструкция по встречам с ИИ"
+  },
+  "enableMeeting": {
+    "message": "Включить во время встречи."
+  },
+  "suggestionPrompt_placeholder": {
+    "message": "инструкция ИИ, системное сообщение"
+  },
+  "videoInstruction": {
+    "message": "Видеоинструкция по ИИ"
+  },
+  "enabledRephrasing": {
+    "message": "Включить после применения транскриптов к записанной встрече."
+  },
+  "rephrasePrompt_placeholder": {
+    "message": "инструкция ИИ, системное сообщение"
+  },
+  "languageMarker": {
+    "message": "Маркер языка[?]"
+  },
+  "meetingMarker": {
+    "message": "Маркер встречи[!]"
+  },
+  "enabledLanguageFlag": {
+    "message": "Кнопка для отметки внимания к языку на транскрипте."
+  },
+  "enabledMeetingFlag": {
+    "message": "Кнопка для отметки внимания к содержанию на транскрипте."
+  },
+  "languageAttention": {
+    "message": "внимание к языку"
+  },
+  "meetingAttention": {
+    "message": "внимание к встрече"
+  },
+  "buyMeBear": {
+    "message": "Купи мне пива"
+  }
 }

@@ -41,9 +41,8 @@ needs zero attention until something useful is offered.
     `POST /llm/v1/chat/completions`, OpenAI-compatible. No WebSocket.
 11. **Neverstop loop**: every assistant reply ends with `wait_for_event`.
     Loop driven client-side; relay is stateless.
-12. **200K-token compaction**: at threshold, agent calls `save_memory` +
-    `update_live_minutes`, then history is truncated to a `[COMPACTED]`
-    seed.
+12. **200K-token compaction**: at threshold, agent calls `save_memory`,
+    then history is truncated to a `[COMPACTED]` seed.
 13. **User-uploaded knowledge**: text/markdown reference docs (design
     docs, briefs, notes) can be uploaded in Setup → Knowledge. An LLM
     wiki-entry per doc lives in the system prompt; full passages are

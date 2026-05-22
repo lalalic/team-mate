@@ -366,9 +366,8 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
                         _cumulativeTokens = 0
                         // Compaction is a side conversation: enqueue the
                         // [COMPACT] user message at head-of-queue so it goes
-                        // in immediately, then the model emits save_memory +
-                        // update_live_minutes and parks again. After that we
-                        // truncate _messages.
+                        // in immediately, then the model emits save_memory
+                        // and parks again. After that we truncate _messages.
                         scheduleCompaction()
                     }
                     return
@@ -402,22 +401,21 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
         _compactInFlight = true
         try {
             // Build a synthetic [COMPACT] user message and a single ad-hoc
-            // turn that asks the model to save_memory + update_live_minutes
-            // then summarise. The model's reply to this turn is the new
-            // compacted history seed.
+            // turn that asks the model to save_memory then summarise. The
+            // model's reply to this turn is the new compacted history seed.
             _messages.push({ role: "user", content: COMPACT_USER })
             await runUntilPark(4)
             // After the model finishes (it will have called save_memory and
-            // update_live_minutes, then parked), build the compacted
-            // history: keep system, drop everything else, prepend a single
-            // user note with the summary the model just stored.
+            // parked), build the compacted history: keep system, drop
+            // everything else, prepend a single user note with the summary
+            // the model just stored.
             try {
                 const sys = _messages[0]
                 _messages.length = 0
                 if (sys) _messages.push(sys)
                 _messages.push({
                     role: "user",
-                    content: "[COMPACTED] Earlier history was truncated. Memory and live minutes were preserved via tools. Continue the meeting from here.",
+                    content: "[COMPACTED] Earlier history was truncated. Memory was preserved via save_memory. Continue the meeting from here.",
                 })
                 // Park flag is stale (tool_call_id refers to a discarded
                 // message). Clear it; next event will trigger a fresh turn.

@@ -491,8 +491,8 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
     let onMinutesCb = null;
     let onConnectedCb = null;
     // Generic "any tool was invoked" listeners — used by askLoop so a chip
-    // tap can resolve to ✓ even if the model silently calls save_memory /
-    // update_live_minutes instead of producing a new bubble.
+    // tap can resolve to ✓ even if the model silently calls save_memory
+    // instead of producing a new bubble.
     let onAnyToolCbs = [];
     const fireAnyTool = (tool, args) => {
         for (const cb of onAnyToolCbs) {
@@ -541,11 +541,6 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
             } catch {}
             return { ok: true };
         },
-        async updateLiveMinutes() {
-            // Live-minutes panel removed 2026-05 — tool retired. Stub kept so
-            // any legacy agent prompts still resolve cleanly.
-            return { ok: true };
-        },
         async saveMemory({ facts, summary }) {
             try {
                 if (summary) await appendShort({ name: name || "(untitled)", summary });
@@ -592,9 +587,9 @@ export async function makeLoopClient({ meetingId, name, transcripts, history }) 
         onConnected: (fn) => { onConnectedCb = fn; },
         // Push a user message and resolve with the FIRST model response —
         // a send_suggestion payload, or { ack: true, tool } if the model
-        // silently called save_memory / update_live_minutes
-        // (e.g. a goal-binding chip that just persists state). Resolves
-        // null on timeout. Used by the chat panel and chip taps.
+        // silently called save_memory (e.g. a goal-binding chip that just
+        // persists state). Resolves null on timeout. Used by the chat panel
+        // and chip taps.
         askLoop: (text, { timeoutMs = 30000 } = {}) => new Promise((resolve) => {
             let done = false;
             const cleanup = () => {
@@ -743,7 +738,6 @@ export async function createUI({ uiContainer = document.body, transcripts, histo
                     const tool = payload.tool || 'tool';
                     const ackText = ({
                         save_memory: '✓ Noted.',
-                        update_live_minutes: '✓ Topic updated — see the 📌 panel.',
                         // (set_phase removed 2026-05 — phase feature retired.)
                     })[tool] || `✓ Done (${tool}).`;
                     const msg = { role: "assistant", content: ackText, kind: 'SUGGEST' };
