@@ -1,18 +1,22 @@
 // src/ui-controller.js
 //
-// v4.1 UI controller. Owns the three new DOM surfaces:
-//   - #meetmate-center      top-center overlay (states 1, 2, 3)
+// v4.1 UI controller. Owns the DOM surfaces:
 //   - #meetmate-rail        right-side idle strip + Ask bar (state 4)
 //   - #meetmate-translation continuous-translation panel
+//
+// The legacy `#meetmate-center` top-center overlay was removed (users found
+// it intrusive); SUGGEST entries now stream into the rail. The center API
+// methods are kept as harmless no-ops / rail-forwards so older callers and
+// background messages keep working.
 //
 // All access is via:
 //   const ui = createUIController({ onAsk, onQuickHelp, onTranslateToggle })
 //   ui.applyState({state, payload})        // call after classifyState()
-//   ui.renderSuggestion({kind, text, options})  // routes by current state
+//   ui.renderSuggestion({kind, text, options})  // routes to rail
 //   ui.addIdleChip({kind, text, action})        // for state-4 rail chips
 //   ui.pushTranslation({speaker, text})         // append to translation panel
 //   ui.setTranslateOn(boolean)                  // show/hide translation panel
-//   ui.dismissCenter()
+//   ui.dismissCenter()                          // no-op (kept for API compat)
 //   ui.destroy()
 
 const SAFE_HTML = (s) => String(s == null ? "" : s)
@@ -27,20 +31,23 @@ const STATE_LABELS = {
 
 export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onContextSet, onAttentionToggle, onWillSay } = {}) {
     // Build DOM (idempotent — if elements already exist, reuse them).
-    // Center panel — shows reply options (different SUGGEST variants/branches)
-    // when user is mentioned (state 2), speaking (state 1), or attention
-    // toggle is ON. FACT/RESEARCH bubbles continue to flow into the side
-    // rail; the center is dedicated to "what can I say next?".
-    const center = ensureEl("meetmate-center", `
+    // Center panel was removed; clean up any stale node from previous loads
+    // so cached extensions don't leave an orphan overlay behind.
+    try { document.getElementById("meetmate-center")?.remove() } catch (_) {}
+    // Detached stub kept so internal `center.querySelector(...)` calls don't
+    // need to be rewritten — the node is never inserted into the document.
+    const center = document.createElement("div")
+    center.id = "meetmate-center"
+    center.style.display = "none"
+    center.innerHTML = `
         <div class="mm-c-head">
-            <span class="mm-c-badge">💬 Live help</span>
+            <span class="mm-c-badge">✨ hidden</span>
             <button class="mm-c-close" title="Dismiss">×</button>
         </div>
         <div class="mm-c-section mm-c-suggests">
             <div class="mm-c-section-body"></div>
         </div>
-    `)
-    center.classList.add("shouldRemove")
+    `
 
     const rail = ensureEl("meetmate-rail", `
         <div class="mm-r-head">
@@ -64,10 +71,34 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
     translation.classList.add("shouldRemove")
     translation.style.display = "none"
 
-    // Wire close on center
+    // Wire close on center (no-op handler retained for API compatibility;
+    // the element is detached so the listener never fires in practice).
     center.querySelector(".mm-c-close").addEventListener("click", dismissCenter)
 
-    // Rail collapse removed; switching is handled by external button.
+    // Rail toggle via bottom-right 💬 button (always visible)
+    let _railCollapsed = false
+    let showTab = document.getElementById("meetmate-show-rail")
+    if (!showTab) {
+        showTab = document.createElement("button")
+        showTab.id = "meetmate-show-rail"
+        showTab.className = "mm-show-rail shouldRemove"
+        showTab.title = "Toggle sidebar"
+        showTab.textContent = "💬"
+        document.body.appendChild(showTab)
+    } else {
+        showTab.className = "mm-show-rail shouldRemove"
+        showTab.textContent = "💬"
+    }
+    showTab.style.display = "flex"
+    showTab.addEventListener("click", () => {
+        if (_railCollapsed) {
+            _railCollapsed = false
+            rail.style.display = ""
+        } else {
+            _railCollapsed = true
+            rail.style.display = "none"
+        }
+    })
 
     // Wire Ask bar
     const askInput = rail.querySelector(".mm-r-asker input")
@@ -298,50 +329,24 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
     }
 
     function applyState({ state, payload }) {
-        const prevState = currentState
         currentState = state || 4
         currentPayload = payload || {}
-        const wantCentered = isCentered()
-        if (!wantCentered) {
-            center.classList.remove("show")
-            // Clear stale content so the next entry to high-priority starts blank.
-            if (prevState !== 4 || _attentionOn === false) {
-                setTimeout(() => { clearCenterSections() }, 220)
-            }
-            rail.style.display = "flex"
-        } else {
-            const hasContent = !!center.querySelector(".mm-c-suggests .mm-c-section-body")?.children.length
-            if (hasContent || _attentionOn) {
-                center.style.display = "block"
-                center.classList.add("show")
-            }
-            center.dataset.state = String(currentState)
-            const badge = center.querySelector(".mm-c-badge")
-            badge.textContent = STATE_LABELS[currentState] || ""
-            if (_attentionOn) {
-                badge.textContent = "🎯 Attention"
-            } else if (currentState === 2 && payload?.speaker) {
-                badge.textContent = `🟡 ${payload.speaker} → you`
-            } else if (currentState === 1 && payload?.sub === "paused") {
-                badge.textContent = "💬 Polish"
-            } else if (currentState === 1) {
-                badge.textContent = "💬 Live help"
-            } else if (currentState === 3) {
-                badge.textContent = "🔵 Asked"
-            }
-        }
+        if (!_railCollapsed) rail.style.display = "flex"
     }
 
     function renderSuggestion({ kind, text, options } = {}) {
         lastSuggestion = { kind, text, options: options || [] }
-        if (isCentered()) {
-            appendCenterEntry({ kind, text, options })
-            center.style.display = "block"
-            center.classList.add("show")
-            center.dataset.state = String(currentState)
+        // Route all suggestions through the rail log. Options (reply branches)
+        // become rail chips so the user can still pick a variant.
+        try { logToRail({ kind, text }) } catch (e) { console.warn(e) }
+        if (Array.isArray(options)) {
+            for (const opt of options) {
+                if (!opt) continue
+                const optText = typeof opt === "string" ? opt : (opt.text || opt.label || "")
+                if (!optText) continue
+                try { addIdleChip({ kind: "SUGGEST", text: optText }) } catch (e) { console.warn(e) }
+            }
         }
-        // For state 4 the rail (logToRail, called by content.js) is the
-        // single rendering path — nothing to do here.
     }
 
     function formatBody(text) {
@@ -380,7 +385,7 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
                     if (detailEl.style.display === "none") {
                         detailEl.style.display = "block"
                         detailEl.innerHTML = `<em class="mm-r-loading">Loading…</em>`
-                        window.dispatchEvent(new CustomEvent("meetmate:detail_request", {
+                        document.dispatchEvent(new CustomEvent("meetmate:detail_request", {
                             detail: { id, kind: k, text: text || "" },
                         }))
                     } else {
@@ -433,8 +438,7 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
     }
 
     function dismissCenter() {
-        center.classList.remove("show")
-        setTimeout(() => { center.style.display = "none" }, 200)
+        // Center panel removed; nothing to dismiss. Kept for API compatibility.
     }
 
     // Append a flowing log entry to the rail. No avatar, just text + icon.
@@ -471,7 +475,7 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
                     detailEl.style.display = "block"
                     detailEl.innerHTML = `<em class="mm-r-loading">Loading…</em>`
                     try {
-                        window.dispatchEvent(new CustomEvent("meetmate:detail_request", {
+                        document.dispatchEvent(new CustomEvent("meetmate:detail_request", {
                             detail: { id, kind: k, text },
                         }))
                     } catch (_) {}
@@ -481,18 +485,12 @@ export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onCo
             })
         } else if (k === "SUGGEST") {
             // Click a SUGGEST in the sidebar = "I'm going to speak this".
-            // Promote to the centered panel and notify the LLM via onWillSay
-            // so it can follow up / remember the user's intent.
+            // Notify the LLM via onWillSay so it can follow up / remember
+            // the user's intent. Center panel is gone; nothing else to show.
             entry.classList.add("mm-r-clickable")
             entry.addEventListener("click", (ev) => {
                 ev.stopPropagation()
-                try {
-                    appendCenterEntry({ kind: "SUGGEST", text, options: [] })
-                    center.style.display = "block"
-                    center.classList.add("show")
-                    center.dataset.state = String(currentState || 1)
-                    onWillSay?.(text)
-                } catch (e) { console.warn(e) }
+                try { onWillSay?.(text) } catch (e) { console.warn(e) }
                 entry.style.opacity = "0.6"
             })
         }
