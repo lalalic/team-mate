@@ -455,9 +455,6 @@ async function init(){
                             try { reclassifyState() } catch (_) {}
                             setTimeout(() => { _askBar.active = false }, 1500)
                         },
-                        onTranslateToggle: () => {
-                            // (Continuous-translation feature retired — callback no-op.)
-                        },
                         onContextSet: (ctx) => {
                             // Persist meeting context locally KEYED BY MEETING
                             // NAME so recurring meetings each keep their own

@@ -113,26 +113,6 @@ const TOOLS = [
     {
         type: "function",
         function: {
-            name: "set_phase",
-            description:
-                "Update the conversation state tracker badge. Call ONCE when the meeting " +
-                "phase changes — not every turn. Phases: intro, discussion, decision, qna, wrap.",
-            parameters: {
-                type: "object",
-                required: ["phase"],
-                properties: {
-                    phase: {
-                        type: "string",
-                        enum: ["intro", "discussion", "decision", "qna", "wrap"],
-                    },
-                    note: { type: "string" },
-                },
-            },
-        },
-    },
-    {
-        type: "function",
-        function: {
             name: "save_memory",
             description:
                 "Persist distilled facts and a one-paragraph summary to long/short-term memory. " +
@@ -187,37 +167,25 @@ const HANDLER_KEY = {
     get_snapshot: "getSnapshot",
     send_suggestion: "sendSuggestion",
     update_live_minutes: "updateLiveMinutes",
-    set_phase: "setPhase",
     save_memory: "saveMemory",
     save_minutes: "saveMinutes",
     recall_knowledge: "recallKnowledge",
 }
 
 const BOOTSTRAP_USER = [
-    "Meeting started. No bubbles have been shown yet — the chat panel is empty.",
+    "Meeting started. Chat panel is empty.",
     "",
-    "Step 1 (REQUIRED): emit a small batch of `send_suggestion` calls surfacing",
-    "what you already know AND what the user might want to look up:",
+    "DO NOT call send_suggestion with kind SUGGEST — no one has spoken yet.",
     "",
-    "  • 2-4 `kind: \"FACT\"` bubbles — one per recalled fact about this meeting",
-    "    drawn from `{memory}`, `{user_context}`, and `{meeting_meta}` (e.g.,",
-    "    counterpart, prior discussion, open items). ≤ 14 words each.",
-    "  • 1-3 `kind: \"RESEARCH\"` bubbles — **questions** the user may want",
-    "    answered to be ready (e.g., \"What is OOM?\", \"How is Solr used in",
-    "    eXstream?\", \"What's a healthy Q3 retention benchmark?\"). End each",
-    "    with `?`. Each bubble is clickable; you'll answer when clicked.",
-    "    ≤ 12 words each.",
+    "If memory is empty: call send_suggestion ONCE with kind FACT and text",
+    "\"Ready. Listening for conversation.\" — then call wait_for_event.",
     "",
-    "Emit FACTs first, then RESEARCH bubbles. No SUGGEST bubble on bootstrap",
-    "(no caption has arrived yet). No chips. No reassurance line — the icons",
-    "communicate the system's behavior.",
+    "If memory has facts about this meeting: call send_suggestion 1-2 times",
+    "with kind FACT, recalling the most relevant facts (≤14 words each).",
+    "Then call wait_for_event.",
     "",
-    "If memory and user_context are empty, emit a single FACT like",
-    "\"First time on this thread — no prior context.\" and 1-2 RESEARCH bubbles",
-    "inferred from `{meeting_meta}` (title, invitee org, etc.), then stop.",
-    "",
-    "Step 2 (REQUIRED): call `wait_for_event` to park the turn. Proceed when the",
-    "next caption arrives — no user reply is required to continue.",
+    "That's it. No RESEARCH. No SUGGEST. No chips. No reassurance.",
+    "Wait for the first caption to arrive before doing anything else.",
 ].join("\n")
 
 const COMPACT_USER = [
@@ -240,7 +208,7 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
     if (!handlers) throw new Error("createLoopSession: handlers required")
     // bootstrapUser: the first user message pushed by start(). Default is the
     // full agent bootstrap (FACT/RESEARCH). Pass a custom string for non-agent
-    // sessions (e.g. translator). Pass null/empty to skip and just park.
+    // sessions. Pass null/empty to skip and just park.
     const _bootstrap = (bootstrapUser === undefined) ? BOOTSTRAP_USER : (bootstrapUser || "")
 
     // ── State ────────────────────────────────────────────────────────────
@@ -257,6 +225,7 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
     let _firstAskSeen = false        // fire onConnected exactly once
     let _lastSuggestionText = ""     // dedup window
     let _lastSuggestionAt = 0
+    let _recoveryTimer = null        // dead-loop self-heal timer
 
     function log(...a) { try { console.log("[LoopSession]", ...a) } catch {} }
 
@@ -270,7 +239,20 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
     function drain() {
         // If model is parked and the queue has something, answer the parked
         // wait_for_event with the next event and re-enter the loop.
-        if (!_parkedToolCallId || _eventQueue.length === 0 || _running) return
+        if (_running || _eventQueue.length === 0) return
+        if (!_parkedToolCallId) {
+            // Dead-loop recovery: loop crashed without parking (chatCompletion
+            // error or maxHops exhausted). Push the event as a user message
+            // and re-enter the loop.
+            const evt = _eventQueue.shift()
+            _messages.push({
+                role: "user",
+                content: `[RECOVERY] Prior LLM call failed. Pending event:\n${JSON.stringify(evt)}\nResume the meeting. Call wait_for_event to park.`,
+            })
+            log("dead-loop recovery: re-entering with", evt.kind, "remaining queue", _eventQueue.length)
+            runUntilPark().catch(e => log("recovery runUntilPark error", e?.message || e))
+            return
+        }
         const evt = _eventQueue.shift()
         const toolCallId = _parkedToolCallId
         _parkedToolCallId = null
@@ -314,6 +296,9 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
     async function runUntilPark(maxHops = 8) {
         if (_running) return
         _running = true
+        // Clear any pending recovery timer — we're alive now.
+        if (_recoveryTimer) { clearTimeout(_recoveryTimer); _recoveryTimer = null }
+        let consecutiveErrors = 0
         try {
             for (let hop = 0; hop < maxHops; hop++) {
                 let res
@@ -323,10 +308,19 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
                         tools: TOOLS,
                         model,
                     })
+                    consecutiveErrors = 0
                 } catch (e) {
-                    log("chatCompletion error", e?.message || e)
-                    // Bail — leave _parkedToolCallId null so next event triggers a retry.
-                    return
+                    consecutiveErrors++
+                    log("chatCompletion error", e?.message || e, `(attempt ${consecutiveErrors}/3)`)
+                    if (consecutiveErrors >= 3) {
+                        log("3 consecutive errors — scheduling recovery in 10s")
+                        scheduleRecovery()
+                        return
+                    }
+                    const delay = Math.min(2000 * Math.pow(2, consecutiveErrors - 1), 15000)
+                    log(`retrying in ${delay}ms`)
+                    await new Promise(r => setTimeout(r, delay))
+                    continue
                 }
                 if (res.usage) {
                     _cumulativeTokens += Number(res.usage.prompt_tokens) || 0
@@ -397,9 +391,22 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
                 // chatCompletion so the model continues toward its terminal call.
             }
             log("WARN: maxHops exceeded without parking")
+            scheduleRecovery()
         } finally {
             _running = false
         }
+    }
+
+    // ── Dead-loop recovery ─────────────────────────────────────────────
+    function scheduleRecovery() {
+        if (_recoveryTimer || _parkedToolCallId) return
+        _recoveryTimer = setTimeout(() => {
+            _recoveryTimer = null
+            if (_parkedToolCallId || _running) return     // already recovered
+            if (_eventQueue.length === 0) return           // nothing to do
+            log("recovery timer fired — attempting drain")
+            drain()
+        }, 10_000)
     }
 
     // ── Compaction ───────────────────────────────────────────────────────

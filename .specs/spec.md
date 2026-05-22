@@ -6,8 +6,7 @@ v4.0.0.
 ## Problem
 
 People in live Teams meetings need to: draft replies, polish their phrasing,
-translate between meeting language and their stronger language, surface
-background knowledge on jargon, and capture decisions / action items —
+surface background knowledge on jargon, and capture decisions / action items —
 without breaking eye contact or pausing to type.
 
 Existing solutions either record-only (Otter, Fireflies — passive minutes)
@@ -57,8 +56,6 @@ needs zero attention until something useful is offered.
   the bubble text and pastes themselves — selectable text, no Send button).
 - Per-user accounts / login. Device-bootstrap via `/llm/v1/register` is
   silent and stable per install.
-- Translating the entire transcript on demand. The toolbar Translate button
-  targets the **current intent on the floor**, not bulk.
 - Sharing minutes or memory across users.
 
 ## Success Metrics
@@ -98,8 +95,8 @@ Live e2e in a real Teams meeting still pending (requires user).
 UI:
 - Center / rail / live-minutes panels moved to `top: 160px` so Teams' top
   toolbar stays clickable.
-- Bottom toolbar reduced to: 🌐 translate, 📋 minutes, ● attention.
-  Removed: ? quickhelp, $ payment flagger, AI-chat-sidebar toggle.
+- Bottom toolbar reduced to: 📋 minutes, ● attention.
+  Removed: ? quickhelp, $ payment flagger, AI-chat-sidebar toggle, 🌐 translate.
 - Attention button: blank label, CSS dot indicator (grey idle / red+halo
   when on). Wired via `meetmate:attention-toggle` `CustomEvent`.
 - Center panel section header "Pick a reply" removed (entries speak for
@@ -134,8 +131,8 @@ Memory:
   injects it into the system prompt as `{knowledge_index}` — small
   enough to live in the prompt, big enough for the agent to know
   what's in the corpus.
-- **`recall_knowledge({query, limit?})` tool** registered in both main
-  and translator loops (loop-session.js + util.js handler). When the
+- **`recall_knowledge({query, limit?})` tool** registered in the main
+  loop (loop-session.js + util.js handler). When the
   agent sees a term that appears in the index, it calls
   `recall_knowledge` to fetch full passages.
 - **Retrieval = TF-IDF over chunked text** (`knowledgeChunk` +
@@ -148,7 +145,6 @@ Memory:
   and when to skip it.
 
 Translator:
-- Confirmed the dedicated translator session is a never-end-turn
-  loop (`makeTranslatorClient`), parked on `wait_for_event` between
-  captions, with `send_suggestion` forced for output. Kept stateful
-  for cross-caption consistency (speaker names, terminology).
+- (Removed 2026-05) Continuous-translation feature retired. The dedicated
+  translator session and toolbar 🌐 button are gone; cross-language polish
+  remains via the main loop's reply-drafting (US-02).

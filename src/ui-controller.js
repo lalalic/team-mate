@@ -2,7 +2,6 @@
 //
 // v4.1 UI controller. Owns the DOM surfaces:
 //   - #meetmate-rail        right-side idle strip + Ask bar (state 4)
-//   - #meetmate-translation continuous-translation panel
 //
 // The legacy `#meetmate-center` top-center overlay was removed (users found
 // it intrusive); SUGGEST entries now stream into the rail. The center API
@@ -10,7 +9,7 @@
 // background messages keep working.
 //
 // All access is via:
-//   const ui = createUIController({ onAsk, onQuickHelp, onTranslateToggle })
+//   const ui = createUIController({ onAsk, onQuickHelp })
 //   ui.applyState({state, payload})        // call after classifyState()
 //   ui.renderSuggestion({kind, text, options})  // routes to rail
 //   ui.addIdleChip({kind, text, action})        // for state-4 rail chips
@@ -29,7 +28,7 @@ const STATE_LABELS = {
     4: "Idle",
 }
 
-export function createUIController({ onAsk, onQuickHelp, onTranslateToggle, onContextSet, onAttentionToggle, onWillSay } = {}) {
+export function createUIController({ onAsk, onQuickHelp, onContextSet, onAttentionToggle, onWillSay } = {}) {
     // Build DOM (idempotent — if elements already exist, reuse them).
     // Center panel was removed; clean up any stale node from previous loads
     // so cached extensions don't leave an orphan overlay behind.

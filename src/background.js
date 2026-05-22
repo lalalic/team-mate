@@ -3,9 +3,6 @@ const {initConf, getConf, buy, makePredictAPI} = require("./util");
 initConf({
     author:"",  apiKey:"", token:"",
 
-    enabledTranslate:false, 
-    translationPrompt:"",
-
     enabledSuggestion:true, 
     suggestionPrompt: chrome.i18n.getMessage("suggestionPrompt"),
     enabledRephrasing:true,
@@ -33,7 +30,7 @@ function sanitizeFileName(name) {
 }
 
 
-function save({transcripts, name, author}) {
+function save({transcripts, extras, name, author}) {
     name=`${name}/${new Date().toISOString().split("T")[0].replace(/-/g,"")}`
     if(author){
         name=`${name}-${author}`
@@ -42,12 +39,51 @@ function save({transcripts, name, author}) {
     }
     if(!transcripts?.length)
         return 
-    // Convert transcriptArray to YAML format
-    const content = `WEBVTT\n\n`
-        +transcripts.map((entry,i) => {
-            return `${entry.Time} --> ${transcripts[i+1]?.Time||entry.Time}\n${entry.Name}: ${entry.Text}\n`;
-        }).join('\n');
-  
+
+    // Build time-indexed extras lookup (translations + suggestions)
+    const extrasByTime = {}
+    if (Array.isArray(extras)) {
+        for (const e of extras) {
+            if (!e.Time) continue
+            const key = e.Time.slice(0, 8) // group by HH:MM:SS
+            if (!extrasByTime[key]) extrasByTime[key] = []
+            extrasByTime[key].push(e)
+        }
+    }
+    const flushed = new Set()
+
+    const parts = []
+    for (let i = 0; i < transcripts.length; i++) {
+        const entry = transcripts[i]
+        const nextTime = transcripts[i+1]?.Time || entry.Time
+        parts.push(`${entry.Time} --> ${nextTime}\n${entry.Name}: ${entry.Text}\n`)
+        // Flush any extras for this timestamp
+        const key = (entry.Time || '').slice(0, 8)
+        if (key && extrasByTime[key] && !flushed.has(key)) {
+            flushed.add(key)
+            for (const e of extrasByTime[key]) {
+                if (e.type === 'translation') {
+                    parts.push(`NOTE translation\n${e.speaker}: ${e.text}\n`)
+                } else if (e.type === 'suggestion') {
+                    parts.push(`NOTE ${e.kind || 'AI'}\n${e.text}\n`)
+                }
+            }
+        }
+    }
+    // Flush remaining extras not matched to any caption timestamp
+    for (const [key, items] of Object.entries(extrasByTime)) {
+        if (flushed.has(key)) continue
+        for (const e of items) {
+            if (e.type === 'translation') {
+                parts.push(`NOTE translation @ ${e.Time}\n${e.speaker}: ${e.text}\n`)
+            } else if (e.type === 'suggestion') {
+                parts.push(`NOTE ${e.kind || 'AI'} @ ${e.Time}\n${e.text}\n`)
+            }
+        }
+    }
+
+    const content = `WEBVTT\n\n` + parts.join('\n')
+
     chrome.downloads.download({
         url:"data:text/vtt;charset=utf-8," + encodeURIComponent(content),
         filename:`${sanitizeFileName(name)}.vtt`,
