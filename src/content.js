@@ -511,7 +511,10 @@ async function init(){
         } catch (e) { console.warn('[meetmate] loop start failed', e) }
     }
 
+    let _stopping = false
     async function stopTranscription() {
+        if (_stopping) return
+        _stopping = true
         // Ensure UI cleanup runs even if intermediate steps throw.
         try {
         //add last transcript
@@ -569,6 +572,7 @@ async function init(){
             if (_statusClearTimer) { clearTimeout(_statusClearTimer); _statusClearTimer = 0 }
             _captionCountForStatus = 0
         } catch(_) {}
+        _stopping = false
         }
     }
 
