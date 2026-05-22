@@ -92,10 +92,6 @@ Mid-meeting research: who is this person, draft a reply, summarize the last
 ★ Pay-as-you-go via Stripe — no subscription
 $1, $10 or $100 top-ups. Server-verified credits, no enterprise license.
 
-Also bundled
-• Translate / polish (🌐) — speak in any of 8 languages, read the floor in
-  yours. Optional helper, not the main act.
-
 ────────────────────────────────────────
 PRIVACY — Yours stays yours
 ────────────────────────────────────────
@@ -121,7 +117,8 @@ WHO SHOULD USE MEETMATE
 ────────────────────────────────────────
 
 • Sales / CS / partner-managers running customer calls on personal Teams.
-• Engineers in cross-cultural standups who want translation + live notes.
+• Engineers in cross-cultural standups who want live notes + cross-language
+  reply drafts.
 • Consultants juggling 8 client meetings a day with no admin team.
 • Anyone who finds note-taker bots awkward and post-call summaries too late.
 
@@ -164,18 +161,15 @@ the right with a clear caption.
 5. **Auto minutes** : the collapsible minutes panel mid-call. Caption:
    *"Decisions, Action Items, Open Questions — done by the time you leave."*
 
-(Optional 6th — Translate / 🌐 polish — only if a slot is open. Not a hero shot.)
-
 ## Promotional tile
 **Small tile (440×280)**: split screen — left = Teams call screenshot,
 right = MeetMate center panel with the yellow "🟡 → you" badge. Headline:
 `Your turn. Pick a topic.`
 
 ## Video (already exists — needs update)
-Current promo is "One Click. Your Language." — that's the translate demo and
-**does not match HP-01** (the 4-state happy path). Plan to replace with a
-30-second walkthrough of S-1 → S-2 → S-3 → S-4. Keep current video only if
-the replacement is going to slip past launch.
+Current promo is "One Click. Your Language." — that was the (now-retired)
+translate demo and **does not match HP-01** (the 4-state happy path). Replace
+with a 30-second walkthrough of S-1 → S-2 → S-3 → S-4 before launch.
 
 ## Privacy practices form (CWS requires this)
 - Single purpose: "Live AI assistance during Microsoft Teams meetings."
@@ -191,5 +185,7 @@ the replacement is going to slip past launch.
 3. Screenshots — produce fresh ones from a scripted Teams session, or reuse
    existing?
 4. Promo video — keep "One Click. Your Language." or shoot a v4 walkthrough?
+   (Note: the translate feature it demos was removed in v4.1; a fresh
+   walkthrough is now effectively required.)
 5. Bump version 4.0.0 → 4.1.0 (since 4.0.0 is local-dev only, we want the
    first store version of v4 to read cleanly)?
