@@ -61,8 +61,8 @@ async function init(){
     // Each: { id, ts }
     let _pendingAskAnswers = []
     let _stateTimer = null      // periodic re-classify to expire stickies
-    // Extras for VTT export: translations + LLM suggestions
-    let _extras = []
+    // Latest live-minutes markdown — appended to the VTT export at end-of-meeting.
+    let _lastMinutes = ''
 
     // Expose user-message hook so the chat panel (util.js#createAIChatUI) can
     // route its input into the loop session as head-of-queue user_msg events.
@@ -536,6 +536,7 @@ async function init(){
             // being discussed right now. Pipe the markdown into the side panel.
             _loop.onLiveMinutes?.(({ markdown }) => {
                 try {
+                    _lastMinutes = markdown || ''
                     const panel = document.getElementById('liveMinutes')
                     if (!panel) return
                     const body = panel.querySelector('.meetmate-minutes-body')
@@ -594,14 +595,14 @@ async function init(){
             message: "stop_capture", 
             transcripts,
             history,
-            extras: _extras,
+            minutes: _lastMinutes,
             name: getMeetingName()
         });
         timer=null
         startTime=null
         transcripts.splice(0)
         history.splice(0)
-        _extras = []
+        _lastMinutes = ''
         if (containerObserver) { containerObserver.disconnect(); containerObserver=null }
         } finally {
         // Tear down any UI the assistant injected (chat panel, action buttons, bubbles).
@@ -688,7 +689,6 @@ async function init(){
         // back-compat (its CSS is hidden when v4.1 UI is active).
         try {
             history.push({ role: "assistant", content: text || "", kind, options })
-            _extras.push({ type: 'suggestion', kind: kind || 'SUGGEST', text: text || '', Time: since(startTime) })
             if (_ui) {
                 // If a FACT/RESEARCH detail expansion was just requested, route
                 // the next reply to populateDetail on that entry instead of as

@@ -30,59 +30,22 @@ function sanitizeFileName(name) {
 }
 
 
-function save({transcripts, extras, name, author}) {
+function save({transcripts, minutes, name}) {
     name=`${name}/${new Date().toISOString().split("T")[0].replace(/-/g,"")}`
-    if(author){
-        name=`${name}-${author}`
-        author=author.split(",").map(a=>a.trim())
-        transcripts=transcripts.filter(a=>author.indexOf(a.Name)!=-1)
-    }
     if(!transcripts?.length)
         return 
-
-    // Build time-indexed extras lookup (translations + suggestions)
-    const extrasByTime = {}
-    if (Array.isArray(extras)) {
-        for (const e of extras) {
-            if (!e.Time) continue
-            const key = e.Time.slice(0, 8) // group by HH:MM:SS
-            if (!extrasByTime[key]) extrasByTime[key] = []
-            extrasByTime[key].push(e)
-        }
-    }
-    const flushed = new Set()
 
     const parts = []
     for (let i = 0; i < transcripts.length; i++) {
         const entry = transcripts[i]
         const nextTime = transcripts[i+1]?.Time || entry.Time
         parts.push(`${entry.Time} --> ${nextTime}\n${entry.Name}: ${entry.Text}\n`)
-        // Flush any extras for this timestamp
-        const key = (entry.Time || '').slice(0, 8)
-        if (key && extrasByTime[key] && !flushed.has(key)) {
-            flushed.add(key)
-            for (const e of extrasByTime[key]) {
-                if (e.type === 'translation') {
-                    parts.push(`NOTE translation\n${e.speaker}: ${e.text}\n`)
-                } else if (e.type === 'suggestion') {
-                    parts.push(`NOTE ${e.kind || 'AI'}\n${e.text}\n`)
-                }
-            }
-        }
-    }
-    // Flush remaining extras not matched to any caption timestamp
-    for (const [key, items] of Object.entries(extrasByTime)) {
-        if (flushed.has(key)) continue
-        for (const e of items) {
-            if (e.type === 'translation') {
-                parts.push(`NOTE translation @ ${e.Time}\n${e.speaker}: ${e.text}\n`)
-            } else if (e.type === 'suggestion') {
-                parts.push(`NOTE ${e.kind || 'AI'} @ ${e.Time}\n${e.text}\n`)
-            }
-        }
     }
 
-    const content = `WEBVTT\n\n` + parts.join('\n')
+    let content = `WEBVTT\n\n` + parts.join('\n')
+    if (minutes && minutes.trim()) {
+        content += `\nNOTE Minutes\n${minutes.trim()}\n`
+    }
 
     chrome.downloads.download({
         url:"data:text/vtt;charset=utf-8," + encodeURIComponent(content),
@@ -143,9 +106,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
             console.log('stop_capture received!');
             save(request)
             const conf=await getConf()
-            if(conf.author){
-                save({...request, author:conf.author})
-            }
 
             if(conf.token){
                 saveChat(request)
