@@ -45,10 +45,6 @@ flowchart LR
 - **User context** — a Markdown profile (About me / People I meet with / How
   I want the agent to help / Knowledge / Reference / Goals & Themes) plus a
   preferred-language selector are injected into every meeting.
-- **🌐 Global Translate toolbar button** — one tap translates the current
-  intent on the floor (last speaker's turn) into the user's preferred
-  language; if meeting language differs from preferred, the agent also
-  proactively polishes the user's own utterances in the meeting language.
 - **Pay-as-you-go** — usage billed against a Stripe credits ledger. Top-up via Stripe live Payment Links ($1 / $10 / $100). After payment, Stripe redirects back to the extension's setup page with a `session_id`; the extension POSTs that session id to the relay's `/stripe/verify` endpoint, which calls Stripe API with the live secret key, confirms `payment_status=paid`, and returns the verified amount. The URL `credit` parameter is **ignored** (would otherwise be forgeable). Balance shown live in popup + setup page.
 
 ## Architecture
@@ -341,7 +337,6 @@ window.dispatchEvent(new CustomEvent('meetmate:leave' }))
 | `user_mentioned_passive` | trigger 5 (mention) | Lightweight acknowledge bubble — not full draft |
 | `speech_polish_language_match` | trigger 6 strict | Polish only when >15 words + awkward |
 | `speech_polish_language_mismatch` | trigger 6 aggressive | Polish at >5 words → output in `preferredLanguage` |
-| `translate_button_current_intent` | 🌐 toolbar | Translates last speaker's turn only — not bulk dump |
 | `live_minutes_decision_action` | `update_live_minutes` | 📋 panel auto-shows with Decisions / Action items / Open questions |
 | `chip_click_lifecycle` | chip states | Amber spinner → green ✓ on resolve; red ✗ on failure |
 
@@ -351,7 +346,7 @@ instead of pushing a caption:
 - `{Name: '__chip_tap__', Text: '<chip label>'}` — taps the matching
   live chip
 - `{Name: '__toolbar_click__', Text: '<role>'}` — clicks the toolbar
-  button with that role (e.g. `translate`, `minutes`)
+  button with that role (e.g. `minutes`)
 
 Scenarios with a `preconditions` block (e.g. `goal_recall_recurring`,
 `speech_polish_*`) require manual setup of `chrome.storage.local.memory`
@@ -361,7 +356,7 @@ or DevTools.
 #### Last live verification
 
 Driven against a real Teams meeting on 2025-04-25 (gpt-4.1, port 9222
-agent-browser, "Meeting with Raymond Li"). Result: **10/11 PASS**.
+agent-browser, "Meeting with Raymond Li"). Result: **9/9 PASS**.
 
 | # | Scenario | Result |
 |---|---|---|
@@ -372,8 +367,6 @@ agent-browser, "Meeting with Raymond Li"). Result: **10/11 PASS**.
 | 5 | `user_mentioned_passive` | ✅ defensible silence |
 | 6 | `speech_polish_language_match` | ✅ |
 | 7 | `speech_polish_language_mismatch` | ✅ |
-| 8 | `translate_button_current_intent` | ⚠️ both lines translated, but as 2 bubbles vs 1 — prompt fix shipped, not yet re-verified |
-| 9 | `live_minutes_decision_action` | ✅ |
-| 10 | `phase_transitions_full_arc` | ✅ |
-| 11 | `chip_click_lifecycle` | ✅ |
+| 8 | `live_minutes_decision_action` | ✅ |
+| 9 | `chip_click_lifecycle` | ✅ |
 
