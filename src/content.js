@@ -511,7 +511,7 @@ async function init(){
         } catch (e) { console.warn('[meetmate] loop start failed', e) }
     }
 
-    function stopTranscription() {
+    async function stopTranscription() {
         // Ensure UI cleanup runs even if intermediate steps throw.
         try {
         //add last transcript
@@ -531,14 +531,13 @@ async function init(){
         }
 
         // Hand off to the loop session: it will call save_minutes + save_memory
-        // before we disconnect.
+        // before we disconnect. AWAIT so _lastMinutes is populated before the
+        // VTT save fires below.
         const loopRef = _loop
         _loop = null
         if (loopRef) {
-            (async () => {
-                try { await loopRef.end() } catch(_) {}
-                try { resetRelayClient() } catch(_) {}
-            })()
+            try { await loopRef.end() } catch(_) {}
+            try { resetRelayClient() } catch(_) {}
         } else {
             try { resetRelayClient() } catch(_) {}
         }

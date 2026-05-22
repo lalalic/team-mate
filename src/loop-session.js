@@ -202,6 +202,7 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
     let _running = false             // re-entry guard for runUntilPark
     let _started = false
     let _ending = false
+    let _onMinutesDispatched = null  // resolved on first save_minutes during end()
     let _onUsage = null
     let _cumulativeTokens = 0        // running sum of prompt_tokens
     let _firstAskSeen = false        // fire onConnected exactly once
@@ -268,6 +269,9 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
             const fn = handlers[handlerKey]
             if (!fn) return { ok: true }
             const result = await fn(args || {})
+            if (name === "save_minutes" && _onMinutesDispatched) {
+                try { _onMinutesDispatched(); _onMinutesDispatched = null } catch {}
+            }
             return result ?? { ok: true }
         } catch (e) {
             return { ok: false, error: String(e?.message || e) }
@@ -447,13 +451,19 @@ export function createLoopSession({ meetingId, systemMessage, model, handlers, o
     }
     function pushTick() { enqueue({ kind: "tick", ts: Date.now() }) }
 
-    async function end({ wait = 5000 } = {}) {
+    async function end({ wait = 15000 } = {}) {
         if (_ending) return
         _ending = true
+        // Resolve as soon as save_minutes is dispatched (capped by `wait`).
+        const minutesSeen = new Promise(r => { _onMinutesDispatched = r })
         enqueue({ kind: "end" }, { headOfQueue: true })
-        // Let the model react (save_minutes, save_memory) before we drop the
-        // session. We do NOT actually disconnect anything — v4 is stateless.
-        await new Promise(r => setTimeout(r, wait))
+        await Promise.race([
+            minutesSeen,
+            new Promise(r => setTimeout(r, wait)),
+        ])
+        // Tiny grace period so the handler's onMinutesCb (which sets
+        // _lastMinutes in the host) has flushed before stop_capture fires.
+        await new Promise(r => setTimeout(r, 200))
     }
 
     function onUsageHandler(fn) { _onUsage = fn }
