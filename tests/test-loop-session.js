@@ -112,7 +112,7 @@ await scenario("US-01: greeting bubble + park at start", async () => {
         handlers: {
             sendSuggestion: a => { calls.push(["sendSuggestion", a]); return { ok: true } },
             updateLiveMinutes: a => { calls.push(["updateLiveMinutes", a]); return { ok: true } },
-            setPhase: a => { calls.push(["setPhase", a]); return { ok: true } },
+            
             saveMemory: a => { calls.push(["saveMemory", a]); return { ok: true } },
             saveMinutes: a => { calls.push(["saveMinutes", a]); return { ok: true } },
             getSnapshot: () => ({}),
@@ -156,7 +156,6 @@ await scenario("US-02: cross-language polish on user's Mandarin caption", async 
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
             updateLiveMinutes: () => ({ ok: true }),
-            setPhase: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -207,7 +206,6 @@ await scenario("US-03: jargon question → RESEARCH then SUGGEST then park", asy
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
             updateLiveMinutes: () => ({ ok: true }),
-            setPhase: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -281,7 +279,6 @@ await scenario("US-04: knowledge recall → FACT bubble citing source", async ()
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
             updateLiveMinutes: () => ({ ok: true }),
-            setPhase: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -367,7 +364,6 @@ await scenario("US-05: speaking state → topic branches → SPEAKING_REFRESH", 
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
             updateLiveMinutes: () => ({ ok: true }),
-            setPhase: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -453,7 +449,6 @@ await scenario("US-06: attention_toggle + QUICK_HELP", async () => {
         handlers: {
             sendSuggestion: a => { bubbles.push(a); return { ok: true } },
             updateLiveMinutes: () => ({ ok: true }),
-            setPhase: () => ({ ok: true }),
             saveMemory: () => ({ ok: true }),
             saveMinutes: () => ({ ok: true }),
             getSnapshot: () => ({}),
@@ -499,9 +494,8 @@ await scenario("US-07: end → save_minutes + save_memory each fire once", async
         toolCall("c1", "send_suggestion", { kind: "SUGGEST", text: "Hi Raymond.", options: [] }),
         toolCall("c2", "wait_for_event", {}),
     ]))
-    // Turn 2 (after end event): set_phase wrap + save_minutes + save_memory + wait_for_event
+    // Turn 2 (after end event): save_minutes + save_memory + wait_for_event
     pushResponse(llmReply([
-        toolCall("c3", "set_phase", { phase: "wrap", note: "recap action items" }),
         toolCall("c4", "save_minutes", {
             markdown: "## Summary\n- Acme integration kickoff covered SLA targets.\n\n## Decisions\n- Raymond will send design doc.\n\n## Action Items\n- @Raymond: design doc by tomorrow.\n- @Raymond: load-test report by Friday EOD.\n\n## Open Questions\n- Multi-tenant isolation requirements.",
         }),
@@ -520,7 +514,6 @@ await scenario("US-07: end → save_minutes + save_memory each fire once", async
 
     let saveMinutesCalls = 0
     let saveMemoryCalls = 0
-    let setPhaseCalls = 0
     let lastMinutes = null
     let lastMemory = null
     const loop = createLoopSession({
@@ -529,7 +522,6 @@ await scenario("US-07: end → save_minutes + save_memory each fire once", async
         handlers: {
             sendSuggestion: () => ({ ok: true }),
             updateLiveMinutes: () => ({ ok: true }),
-            setPhase: ({ phase }) => { setPhaseCalls++; assert.equal(phase, "wrap"); return { ok: true } },
             saveMinutes: a => { saveMinutesCalls++; lastMinutes = a; return { ok: true } },
             saveMemory: a => { saveMemoryCalls++; lastMemory = a; return { ok: true } },
             getSnapshot: () => ({}),
@@ -546,7 +538,6 @@ await scenario("US-07: end → save_minutes + save_memory each fire once", async
     loop.end({ wait: 200 })
     await sleep(120)
 
-    assert.equal(setPhaseCalls, 1, "set_phase('wrap') fired once")
     assert.equal(saveMinutesCalls, 1, "save_minutes fired exactly once")
     assert.equal(saveMemoryCalls, 1, "save_memory fired exactly once")
 

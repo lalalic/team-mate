@@ -219,7 +219,7 @@ Rules — these are non-negotiable:
    you have no more side-effects to perform; it pauses you until the
    next event (caption, user_msg, tick, or end).
 3. Side-effect tools (`send_suggestion`, `update_live_minutes`,
-   `set_phase`, `save_memory`) MUST come BEFORE `wait_for_event` in
+   `save_memory`) MUST come BEFORE `wait_for_event` in
    the same reply.
 4. The `wait_for_event` result will arrive as a tool-message with
    shape `{"kind":"caption"|"user_msg"|"tick"|"end", ...payload}`.
@@ -242,7 +242,6 @@ Rules — these are non-negotiable:
 ## Current meeting
 - Name: {meetingName}
 - Started: {startedAt}
-- Phase so far: {minutes.phase or "unknown"}
 - Participants: {getParticipants() joined}
 ```
 
@@ -264,7 +263,6 @@ relay-v4 proxy forwards `tools` and `tool_choice` unchanged.
 | **`wait_for_event`** | `{}` | **Park.** Client ends the HTTP turn; persists `_messages` in tab state; resumes on next event by appending a `tool` message with the event payload. |
 | `send_suggestion` | `{text, options?: string[]}` | Render a toast with copy buttons. |
 | `update_live_minutes` | `{markdown}` | Replace `minutes.md`; bump `minutes.version`; re-render side panel. |
-| `set_phase` | `{phase}` | Update `minutes.phase`; re-render chip. |
 | `save_memory` | `{long_facts: string[], short_summary: {name, ts, summary}}` | `mergeLong` + `appendShort` from `memory.js`. |
 | `save_minutes` | `{markdown}` | End-of-meeting handoff: persist final minutes markdown. |
 | `get_snapshot` | `{}` | Returns `{transcripts, history, minutes}` — escape hatch when the model needs more than the streaming event view. |
@@ -288,8 +286,8 @@ Add fields: `deviceId`, `apiKey` (bearer from register), `model`,
 `appendShort` write here.
 
 ### 7.3 `minutes` (NEW storage key)
-`{md: string, phase: string, version: number}`. Owned by the
-`update_live_minutes` and `set_phase` tools. Side panel subscribes to
+`{md: string, version: number}`. Owned by the
+`update_live_minutes` tool. Side panel subscribes to
 `chrome.storage.onChanged` for `minutes`.
 
 ### 7.4 `history` (in-memory per tab)
@@ -441,14 +439,9 @@ New module:
    meeting (4 captions / 10 s) costs $X / hour at gpt-4.1 prices.
    Need a real measurement before shipping the auto-suggest UX.
 4. **Tool-loop budget.** 3 hops per turn is a guess; may need to
-   bump for `update_live_minutes` + `set_phase` + `save_memory`
+   bump for `update_live_minutes` + `save_memory`
    simultaneously.
-5. **Phase chip persistence.** Current design rebuilds phase every
-   turn via `set_phase` — wastes a tool call. Alternative: keep phase
-   in `conf` and only call `set_phase` when it changes. The system
-   prompt tells the model "current phase = X" so the model knows when
-   not to update.
-6. **`get_snapshot` necessity.** If the rolling window is well-sized,
+5. **`get_snapshot` necessity.** If the rolling window is well-sized,
    is `get_snapshot` ever needed? Could be removed in v1.
 
 ---

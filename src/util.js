@@ -776,7 +776,7 @@ export async function createUI({ uiContainer = document.body, transcripts, histo
                     const ackText = ({
                         save_memory: '✓ Noted.',
                         update_live_minutes: '✓ Topic updated — see the 📌 panel.',
-                        set_phase: `✓ Phase: ${payload.args?.phase || ''}`.trim(),
+                        // (set_phase removed 2026-05 — phase feature retired.)
                     })[tool] || `✓ Done (${tool}).`;
                     const msg = { role: "assistant", content: ackText, kind: 'SUGGEST' };
                     history.push(msg);

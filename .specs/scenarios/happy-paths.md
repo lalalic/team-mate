@@ -233,8 +233,7 @@ to 3 chips, anchored to the last few captions — for example:
   Friday EOD."`
 
 **When** Raymond clicks **End meeting**
-**Then** `set_phase({phase: "wrap"})` fires once
-**And** `save_minutes(...)` fires once with non-empty
+**Then** `save_minutes(...)` fires once with non-empty
 `summary` / `decisions` / `action_items` / `open_questions`
 **And** `save_memory(...)` fires once with ≤ 8 atomic facts
 (e.g. "Acme target: 12 k/sec peak, 300 ms p99", "Action: Raymond
@@ -289,7 +288,7 @@ Plus:
 | 4    | `[WILL_SAY]` follow-up                                                                     | ⏸ not yet |
 | 5    | US-05 (`source=speaking` → 3 topic branches → `[SPEAKING_REFRESH]` → 2 fresh branches)     | ✅     |
 | 6    | US-06 (`source=attention_toggle` → 3 branches; `[QUICK_HELP]` → 1 SUGGEST + chips)         | ✅     |
-| 7    | US-07 (`end` event → `set_phase('wrap')` + `save_minutes` + `save_memory` each once)       | ✅     |
+| 7    | US-07 (`end` event → `save_minutes` + `save_memory` each once)       | ✅     |
 
 Run offline: `cd team-mate && npm test`
 

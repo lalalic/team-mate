@@ -102,7 +102,6 @@ flowchart TB
 | `get_snapshot` | extension | Pull current transcripts, history, name, participants, memory on demand |
 | `send_suggestion` | extension | Push a clickable bubble (kind: SUGGEST / RESEARCH / FACT; text + 1–4 chips). Up to 2 per turn. 60s text dedup. |
 | `update_live_minutes` | extension | Replace contents of the side `📋` Live Minutes panel with full markdown. Call when a new decision/action/owner/deadline appears. |
-| `set_phase` | extension | Update the top-center conversation state badge (intro / discussion / decision / qna / wrap). Call once per phase shift. |
 | `save_minutes` | extension | End-of-meeting Markdown handoff (`minutes_ready` runtime message). |
 | `save_memory` | extension | Distilled facts (long-term) + summary (short-term). Also called mid-meeting once to persist `<MeetingName> goal`. |
 | `recall_knowledge` | extension | TF-IDF search over user-uploaded reference docs (`chrome.storage.local.knowledge`). Returns up to N `{doc, chunk, score, snippet}` matches. |
@@ -114,8 +113,6 @@ flowchart TB
 |---|---|---|
 | `#aichat` chat panel | `aiChatButton` toggle / `send_suggestion` | Persistent assistant bubbles + free-text input. Chips show running → ✓ resolved / ✗ failed states. |
 | `#liveMinutes` side panel | `liveMinutesButton` (📋) / `update_live_minutes` | Glanceable Decisions / Action items / Open questions. Auto-shows on first update. |
-| `#phaseBadge` top-center pill | `set_phase` | Shows current conversation phase + short note. Color-coded per phase. |
-| `🌐 translateButton` | manual click | One-shot translation of current intent on the floor → user's preferred language (set in setup page). |
 | `#meetmate-status` toast | various | Subtle, auto-fading status (caption count, connected, minutes-saved). |
 
 ## Lifecycle
@@ -346,7 +343,6 @@ window.dispatchEvent(new CustomEvent('meetmate:leave' }))
 | `speech_polish_language_mismatch` | trigger 6 aggressive | Polish at >5 words → output in `preferredLanguage` |
 | `translate_button_current_intent` | 🌐 toolbar | Translates last speaker's turn only — not bulk dump |
 | `live_minutes_decision_action` | `update_live_minutes` | 📋 panel auto-shows with Decisions / Action items / Open questions |
-| `phase_transitions_full_arc` | `set_phase` | Badge color cycles intro → discussion → decision → wrap |
 | `chip_click_lifecycle` | chip states | Amber spinner → green ✓ on resolve; red ✗ on failure |
 
 Two **special transcript markers** drive UI from inside a scenario
