@@ -525,12 +525,13 @@ button.meetmate-action:active {
     background: #fef3c7;
 }
 
-/* ── Right rail (state 4 idle + Ask bar always visible) ───────────────── */
+/* ── Left rail (keeps Teams native Chat/Participants clear on the right) ── */
 #meetmate-rail {
     position: fixed;
     z-index: 9999997;
     top: 160px;
-    right: 16px;
+    left: 76px;
+    right: auto;
     bottom: 80px;
     width: 340px;
     background: rgba(255,255,255,0.98);
@@ -543,82 +544,45 @@ button.meetmate-action:active {
     flex-direction: column;
     overflow: hidden;
 }
-#meetmate-rail.collapsed { width: 44px; }
 #meetmate-rail .mm-r-head {
     display: flex;
-    align-items: stretch;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     padding: 6px 8px;
     border-bottom: 1px solid #e3e5e8;
     background: #fafbfc;
+    position: relative;
 }
-/* Show-rail toggle button — bottom-right, aligned with action buttons */
-.mm-show-rail {
-    position: fixed;
-    z-index: 9999997;
-    bottom: 16px;
-    right: 160px;
-    width: 40px;
-    height: 40px;
-    background: rgba(255,255,255,0.95);
-    border: 1px solid #e3e5e8;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    cursor: pointer;
-    font-size: 16px;
-    color: #656d76;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.mm-show-rail:hover { background: #f0f1f3; color: #1f2328; box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
-#meetmate-rail .mm-r-context {
-    flex: 1 1 auto;
-    width: 100%;
-    height: 32px;
-    border: 1px solid #d0d7de;
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-family: inherit;
-    font-size: 12px;
-    line-height: 1.4;
-    color: #1f2328;
-    background: #ffffff;
-    box-sizing: border-box;
-}
-#meetmate-rail .mm-r-context:focus {
-    outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
-}
-#meetmate-rail .mm-r-context::placeholder {
-    color: #9ca3af;
-    font-style: italic;
-}
-#meetmate-rail .mm-r-context-saved {
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 10px;
-    font-weight: 600;
-    color: #10b981;
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    border-radius: 4px;
-    padding: 2px 6px;
-    pointer-events: none;
-}
-#meetmate-rail .mm-r-head { position: relative; }
 #meetmate-rail .mm-r-toggle {
     appearance: none;
-    background: transparent;
     border: 0;
+    background: transparent;
     color: #6b7280;
     cursor: pointer;
-    font-size: 13px;
-    padding: 0 4px;
-    line-height: 1;
+    font: 600 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    padding: 0;
 }
+#meetmate-rail .mm-r-toggle:hover { background: #eef0f2; color: #1f2328; }
+#meetmate-rail.minimized {
+    right: auto;
+    bottom: auto;
+    width: 44px;
+    height: 36px;
+}
+#meetmate-rail.minimized .mm-r-head {
+    height: 100%;
+    padding: 5px 9px;
+    border-bottom: 0;
+}
+#meetmate-rail.minimized .mm-r-title,
+#meetmate-rail.minimized .mm-r-chips,
+#meetmate-rail.minimized .mm-r-log,
+#meetmate-rail.minimized .mm-r-asker { display: none; }
+
 #meetmate-rail .mm-r-chips {
     flex: 0 0 auto;
     padding: 6px 8px;
@@ -702,10 +666,6 @@ button.meetmate-action:active {
     font-style: italic;
     font-size: 11px;
 }
-#meetmate-rail.collapsed .mm-r-chips,
-#meetmate-rail.collapsed .mm-r-log,
-#meetmate-rail.collapsed .mm-r-asker,
-#meetmate-rail.collapsed .mm-r-head .mm-r-title { display: none; }
 
 #meetmate-rail .mm-r-chip {
     appearance: none;

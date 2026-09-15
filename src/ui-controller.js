@@ -29,7 +29,7 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
     const rail = ensureEl("meetmate-rail", `
         <div class="mm-r-head">
             <span class="mm-r-title">MeetMate</span>
-            <button class="mm-r-toggle" title="Collapse">–</button>
+            <button class="mm-r-toggle" type="button" title="Minimize" aria-label="Minimize MeetMate">–</button>
         </div>
         <div class="mm-r-chips"></div>
         <div class="mm-r-log">
@@ -72,31 +72,18 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
         shortcutTooltip.style.display = "none";
     }
 
-    let collapsed = false;
+    let minimized = false;
     let entrySeq = 0;
     let currentShortcuts = [];
 
-    // Bottom-right 💬 tab toggles the rail.
-    let showTab = document.getElementById("meetmate-show-rail");
-    if (!showTab) {
-        showTab = document.createElement("button");
-        showTab.id = "meetmate-show-rail";
-        document.body.appendChild(showTab);
+    function setMinimized(next) {
+        minimized = !!next;
+        rail.classList.toggle("minimized", minimized);
+        toggleBtn.textContent = minimized ? "+" : "–";
+        toggleBtn.title = minimized ? "Restore" : "Minimize";
+        toggleBtn.setAttribute("aria-label", minimized ? "Restore MeetMate" : "Minimize MeetMate");
     }
-    showTab.className = "mm-show-rail shouldRemove";
-    showTab.title = "Toggle MeetMate";
-    showTab.textContent = "💬";
-    showTab.style.display = "flex";
-    showTab.addEventListener("click", () => setCollapsed(!collapsed));
-
-    function setCollapsed(next) {
-        collapsed = !!next;
-        rail.classList.toggle("collapsed", collapsed);
-        try { toggleBtn.textContent = collapsed ? "+" : "–"; } catch (_) {}
-    }
-    setCollapsed(false);
-
-    toggleBtn.addEventListener("click", () => setCollapsed(!collapsed));
+    toggleBtn.addEventListener("click", () => setMinimized(!minimized));
 
     const askFromInput = () => {
         const q = String(inputEl.value || "").trim();
@@ -232,7 +219,6 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
 
     function destroy() {
         try { rail.remove() } catch (_) {}
-        try { showTab.remove() } catch (_) {}
         try { shortcutTooltip.remove() } catch (_) {}
     }
 
@@ -242,7 +228,7 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
         addUserAsk,
         resolveAsk,
         failAsk,
-        setCollapsed,
+        setMinimized,
         destroy,
     };
 }
