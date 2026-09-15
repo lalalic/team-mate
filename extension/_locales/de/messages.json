@@ -1,9 +1,9 @@
 {
   "appName": {
-    "message": "MeetMate: MSTeams Live-KI Meeting-Assistent"
+    "message": "MeetMate — Live-Meeting-Q&A mit Ihrem Wissen für Teams"
   },
   "appDesc": {
-    "message": "Live-KI an Ihrer Seite in Microsoft Teams. Themenchips bei Erwähnung, Entwürfe beim Sprechen. Kein Bot."
+    "message": "Fragen mit Live-Untertiteln aus Teams und Ihrem eigenen Wissen beantworten. Eigene Kurzbefehle, automatische Ergebnisse am Meetingende und BYOK. Kein Bot, kein Audio."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
@@ -76,5 +76,38 @@
   },
   "buyMeBear": {
     "message": "Kauf mir ein Bier"
+  },
+  "assistantPreferences": {
+    "message": "Assistenten-Einstellungen"
+  },
+  "assistantPreferencesDesc": {
+    "message": "Gilt für jede eingegebene Frage und jeden Kurzbefehl. Die Grounding-Regeln haben immer Vorrang."
+  },
+  "preferredLanguage": {
+    "message": "Bevorzugte Sprache"
+  },
+  "customInstructions": {
+    "message": "Benutzerdefinierte Anweisungen"
+  },
+  "browserLanguage": {
+    "message": "Browsersprache"
+  },
+  "autoEnd": {
+    "message": "Am Ende automatisch"
+  },
+  "addShortcut": {
+    "message": "+ Kurzbefehl hinzufügen"
+  },
+  "resetShortcuts": {
+    "message": "Auf Standard zurücksetzen"
+  },
+  "newShortcut": {
+    "message": "Neu"
+  },
+  "autoEndTitle": {
+    "message": "Am Ende der Besprechung automatisch ausführen und die Antwort in den automatischen Download aufnehmen"
+  },
+  "resetShortcutsConfirm": {
+    "message": "Kurzbefehle durch die Standardwerte ersetzen?"
   }
 }

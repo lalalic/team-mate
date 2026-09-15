@@ -5,7 +5,7 @@ Source: user-steer 2026-05-15.
 ## 1. team-mate (this repo)
 
 - [x] **HP-01..03**: 3 in-meeting happy paths → `.specs/scenarios/`
-- [x] **Offline smoke harness**: 3/3 green (`node ./tests/test-loop-session.js`)
+- [x] **Offline smoke harness**: focused helper tests green (`node ./tests/test-focused-helpers.js`)
 - [x] **Update specs**: `.specs/spec.md` written (12 must-haves)
 - [x] **.demo-runtime.md**: existing manifest verified current for v4 (21 scenarios @ content.js:443)
 - [x] **Marketing stuff**: research-brief, hooks, research, 5 scenes + compiled 16x9 mp4 already in `.market/`

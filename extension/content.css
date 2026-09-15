@@ -621,12 +621,15 @@ button.meetmate-action:active {
 }
 #meetmate-rail .mm-r-chips {
     flex: 0 0 auto;
-    overflow-y: auto;
-    padding: 10px;
+    padding: 6px 8px;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 35%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    max-height: 72px;
+    overflow-y: auto;
+    border-bottom: 1px solid #eef0f2;
 }
 #meetmate-rail .mm-r-log {
     flex: 1 1 auto;
@@ -706,17 +709,21 @@ button.meetmate-action:active {
 
 #meetmate-rail .mm-r-chip {
     appearance: none;
-    text-align: left;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 150px;
+    text-align: center;
     background: #ffffff;
-    border: 1px solid #e3e5e8;
-    border-radius: 10px;
-    padding: 8px 10px;
-    font: 500 12px/1.35 inherit;
+    border: 1px solid #d8dee4;
+    border-radius: 999px;
+    padding: 4px 9px;
+    font: 600 11px/1.25 inherit;
     color: #1f2328;
     cursor: pointer;
     transition: background 0.12s, border-color 0.12s;
-    white-space: normal;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 #meetmate-rail .mm-r-chip:hover { background: #f6f8fa; border-color: #6366f1; }
 #meetmate-rail .mm-r-chip .mm-r-chip-kind {
@@ -727,11 +734,6 @@ button.meetmate-action:active {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 2px;
-}
-#meetmate-rail .mm-r-chip {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
 }
 #meetmate-rail .mm-r-chip-row {
     display: flex;
@@ -807,9 +809,82 @@ button.meetmate-action:active {
  * the continuous-translate toggle. Stale nodes from cached builds are hidden. */
 #meetmate-translation { display: none !important; }
 
-/* Legacy #aichat is hidden when v4.1 UI is active (default).
- * Re-enable via conf.useLegacyUI=true → body.meetmate-legacy. */
-body:not(.meetmate-legacy) #aichat { display: none !important; }
-body.meetmate-legacy #meetmate-center,
-body.meetmate-legacy #meetmate-rail,
-body.meetmate-legacy #meetmate-translation { display: none !important; }
+/* ── Focused Q&A rail ─────────────────────────────────────────────────────
+ * The rail is a plain question/answer surface: shortcuts, asked questions,
+ * grounded answers, and the Ask input. No states, no generated chips. */
+#meetmate-rail .mm-r-title {
+    flex: 1 1 auto;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #6b7280;
+    align-self: center;
+    padding-left: 2px;
+}
+#meetmate-rail .mm-r-empty {
+    font-size: 12px;
+    line-height: 1.45;
+    color: #6b7280;
+    background: #fff;
+    border: 1px dashed #d8dee4;
+    border-radius: 8px;
+    padding: 10px;
+}
+#meetmate-rail .mm-r-kind-answer {
+    background: #fff;
+    border-left: 3px solid #6366f1;
+}
+#meetmate-rail .mm-r-kind-answer .mm-r-log-icon { color: #4f46e5; }
+#meetmate-rail .mm-r-kind-answer .mm-r-log-detail {
+    display: block;
+    color: #1f2328;
+    line-height: 1.45;
+}
+#meetmate-rail .mm-r-kind-userask .mm-r-log-detail {
+    display: block;
+    color: #1f2328;
+    line-height: 1.45;
+}
+
+#meetmate-rail ~ .mm-r-shortcut-tooltip,
+.mm-r-shortcut-tooltip {
+    position: fixed;
+    z-index: 10000000;
+    max-width: 320px;
+    padding: 7px 9px;
+    border-radius: 7px;
+    background: rgba(31,35,40,0.96);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.20);
+    font: 400 12px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    pointer-events: none;
+    white-space: normal;
+}
+
+#meetmate-rail .mm-r-sources {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #eef0f2;
+    font-size: 11px;
+    color: #57606a;
+}
+#meetmate-rail .mm-r-sources summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #57606a;
+}
+#meetmate-rail .mm-r-source {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+#meetmate-rail .mm-r-source strong {
+    color: #24292f;
+    font-weight: 600;
+}
+#meetmate-rail .mm-r-source span {
+    color: #57606a;
+    line-height: 1.35;
+}

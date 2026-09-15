@@ -1,6 +1,6 @@
 {
   "name": "team-mate",
-  "version": "4.3.0",
+  "version": "4.4.0",
   "description": "MeetMate — real-time AI assistant for Microsoft Teams meetings",
   "private": true,
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "webpack -c ./webpack.config.js --mode=production --devtool=false && npm run zip",
     "dev": "webpack -c ./webpack.config.js --watch",
     "qiniu": "python3 ./scripts/upload_cdn.py",
-    "test": "node ./tests/test-loop-session.js",
+    "test": "node ./tests/test-focused-helpers.js && node ./tests/test-conf-merge.js",
     "publish:cws": "node ./scripts/publish.mjs",
     "publish:cws:dry": "node ./scripts/publish.mjs --dry-run",
     "publish:cws:draft": "node ./scripts/publish.mjs --draft",
@@ -25,6 +25,7 @@
     "ws": "^8.20.0"
   },
   "dependencies": {
+    "extpay": "^3.1.2",
     "webpack": "^5.90.3"
   },
   "license": "UNLICENSED"

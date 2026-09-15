@@ -1,9 +1,9 @@
 {
   "appName": {
-    "message": "MeetMate — Faits en direct, Savoir, Coach & Mémoire · Teams"
+    "message": "MeetMate — Q&R en réunion avec vos connaissances pour Teams"
   },
   "appDesc": {
-    "message": "Faits en direct, vos docs, un coach vocal et mémoire de réunion — dans Teams. IA événementielle, ~10× moins cher. Pas de bot."
+    "message": "Posez des questions à partir des sous-titres Teams en direct et de vos propres connaissances. Raccourcis, résultats automatiques en fin de réunion et BYOK. Sans bot ni audio."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
@@ -76,5 +76,38 @@
   },
   "buyMeBear": {
     "message": "Achetez-moi une bière"
+  },
+  "assistantPreferences": {
+    "message": "Préférences de l’assistant"
+  },
+  "assistantPreferencesDesc": {
+    "message": "Appliquées à chaque question saisie ou raccourci. Les règles d’ancrage restent prioritaires."
+  },
+  "preferredLanguage": {
+    "message": "Langue préférée"
+  },
+  "customInstructions": {
+    "message": "Instructions personnalisées"
+  },
+  "browserLanguage": {
+    "message": "Langue du navigateur"
+  },
+  "autoEnd": {
+    "message": "Auto à la fin"
+  },
+  "addShortcut": {
+    "message": "+ Ajouter un raccourci"
+  },
+  "resetShortcuts": {
+    "message": "Rétablir les valeurs par défaut"
+  },
+  "newShortcut": {
+    "message": "Nouveau"
+  },
+  "autoEndTitle": {
+    "message": "Exécuter automatiquement à la fin de la réunion et inclure la réponse dans le téléchargement automatique"
+  },
+  "resetShortcutsConfirm": {
+    "message": "Remplacer vos raccourcis par les valeurs par défaut ?"
   }
 }

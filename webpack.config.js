@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = {
     entry: {
@@ -13,6 +14,11 @@ module.exports = {
         filename: '[name].js',
     },
     mode: "development",
+    plugins: [
+        new webpack.DefinePlugin({
+            __EXTPAY_EXTENSION_ID__: JSON.stringify(process.env.EXTPAY_EXTENSION_ID || ''),
+        }),
+    ],
     devtool: "inline-source-map",
     module: {
         rules: [

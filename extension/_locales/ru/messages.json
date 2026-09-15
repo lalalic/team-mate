@@ -1,9 +1,9 @@
 {
   "appName": {
-    "message": "MeetMate — Факты, Знания, Коуч и Память · Teams"
+    "message": "MeetMate — Вопросы по встрече и вашим знаниям для Teams"
   },
   "appDesc": {
-    "message": "Факты, ваши доки, речевой коуч и память встреч — в Teams. Событийный AI, ~10× дешевле. Без бота."
+    "message": "Задавайте вопросы на основе живых субтитров Teams и собственных знаний. Настраиваемые ярлыки, авто-результаты в конце встречи и BYOK. Без бота и аудио."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
@@ -79,5 +79,38 @@
   },
   "buyMeBear": {
     "message": "Купи мне пива"
+  },
+  "assistantPreferences": {
+    "message": "Настройки помощника"
+  },
+  "assistantPreferencesDesc": {
+    "message": "Применяются ко всем введённым вопросам и ярлыкам. Правила опоры на контекст всегда имеют приоритет."
+  },
+  "preferredLanguage": {
+    "message": "Предпочитаемый язык"
+  },
+  "customInstructions": {
+    "message": "Пользовательские инструкции"
+  },
+  "browserLanguage": {
+    "message": "Язык браузера"
+  },
+  "autoEnd": {
+    "message": "Авто при завершении"
+  },
+  "addShortcut": {
+    "message": "+ Добавить ярлык"
+  },
+  "resetShortcuts": {
+    "message": "Сбросить по умолчанию"
+  },
+  "newShortcut": {
+    "message": "Новый"
+  },
+  "autoEndTitle": {
+    "message": "Автоматически выполнить в конце встречи и включить ответ в автоматическую загрузку"
+  },
+  "resetShortcutsConfirm": {
+    "message": "Заменить ярлыки значениями по умолчанию?"
   }
 }

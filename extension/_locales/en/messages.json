@@ -1,9 +1,9 @@
 {
   "appName": {
-    "message": "MeetMate — Live Facts, Knowledge, Speaking Coach & Memory for Teams"
+    "message": "MeetMate — Live Meeting Q&A with Your Knowledge for Teams"
   },
   "appDesc": {
-    "message": "Live facts, your knowledge, a speaking coach, meeting memory — inside Teams. Event-driven AI, ~10× cheaper. No bot, no audio."
+    "message": "Ask questions using live Teams captions and your own knowledge. Custom shortcuts, end-of-meeting auto results, and BYOK. No bot, no audio."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
@@ -91,5 +91,38 @@
   },
   "buyMeBear": {
     "message": "Buy me beer"
+  },
+  "assistantPreferences": {
+    "message": "Assistant preferences"
+  },
+  "assistantPreferencesDesc": {
+    "message": "Applied to every typed Ask and shortcut Ask. Grounding rules always take priority."
+  },
+  "preferredLanguage": {
+    "message": "Preferred language"
+  },
+  "customInstructions": {
+    "message": "Custom instructions"
+  },
+  "browserLanguage": {
+    "message": "Browser language"
+  },
+  "autoEnd": {
+    "message": "Auto end"
+  },
+  "addShortcut": {
+    "message": "+ Add shortcut"
+  },
+  "resetShortcuts": {
+    "message": "Reset to defaults"
+  },
+  "newShortcut": {
+    "message": "New"
+  },
+  "autoEndTitle": {
+    "message": "Run automatically when the meeting ends, then include the answer in the automatic download"
+  },
+  "resetShortcutsConfirm": {
+    "message": "Replace your shortcuts with the defaults?"
   }
 }

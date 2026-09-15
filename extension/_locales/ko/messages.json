@@ -1,9 +1,9 @@
 {
   "appName": {
-    "message": "MeetMate — 팩트, 지식, 스피킹 코치, 메모리 for Teams"
+    "message": "MeetMate — Teams 실시간 회의 Q&A + 내 지식"
   },
   "appDesc": {
-    "message": "라이브 팩트, 내 지식, 스피킹 코치, 회의 메모리 — Teams 안에서. 이벤트 기반 AI, ~10배 저렴. 봇 없음."
+    "message": "Teams 실시간 자막과 내 지식을 바탕으로 질문하세요. 사용자 지정 바로가기, 회의 종료 자동 결과, BYOK 지원. 봇과 오디오 수집 없음."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
@@ -76,5 +76,38 @@
   },
   "buyMeBear": {
     "message": "맥주 사주세요"
+  },
+  "assistantPreferences": {
+    "message": "도우미 환경설정"
+  },
+  "assistantPreferencesDesc": {
+    "message": "입력 질문과 바로가기 질문 모두에 적용됩니다. 근거 규칙이 항상 우선합니다."
+  },
+  "preferredLanguage": {
+    "message": "선호 언어"
+  },
+  "customInstructions": {
+    "message": "사용자 지정 지침"
+  },
+  "browserLanguage": {
+    "message": "브라우저 언어"
+  },
+  "autoEnd": {
+    "message": "종료 시 자동 실행"
+  },
+  "addShortcut": {
+    "message": "+ 바로가기 추가"
+  },
+  "resetShortcuts": {
+    "message": "기본값으로 재설정"
+  },
+  "newShortcut": {
+    "message": "새 항목"
+  },
+  "autoEndTitle": {
+    "message": "회의가 끝날 때 자동으로 실행하고 답변을 자동 다운로드에 포함합니다"
+  },
+  "resetShortcutsConfirm": {
+    "message": "바로가기를 기본값으로 바꾸시겠습니까?"
   }
 }

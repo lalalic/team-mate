@@ -1,9 +1,9 @@
 {
   "appName": {
-    "message": "MeetMate — 实时要点、知识库、发言教练、记忆 for Teams"
+    "message": "MeetMate — Teams 实时会议问答 + 你的知识库"
   },
   "appDesc": {
-    "message": "实时要点、你的知识库、发言教练、会议记忆 — 就在 Teams 里。事件驱动 AI，成本降低 10 倍。无机器人、无录音。"
+    "message": "基于 Teams 实时字幕和你的知识库直接提问。支持自定义快捷提问、会议结束自动生成结果和 BYOK。无需机器人，无需录音。"
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
@@ -76,5 +76,38 @@
   },
   "buyMeBear": {
     "message": "请我喝啤酒"
+  },
+  "assistantPreferences": {
+    "message": "助手偏好"
+  },
+  "assistantPreferencesDesc": {
+    "message": "应用于每次手动提问和快捷提问。事实依据规则始终优先。"
+  },
+  "preferredLanguage": {
+    "message": "首选语言"
+  },
+  "customInstructions": {
+    "message": "自定义指令"
+  },
+  "browserLanguage": {
+    "message": "浏览器语言"
+  },
+  "autoEnd": {
+    "message": "结束时自动运行"
+  },
+  "addShortcut": {
+    "message": "+ 添加快捷项"
+  },
+  "resetShortcuts": {
+    "message": "恢复默认"
+  },
+  "newShortcut": {
+    "message": "新建"
+  },
+  "autoEndTitle": {
+    "message": "会议结束时自动运行，并将答案包含在自动下载文件中"
+  },
+  "resetShortcutsConfirm": {
+    "message": "用默认快捷项替换当前设置吗？"
   }
 }

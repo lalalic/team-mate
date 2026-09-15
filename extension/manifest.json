@@ -1,5 +1,5 @@
 {
-  "version": "4.3.0",
+  "version": "4.4.0",
   "manifest_version": 3,
   "name": "__MSG_appName__",
   "description": "__MSG_appDesc__",
@@ -23,7 +23,10 @@
     "default_popup": "main.html"
   },
   "host_permissions": [
-    "https://relay.ai.qili2.com/*"
+    "https://teams.microsoft.com/*",
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
   "content_scripts": [
     {

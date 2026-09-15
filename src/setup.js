@@ -1,260 +1,354 @@
-const {makePredictAPI, createUI, since, initSetupPage, getConf, getUsage, resetUsage, getMemory, replaceMemory, getBilling, applyCredit, getWalletBalanceCents, fetchWalletBalance} = require("./util")
-const {STRIPE_PAYMENT_LINK, STRIPE_PAYMENT_LINKS, fetchModels, relayChat} = require("./relay")
-const {getDeviceId} = require("./auth")
+const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels } = require("./util")
+const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview } = require("./premium")
 
-async function makeTest(conf){
-    conf=conf || (await getConf())
-    const button=document.querySelector('#test')
-    if(!(conf.token || conf.apiKey)){
-        button?.remove()
-        return 
+document.addEventListener('DOMContentLoaded', async () => {
+    const conf = await initSetupPage()
+
+    const uiLanguage = chrome.i18n.getUILanguage?.() || navigator.language || 'en'
+    const browserLanguageOption = document.querySelector('#browserLanguageOption')
+    if (browserLanguageOption) {
+        const label = chrome.i18n.getMessage('browserLanguage') || 'Browser language'
+        browserLanguageOption.textContent = `${label} (${uiLanguage})`
     }
-    
-    button.addEventListener('click',async ()=>{
-        try{
-            button.disabled=true
-            const service=await makePredictAPI()
-            const suggest=await service.suggest([{role:"user", content:"hello"}],[])
-            alert(suggest)
-        }catch(e){
-            alert(`error: ${e.message}`)
-        }finally{
-            button.disabled=false
+
+    // --- Premium --------------------------------------------------------------
+    let premiumState = { paid: false, configured: false, preview: false }
+    const premiumStatusText = document.querySelector('#premiumStatusText')
+    const premiumUpgrade = document.querySelector('#premiumUpgrade')
+    const premiumLogin = document.querySelector('#premiumLogin')
+    const premiumRefresh = document.querySelector('#premiumRefresh')
+    const premiumPreview = document.querySelector('#premiumPreview')
+    const premiumStructuredReport = document.querySelector('#premiumStructuredReport')
+    const shortcutsList = document.querySelector('#shortcutsList')
+    const shortcutLimitStatus = document.querySelector('#shortcutLimitStatus')
+    const escapeAttr = (s) => String(s == null ? "" : s)
+        .replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]))
+
+    function renderPremiumState() {
+        const paid = premiumState?.paid === true
+        if (premiumStatusText) {
+            premiumStatusText.classList.toggle('active', paid)
+            premiumStatusText.textContent = paid
+                ? `Premium active${premiumState.preview ? ' · local preview' : ''}`
+                : (premiumState.configured ? 'Free plan · up to 3 shown shortcuts' : 'Payment not configured in this build · Free plan')
         }
+        if (premiumUpgrade) premiumUpgrade.style.display = (!paid && premiumState.configured) ? '' : 'none'
+        if (premiumStructuredReport) premiumStructuredReport.disabled = !paid
+        if (premiumLogin) premiumLogin.style.display = (!paid && premiumState.configured) ? '' : 'none'
+        if (premiumPreview) {
+            premiumPreview.style.display = premiumState.configured ? 'none' : ''
+            premiumPreview.textContent = premiumState.preview ? 'Disable Premium Preview' : 'Enable Premium Preview'
+        }
+    }
+
+    async function refreshPremium({ force = false } = {}) {
+        try { premiumState = await getPremiumStatus({ force }) }
+        catch (e) { premiumState = { paid: false, configured: false, preview: false, error: e?.message || String(e) } }
+        renderPremiumState()
+        return premiumState
+    }
+
+    premiumUpgrade?.addEventListener('click', async () => {
+        try { await openPremiumUpgrade() }
+        catch (e) { alert(e?.message || String(e)) }
     })
-}
+    premiumLogin?.addEventListener('click', async () => {
+        try { await openPremiumLogin() }
+        catch (e) { alert(e?.message || String(e)) }
+    })
+    premiumRefresh?.addEventListener('click', async () => {
+        premiumRefresh.disabled = true
+        await refreshPremium({ force: true })
+        premiumRefresh.disabled = false
+        renderShortcuts(normalizeShortcuts((await new Promise(r => chrome.storage.local.get('conf', x => r((x.conf || {}).shortcuts)) )) || null))
+    })
+    premiumPreview?.addEventListener('click', async () => {
+        try {
+            premiumState = await setPremiumPreview(!(premiumState?.preview === true))
+            renderPremiumState()
+            renderShortcuts(normalizeShortcuts((await new Promise(r => chrome.storage.local.get('conf', x => r((x.conf || {}).shortcuts)) )) || null))
+        } catch (e) { alert(e?.message || String(e)) }
+    })
+    await refreshPremium()
 
-let uiContainer=null
-let startTime=Date.now()//only for test
-document.addEventListener('DOMContentLoaded',async ()=>{
-    const conf=await initSetupPage()
-
-    globalThis.makeTest=makeTest
-
-    // --- Populate model picker from relay --------------------------------
-    // GET /llm/v1/models (OpenAI-shaped: { data: [{id, ...}] })
-    // If stored conf.relayModel isn't in the list, fall back to first entry.
-    try {
-        const models = await fetchModels()
-        if (Array.isArray(models) && models.length) {
-            const sel = document.querySelector('#relayModel')
-            if (sel) {
-                const stored = conf.relayModel
-                sel.innerHTML = ''
-                for (const m of models) {
-                    const id = m.id || m
-                    const opt = document.createElement('option')
-                    opt.value = id
-                    // OpenAI shape has no `multiplier`; fall back to id-only label.
-                    opt.textContent = m.name || (m.multiplier != null ? `${id} (×${m.multiplier})` : id)
-                    sel.appendChild(opt)
-                }
-                const ids = models.map(m => m.id || m)
-                if (stored && ids.includes(stored)) {
-                    sel.value = stored
-                } else {
-                    const def = (models.find(m => m.default) || models[0])
-                    const defId = def.id || def
-                    sel.value = defId
-                    if (stored !== defId) {
-                        conf.relayModel = defId
-                        chrome.storage.local.set({ conf })
-                    }
-                }
+    // --- Direct provider / BYOK ---------------------------------------------
+    const testBtn = document.querySelector('#testConnection')
+    const testStatus = document.querySelector('#testStatus')
+    if (testBtn) {
+        testBtn.addEventListener('click', async () => {
+            testBtn.disabled = true
+            if (testStatus) {
+                testStatus.textContent = 'Testing…'
+                testStatus.style.color = 'var(--muted)'
             }
-        }
-    } catch (e) {
-        // Offline / relay down — keep static <option> fallback in HTML
-        console.warn('[setup] failed to fetch model list:', e.message)
+            try {
+                const answer = await relayChat('Reply with exactly: OK', {
+                    systemMessage: 'You are a connection test. Follow the user instruction exactly.',
+                })
+                if (testStatus) {
+                    testStatus.textContent = answer ? `Connected · ${String(answer).trim().slice(0, 80)}` : 'Connected'
+                    testStatus.style.color = 'var(--good)'
+                }
+            } catch (err) {
+                if (testStatus) {
+                    testStatus.textContent = err?.message || String(err)
+                    testStatus.style.color = '#b91c1c'
+                }
+            } finally {
+                testBtn.disabled = false
+            }
+        })
     }
 
-    document.querySelectorAll('.topup-tier').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const amount = Number(btn.dataset.amount) || 1
-            const link = ((STRIPE_PAYMENT_LINKS && STRIPE_PAYMENT_LINKS[amount]) || STRIPE_PAYMENT_LINK || '').trim()
-            if (!link || link.includes('REPLACE_ME')) {
-                alert('Top-up is not yet configured. Please contact the extension publisher.')
+    // --- Model picker --------------------------------------------------------
+    const modelSelect = document.querySelector('#modelName')
+    const customModelInput = document.querySelector('#customModelName')
+    const baseURLInput = document.querySelector('#baseURL')
+    const apiKeyInput = document.querySelector('#apiKey')
+    const modelStatus = document.querySelector('#modelStatus')
+    const refreshModelsBtn = document.querySelector('#refreshModels')
+
+    function isOpenRouter() {
+        return /(^|\.)openrouter\.ai$/i.test((() => {
+            try { return new URL(baseURLInput?.value || '').hostname } catch { return '' }
+        })())
+    }
+
+    function modelLabel(model) {
+        const id = String(model?.id || model || '')
+        const name = String(model?.name || '')
+        return name && name !== id ? `${name} — ${id}` : id
+    }
+
+    async function populateModels({ preserve = true } = {}) {
+        if (!modelSelect || !customModelInput) return
+        const selected = preserve ? String((await new Promise(r => chrome.storage.local.get('conf', x => r(x.conf || {})))).modelName || modelSelect.value || 'openrouter/auto') : ''
+        if (modelStatus) modelStatus.textContent = 'Loading models…'
+        if (refreshModelsBtn) refreshModelsBtn.disabled = true
+
+        let models = []
+        let error = ''
+        try {
+            models = await fetchModels()
+        } catch (err) {
+            error = err?.message || String(err)
+        }
+
+        const seen = new Set()
+        const options = []
+        const add = (id, label = id) => {
+            id = String(id || '').trim()
+            if (!id || seen.has(id)) return
+            seen.add(id)
+            options.push({ id, label })
+        }
+
+        if (isOpenRouter()) {
+            add('openrouter/auto', 'openrouter/auto — Auto router')
+            add('openrouter/free', 'openrouter/free — Free router')
+        }
+        models
+            .slice()
+            .sort((a, b) => String(a?.name || a?.id || '').localeCompare(String(b?.name || b?.id || '')))
+            .forEach(m => add(m?.id, modelLabel(m)))
+
+        modelSelect.innerHTML = ''
+        for (const item of options) {
+            const opt = document.createElement('option')
+            opt.value = item.id
+            opt.textContent = item.label
+            modelSelect.appendChild(opt)
+        }
+        const custom = document.createElement('option')
+        custom.value = 'custom'
+        custom.textContent = 'Custom model…'
+        modelSelect.appendChild(custom)
+
+        if (selected && seen.has(selected)) {
+            modelSelect.value = selected
+            customModelInput.style.display = 'none'
+        } else if (selected && selected !== 'custom') {
+            modelSelect.value = 'custom'
+            customModelInput.style.display = ''
+            customModelInput.value = selected
+        } else if (options.length) {
+            modelSelect.value = options[0].id
+            customModelInput.style.display = 'none'
+            await changeConf({ modelName: options[0].id })
+        } else {
+            modelSelect.value = 'custom'
+            customModelInput.style.display = ''
+        }
+
+        if (modelStatus) {
+            modelStatus.textContent = error ? `Could not load /models: ${error}` : `${models.length} models from /models`
+            modelStatus.style.color = error ? '#b91c1c' : 'var(--muted)'
+        }
+        if (refreshModelsBtn) refreshModelsBtn.disabled = false
+    }
+
+    if (modelSelect && customModelInput) {
+        modelSelect.addEventListener('change', async () => {
+            if (modelSelect.value === 'custom') {
+                customModelInput.style.display = ''
+                customModelInput.focus()
                 return
             }
-            // Append client_reference_id so relay webhook can credit the wallet
-            const deviceId = await getDeviceId()
-            const url = new URL(link)
-            url.searchParams.set('client_reference_id', deviceId)
-            chrome.tabs.create({ url: url.toString() })
+            customModelInput.style.display = 'none'
+            await changeConf({ modelName: modelSelect.value })
         })
-    })
+        customModelInput.addEventListener('change', async () => {
+            const value = customModelInput.value.trim()
+            if (value) await changeConf({ modelName: value })
+        })
+        refreshModelsBtn?.addEventListener('click', () => populateModels())
+        baseURLInput?.addEventListener('change', () => setTimeout(() => populateModels(), 0))
+        apiKeyInput?.addEventListener('change', () => setTimeout(() => populateModels(), 0))
+        await populateModels()
+    }
 
-    // --- Credit-from-URL: when Stripe redirects back here, verify & apply ---
-    // The URL `credit` param is informational only; the real amount is
-    // returned by the relay's /stripe/verify call against Stripe API.
-    async function applyCreditFromURL() {
-        const params = new URLSearchParams(location.search)
-        const session = params.get('session')
-        if (!session) return
-        const res = await applyCredit({ sessionId: session })
-        if (res.applied) {
-            alert(`\u2705 Credited $${res.amount.toFixed(2)}. New balance: $${res.credits.toFixed(2)}`)
-        } else if (res.reason === 'already credited') {
-            // silent — user just refreshed
+    // --- Shortcuts (the rail's one-tap asks) --------------------------------
+    // Storage: conf.shortcuts = [{label, prompt, show}]. Hidden shortcuts remain
+    // in the library but are inactive in the meeting rail.
+    function applyPlanShowLimit(list) {
+        const items = (Array.isArray(list) ? list : []).map(s => ({ ...s }))
+        if (premiumState?.paid === true) return items
+        let shown = 0
+        return items.map(s => {
+            if (s.show === false) return s
+            shown++
+            if (shown <= FREE_SHORTCUT_SHOW_LIMIT) return s
+            return { ...s, show: false }
+        })
+    }
+
+    function updateShortcutLimitStatus(list) {
+        if (!shortcutLimitStatus) return
+        const shown = (Array.isArray(list) ? list : []).filter(s => s.show !== false).length
+        shortcutLimitStatus.classList.remove('warn')
+        if (premiumState?.paid === true) {
+            shortcutLimitStatus.textContent = `${shown} shown · Premium has no shortcut limit.`
         } else {
-            alert(`Credit not applied: ${res.reason}`)
-        }
-        // Strip query so a refresh doesn't re-trigger.
-        history.replaceState(null, '', location.pathname)
-    }
-    applyCreditFromURL()
-
-    // --- Balance ------------------------------------------------------------
-    async function refreshBalanceAndUsage() {
-        // Always fetch from server to get latest wallet balance
-        const serverCents = await fetchWalletBalance()
-        const el = document.querySelector('#balance')
-        if (serverCents != null) {
-            if (el) el.textContent = (serverCents / 100).toFixed(2)
-            return
-        }
-        // Fallback to cached value
-        const cachedCents = await getWalletBalanceCents()
-        if (cachedCents != null) {
-            if (el) el.textContent = (cachedCents / 100).toFixed(2)
-            return
-        }
-        const [u, b] = await Promise.all([getUsage(), getBilling()])
-        const balance = (b.credits || 0) - (u.cost || 0)
-        if (el) el.textContent = balance.toFixed(2)
-    }
-
-    // --- Usage panel (removed from UI; kept stub for storage listener) ------
-    async function refreshUsage() { /* no-op: panel removed */ }
-    chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'local' && changes.usage) { refreshBalanceAndUsage() }
-        if (area === 'local' && changes.billing) refreshBalanceAndUsage()
-        if (area === 'local' && changes.walletBalanceCents) refreshBalanceAndUsage()
-        if (area === 'local' && changes.memory) refreshMemory()
-        if (area === 'local' && changes.knowledge) refreshKnowledge()
-    })
-    refreshBalanceAndUsage()
-
-    // --- Reset userContext to template --------------------------------------
-    const USER_CONTEXT_TEMPLATE = `## About me
-(Who you are, your role, expertise, communication style.)
-- Role: 
-- English / Chinese / other languages I speak (and which I'm strong / weak in for meetings):
-- Communication style I aim for (concise / friendly / formal):
-
-## People I meet with
-(List frequent colleagues / clients with one line on their role and how they prefer to be addressed.)
-
-## Current projects / cases / customers
-(Specific things I'm actively working on. The agent should reference these by
-name when drafting replies, e.g. "the NewYorkLife integration", "ticket #1234",
-"the Q2 onboarding redesign".)
-
-## How I want the agent to help
-- When to suggest something vs. stay silent
-- Tone (concise / formal / friendly)
-- Things to never say or do
-- If I'm a non-native speaker of the meeting language: produce polished,
-  natural phrasing I can say verbatim.
-
-## Knowledge / Reference
-(Facts, glossary, product specs, OKRs, canned answers — anything the agent should know about. Add as you go.)
-
-## Goals & Themes
-(Recurring goals, current quarter's priorities, hot topics.)
-`
-    document.querySelector('#userContextReset')?.addEventListener('click', async (e) => {
-        e.preventDefault()
-        const el = document.querySelector('#userContext')
-        if (el.value.trim() && !confirm('Replace your current context with the template? Your text will be lost.')) return
-        el.value = USER_CONTEXT_TEMPLATE
-        el.dispatchEvent(new Event('change'))
-    })
-    // Auto-fill template if currently empty (first install or post-revert).
-    {
-        const el = document.querySelector('#userContext')
-        if (el && !el.value.trim()) {
-            el.value = USER_CONTEXT_TEMPLATE
-            el.dispatchEvent(new Event('change'))
+            shortcutLimitStatus.textContent = `${shown}/${FREE_SHORTCUT_SHOW_LIMIT} shown · Free plan. Premium removes the limit.`
         }
     }
 
-    // --- Memory panel --------------------------------------------------------
-    const memoryLongEl = document.querySelector('#memoryLong')
-    const memoryShortEl = document.querySelector('#memoryShortPanel')
-    const memoryLongCount = document.querySelector('#memoryLongCount')
-    const memoryLongStatus = document.querySelector('#memoryLongStatus')
-    let memoryEditing = false
-    let memorySaveTimer = null
-
-    async function refreshMemory() {
-        const m = await getMemory()
-        if (!memoryEditing && memoryLongEl) {
-            memoryLongEl.value = (m.long || []).join('\n')
-        }
-        if (memoryLongCount) memoryLongCount.textContent = (m.long || []).length
-        if (!memoryShortEl) return
-        if (!m.short.length) {
-            memoryShortEl.innerHTML = '<em style="color:var(--muted)">(no recent meetings yet)</em>'
-            return
-        }
-        const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
-        // Render each meeting as an editable row (header + textarea + × delete).
-        const parts = ['<ul style="list-style:none; padding:0; margin:0">']
-        m.short.slice().reverse().forEach(s => {
-            const date = new Date(s.ts).toISOString().split('T')[0]
-            parts.push(`<li data-ts="${s.ts}" style="padding:6px 0; border-bottom:1px solid #eee">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px">
-                    <b style="flex:1">${esc(date)} \u2014 ${esc(s.name)}</b>
-                    <button class="subtle" data-short-delete="${s.ts}" title="Remove this meeting">\u00d7</button>
-                </div>
-                <textarea data-short-edit="${s.ts}" style="width:100%; min-height:48px; box-sizing:border-box; font-size:12px">${esc(s.summary)}</textarea>
-            </li>`)
-        })
-        parts.push('</ul>')
-        memoryShortEl.innerHTML = parts.join('')
-        // Per-item delete.
-        memoryShortEl.querySelectorAll('[data-short-delete]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const ts = Number(btn.getAttribute('data-short-delete'))
-                const cur = await getMemory()
-                await replaceMemory({ short: (cur.short || []).filter(x => x.ts !== ts) })
-                refreshMemory()
-            })
-        })
-        // Per-item inline edit + autosave (debounced).
-        const editTimers = new Map()
-        memoryShortEl.querySelectorAll('[data-short-edit]').forEach(ta => {
-            const ts = Number(ta.getAttribute('data-short-edit'))
-            ta.addEventListener('input', () => {
-                clearTimeout(editTimers.get(ts))
-                editTimers.set(ts, setTimeout(async () => {
-                    const cur = await getMemory()
-                    const next = (cur.short || []).map(x => x.ts === ts ? { ...x, summary: ta.value } : x)
-                    await replaceMemory({ short: next })
-                }, 500))
-            })
-        })
-    }
-    if (memoryLongEl) {
-        memoryLongEl.addEventListener('focus', () => { memoryEditing = true })
-        memoryLongEl.addEventListener('blur', () => { memoryEditing = false; refreshMemory() })
-        memoryLongEl.addEventListener('input', () => {
-            memoryEditing = true
-            clearTimeout(memorySaveTimer)
-            memorySaveTimer = setTimeout(async () => {
-                const long = memoryLongEl.value.split('\n').map(s => s.trim()).filter(Boolean)
-                await replaceMemory({ long })
-                if (memoryLongCount) memoryLongCount.textContent = long.length
-                if (memoryLongStatus) {
-                    memoryLongStatus.classList.add('show')
-                    setTimeout(() => memoryLongStatus.classList.remove('show'), 1200)
+    async function saveShortcutRows(list) {
+        const clean = (Array.isArray(list) ? list : [])
+            .map(s => {
+                const show = s?.show !== false
+                return {
+                    label: String((s && s.label) || '').trim(),
+                    prompt: String((s && s.prompt) || '').trim(),
+                    show,
                 }
-            }, 400)
+            })
+            .filter(s => s.label || s.prompt)
+        const limited = applyPlanShowLimit(clean)
+        await changeConf({ shortcuts: limited })
+        updateShortcutLimitStatus(limited)
+        return limited
+    }
+
+    function readShortcutRows() {
+        if (!shortcutsList) return []
+        return Array.from(shortcutsList.querySelectorAll('[data-shortcut-row]')).map(row => {
+            const show = !!row.querySelector('[data-shortcut-show]')?.checked
+            return {
+                label: row.querySelector('[data-shortcut-label]').value,
+                prompt: row.querySelector('[data-shortcut-prompt]').value,
+                show,
+            }
         })
     }
-    document.querySelector('#memoryClear')?.remove()
-    refreshMemory()
+
+    function renderShortcuts(list) {
+        if (!shortcutsList) return
+        let items = (Array.isArray(list) && list.length)
+            ? list.map(s => ({
+                label: String(s?.label || ''),
+                prompt: String(s?.prompt || ''),
+                show: s?.show !== false,
+            }))
+            : normalizeShortcuts(null)
+        items = applyPlanShowLimit(items)
+        shortcutsList.innerHTML = ''
+        items.forEach((s, i) => {
+            const row = document.createElement('div')
+            row.className = 'shortcut-row'
+            row.setAttribute('data-shortcut-row', '')
+            const showHelp = premiumState?.paid
+                ? 'Show this shortcut in the meeting rail'
+                : `Show this shortcut in the meeting rail. Free plan can show up to ${FREE_SHORTCUT_SHOW_LIMIT}.`
+            row.innerHTML = `
+                <input type="text" data-shortcut-label maxlength="24"
+                    value="${escapeAttr(s.label)}" placeholder="Label" />
+                <input type="text" data-shortcut-prompt
+                    value="${escapeAttr(s.prompt)}" placeholder="Question sent to the assistant" />
+                <label class="shortcut-toggle" title="${escapeAttr(showHelp)}" aria-label="${escapeAttr(showHelp)}">
+                    <input type="checkbox" data-shortcut-show ${s.show !== false ? 'checked' : ''} />
+                </label>
+                <button class="subtle" data-shortcut-remove title="Remove">×</button>
+            `
+
+            const showInput = row.querySelector('[data-shortcut-show]')
+            showInput.addEventListener('change', async () => {
+                if (showInput.checked && premiumState?.paid !== true) {
+                    const currentlyShown = readShortcutRows().filter(x => x.show).length
+                    if (currentlyShown > FREE_SHORTCUT_SHOW_LIMIT) {
+                        showInput.checked = false
+                        if (shortcutLimitStatus) {
+                            shortcutLimitStatus.textContent = `Free plan can show up to ${FREE_SHORTCUT_SHOW_LIMIT} shortcuts. Upgrade to show more.`
+                            shortcutLimitStatus.classList.add('warn')
+                        }
+                        return
+                    }
+                }
+                const saved = await saveShortcutRows(readShortcutRows())
+                renderShortcuts(saved)
+            })
+            row.querySelector('[data-shortcut-remove]').addEventListener('click', async () => {
+                const next = readShortcutRows().filter((_, idx) => idx !== i)
+                const saved = await saveShortcutRows(next)
+                renderShortcuts(saved)
+            })
+            shortcutsList.appendChild(row)
+        })
+
+        const actions = document.createElement('div')
+        actions.className = 'shortcut-actions'
+        const addBtn = document.createElement('button')
+        addBtn.className = 'subtle'
+        addBtn.textContent = chrome.i18n.getMessage('addShortcut') || '+ Add shortcut'
+        addBtn.addEventListener('click', async () => {
+            const current = await saveShortcutRows(readShortcutRows())
+            const shown = current.filter(s => s.show !== false).length
+            const show = premiumState?.paid === true || shown < FREE_SHORTCUT_SHOW_LIMIT
+            renderShortcuts(current.concat([{ label: chrome.i18n.getMessage('newShortcut') || 'New', prompt: '', show }]))
+        })
+        const resetBtn = document.createElement('button')
+        resetBtn.className = 'subtle'
+        resetBtn.textContent = chrome.i18n.getMessage('resetShortcuts') || 'Reset to defaults'
+        resetBtn.addEventListener('click', async () => {
+            if (!confirm(chrome.i18n.getMessage('resetShortcutsConfirm') || 'Replace your shortcuts with the defaults?')) return
+            const defaults = applyPlanShowLimit(normalizeShortcuts(null))
+            await changeConf({ shortcuts: defaults })
+            renderShortcuts(defaults)
+        })
+        actions.appendChild(addBtn)
+        actions.appendChild(resetBtn)
+        shortcutsList.appendChild(actions)
+
+        let saveTimer = null
+        shortcutsList.querySelectorAll('[data-shortcut-label], [data-shortcut-prompt]').forEach(inp => {
+            inp.addEventListener('input', () => {
+                clearTimeout(saveTimer)
+                saveTimer = setTimeout(() => { saveShortcutRows(readShortcutRows()) }, 500)
+            })
+        })
+        updateShortcutLimitStatus(items)
+    }
+    renderShortcuts(normalizeShortcuts((conf && conf.shortcuts) || null))
 
     // --- Knowledge (uploaded reference docs) -------------------------------
     // Storage: chrome.storage.local under 'knowledge' = { docs: [{id, name, size, addedAt, content}] }
@@ -278,33 +372,8 @@ name when drafting replies, e.g. "the NewYorkLife integration", "ticket #1234",
     const knowledgeList = document.querySelector('#knowledgeList')
     const knowledgeUpload = document.querySelector('#knowledgeUpload')
 
-    // Ask the LLM to build a tiny wiki entry for a doc — gets injected into
-    // the system prompt so the agent knows what's in the corpus without
-    // having to call recall_knowledge first.
-    async function buildWikiEntry(name, content) {
-        const sample = String(content || "").slice(0, 6000)
-        const prompt = [
-            `Build a one-paragraph wiki entry for the document "${name}".`,
-            ``,
-            `Output EXACTLY these 4 lines (no preamble, no markdown headers):`,
-            `Title: <short descriptive title, ≤ 60 chars>`,
-            `Keywords: <5–10 comma-separated terms / project names / acronyms>`,
-            `Sections: <bulleted topics joined by " • ", ≤ 6 items>`,
-            `Summary: <1–2 sentences, ≤ 200 chars>`,
-            ``,
-            `--- document begin ---`,
-            sample,
-            `--- document end ---`,
-        ].join("\n")
-        try {
-            const txt = await relayChat(prompt, { temperature: 0.2 })
-            return String(txt || "").trim().slice(0, 600)
-        } catch (e) {
-            console.warn("buildWikiEntry failed", e)
-            return ""
-        }
-    }
-
+    // Uploads are local-only: the raw text is stored and TF-IDF retrieval runs
+    // at ask time. No model call happens on upload.
     async function refreshKnowledge() {
         if (!knowledgeList) return
         const k = await getKnowledge()
@@ -319,17 +388,12 @@ name when drafting replies, e.g. "the NewYorkLife integration", "ticket #1234",
         parts.push('<ul style="list-style:none; padding:0; margin:0">')
         for (const d of k.docs) {
             const kb = ((d.size || 0) / 1024).toFixed(1)
-            const indexed = d.wikiEntry ? '<span title="indexed" style="color:#16a34a">●</span>' : '<span title="no index — click Rebuild" style="color:#9ca3af">○</span>'
-            const wiki = d.wikiEntry ? `<div style="font-size:11px; color:var(--muted); margin:2px 0 0 14px; white-space:pre-wrap; max-height:60px; overflow:hidden">${esc(d.wikiEntry)}</div>` : ''
             parts.push(`<li style="padding:6px 0; border-bottom:1px solid #eee">
                 <div style="display:flex; align-items:center; gap:8px">
-                    ${indexed}
                     <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${esc(d.name)}</span>
                     <span style="font-size:11px; color:var(--muted)">${kb} KB</span>
-                    <button class="subtle" data-knowledge-rebuild="${esc(d.id)}">Re-index</button>
                     <button class="subtle" data-knowledge-delete="${esc(d.id)}">Remove</button>
                 </div>
-                ${wiki}
             </li>`)
         }
         parts.push('</ul>')
@@ -343,18 +407,6 @@ name when drafting replies, e.g. "the NewYorkLife integration", "ticket #1234",
                 refreshKnowledge()
             })
         })
-        knowledgeList.querySelectorAll('[data-knowledge-rebuild]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const id = btn.getAttribute('data-knowledge-rebuild')
-                btn.disabled = true; btn.textContent = '…'
-                const cur = await getKnowledge()
-                const d = (cur.docs || []).find(x => x.id === id)
-                if (!d) return
-                d.wikiEntry = await buildWikiEntry(d.name, d.content)
-                await setKnowledge(cur)
-                refreshKnowledge()
-            })
-        })
     }
     if (knowledgeUpload) {
         knowledgeUpload.addEventListener('change', async (e) => {
@@ -362,7 +414,6 @@ name when drafting replies, e.g. "the NewYorkLife integration", "ticket #1234",
             if (!files.length) return
             const cur = await getKnowledge()
             cur.docs = cur.docs || []
-            const fresh = []
             for (const f of files) {
                 try {
                     if (/\.pdf$/i.test(f.name) || f.type === 'application/pdf') {
@@ -381,10 +432,8 @@ name when drafting replies, e.g. "the NewYorkLife integration", "ticket #1234",
                         size: bytesOf(content),
                         addedAt: Date.now(),
                         content,
-                        wikiEntry: "",
                     }
                     cur.docs.push(doc)
-                    fresh.push(doc)
                 } catch (err) {
                     console.warn('knowledge upload failed', f.name, err)
                     alert(`Failed to read ${f.name}: ${err.message || err}`)
@@ -393,38 +442,7 @@ name when drafting replies, e.g. "the NewYorkLife integration", "ticket #1234",
             await setKnowledge(cur)
             knowledgeUpload.value = ''
             refreshKnowledge()
-            // Build wiki entries in the background — let user see the list
-            // appear first; then progressively fill in the index.
-            for (const d of fresh) {
-                const entry = await buildWikiEntry(d.name, d.content)
-                if (!entry) continue
-                const k2 = await getKnowledge()
-                const target = (k2.docs || []).find(x => x.id === d.id)
-                if (target) {
-                    target.wikiEntry = entry
-                    await setKnowledge(k2)
-                    refreshKnowledge()
-                }
-            }
         })
     }
     refreshKnowledge()
-
-    return 
-    uiContainer=document.createElement('div')
-    uiContainer.id="uiContainer"
-    document.body.appendChild(uiContainer)
-
-    const transcripts=[
-        {Time:since(startTime),  Name:"Tom",           Text:"Great deal. let's move to next topic"},
-        {Time:since(startTime),  Name:"Jeff",          Text:"next topic is to discuss how to implement table of content."},
-        {Time:since(startTime),  Name:conf.author,    Text:"TOC is a dynamic collecting feature, there's nothing to do other than leave a flag somewhere in a document."},
-    ]
-
-    document.addEventListener('confChange',({detail:{key, conf}})=>{
-        uiContainer.innerHTML=""
-        createUI({uiContainer, transcripts, history:[]})
-            .finally(()=>uiContainer.querySelector('#aiChatButton').click())
-    })
-    
 })

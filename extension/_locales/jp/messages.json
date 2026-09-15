@@ -1,9 +1,9 @@
 {
   "appName": {
-    "message": "MeetMate — 要点・ナレッジ・コーチ・記憶 for Teams"
+    "message": "MeetMate — Teams会議のリアルタイムQ&A＋あなたのナレッジ"
   },
   "appDesc": {
-    "message": "ライブ要点、あなたのナレッジ、発言コーチ、会議記憶 — Teams内。イベント駆動AI、コスト約10分の1。ボットなし。"
+    "message": "Teamsのリアルタイム字幕と自分のナレッジを使って質問。カスタムショートカット、会議終了時の自動結果、BYOKに対応。ボット不要、音声取得なし。"
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
@@ -76,5 +76,38 @@
   },
   "buyMeBear": {
     "message": "ビールを買ってください"
+  },
+  "assistantPreferences": {
+    "message": "アシスタント設定"
+  },
+  "assistantPreferencesDesc": {
+    "message": "入力した質問とショートカット質問のすべてに適用されます。根拠ルールが常に優先されます。"
+  },
+  "preferredLanguage": {
+    "message": "優先言語"
+  },
+  "customInstructions": {
+    "message": "カスタム指示"
+  },
+  "browserLanguage": {
+    "message": "ブラウザーの言語"
+  },
+  "autoEnd": {
+    "message": "終了時に自動実行"
+  },
+  "addShortcut": {
+    "message": "+ ショートカットを追加"
+  },
+  "resetShortcuts": {
+    "message": "既定値に戻す"
+  },
+  "newShortcut": {
+    "message": "新規"
+  },
+  "autoEndTitle": {
+    "message": "会議終了時に自動実行し、回答を自動ダウンロードに含めます"
+  },
+  "resetShortcutsConfirm": {
+    "message": "ショートカットを既定値に戻しますか？"
   }
 }

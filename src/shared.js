@@ -6,18 +6,15 @@ export async function initConf(conf){
             if(!result[storageKey]){
                 chrome.storage.local.set({[storageKey]:conf}, resolve)
             } else{
-                const data={...result[storageKey]}
-                //clear unused
-                Object.keys(data).forEach(key=>{
-                    if(!(key in conf)){
-                        delete data[key]
-                    }
-                })
-    
-                Object.assign(conf, data)
-                //apply new
-                if(Object.keys(data).length!=Object.keys(conf).length){
-                    chrome.storage.local.set({[storageKey]:conf}, resolve)
+                const stored=result[storageKey]
+                // Merge: stored values win, defaults only fill in missing keys.
+                // Never drop stored keys — they may hold deviceId / baseURL /
+                // relayModel or settings owned by other code paths.
+                const merged={...conf, ...stored}
+                Object.assign(conf, merged)
+                const missing=Object.keys(merged).some(key=>!(key in stored))
+                if(missing){
+                    chrome.storage.local.set({[storageKey]:merged}, resolve)
                 }else{
                     resolve()
                 }
@@ -56,13 +53,6 @@ export function notifyConfChange(key, conf){
     }
 }
 
-// Top-up entry point. Opens the settings page where the user picks a
-// Stripe Payment Link tier ($1 / $10 / $100). Stripe redirects back to
-// setup.html?session=<CHECKOUT_SESSION_ID> which calls applyCredit.
-export function buy() {
-    chrome.tabs.create({ url: chrome.runtime.getURL('setup.html') })
-}
-
 export async function initSetupPage(){
     Array.from(document.querySelectorAll("[data-i18n]"))
         .forEach(el=>{
@@ -76,7 +66,8 @@ export async function initSetupPage(){
 
     Object.keys(conf).forEach(id=>{
         const el=document.getElementById(id)
-        if(el){ 
+        if(el){
+            if(id === "modelName") return
             el.addEventListener('change',function(){
                 conf[id]=this.type=="checkbox" ? this.checked : this.value
 
@@ -91,26 +82,3 @@ export async function initSetupPage(){
 
     return conf
 }
-
-export const Qili_Icon_Svg=`
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-    viewBox="-100 -100 1180 1180"
-    stroke="black" stroke-width="30" fill="red"
-    xml:space="preserve" overflow="hidden">
-    <g transform="translate(-146 -146)">
-        <g>
-            <path
-                d="M184.046 183.987C278.925 89.1076 554.707 211.06 800.022 456.376 1045.34 701.691 1167.29 977.473 1072.41 1072.35 977.533 1167.23 701.751 1045.28 456.435 799.963 211.12 554.647 89.1671 278.865 184.046 183.987Z"
-                stroke-linecap="butt" stroke-linejoin="miter"
-                stroke-miterlimit="8" stroke-opacity="1" fill="none" fill-rule="evenodd" />
-            <path
-                d="M183.987 1072.36C89.1076 977.482 211.06 701.7 456.376 456.385 701.691 211.07 977.473 89.1169 1072.35 183.996 1167.23 278.875 1045.28 554.657 799.963 799.972 554.647 1045.29 278.865 1167.24 183.987 1072.36Z"
-                stroke-linecap="butt" stroke-linejoin="miter"
-                stroke-miterlimit="8" stroke-opacity="1" fill="none" fill-rule="evenodd" />
-            <path
-                d="M372 627.986 457.904 542.082 457.904 585.034 505.065 585.034 505.065 516.348 585.548 516.348 585.548 481.905 542.596 481.905 628.5 396 714.405 481.905 671.452 481.905 671.452 516.348 751.935 516.348 751.935 585.034 799.096 585.034 799.096 542.082 885 627.986 799.096 713.89 799.096 670.938 751.935 670.938 751.935 739.625 671.452 739.625 671.452 774.067 714.405 774.067 628.5 859.972 542.596 774.067 585.548 774.067 585.548 739.625 505.065 739.625 505.065 670.938 457.904 670.938 457.904 713.89Z"
-                stroke-width="0" fill-rule="evenodd" fill-opacity="1" />
-        </g>
-    </g>
-</svg>
-`

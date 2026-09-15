@@ -82,7 +82,7 @@
                 font-size: 12px;
                 margin-top: 4px;
             }
-            input[type="text"], input[type="number"], select, textarea {
+            input[type="text"], input[type="password"], input[type="number"], select, textarea {
                 width: 100%;
                 padding: 8px 10px;
                 font-size: 13px;
@@ -121,39 +121,27 @@
             }
             button.primary:hover { background: #047857; border-color: #047857; }
             button.subtle { font-size: 12px; padding: 4px 10px; color: var(--muted); }
-            .balance-row {
-                display: flex; align-items: center; gap: 16px;
-                flex-wrap: wrap;
+            .shortcut-row {
+                display: grid;
+                grid-template-columns: 120px minmax(0,1fr) 28px 32px;
+                gap: 8px;
+                margin-bottom: 8px;
             }
-            .topup-tiers {
-                display: flex; gap: 8px; margin-left: auto;
+            .shortcut-row input { width: 100%; box-sizing: border-box; }
+            .shortcut-actions { display: flex; gap: 8px; margin-top: 6px; }
+
+            .shortcut-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                cursor: help;
             }
-            .topup-tier { min-width: 60px; }
-            .balance-display {
-                font-size: 24px;
-                font-weight: 600;
-                color: var(--good);
-            }
-            #usagePanel {
-                background: var(--bg);
-                padding: 12px 14px;
-                border-radius: 8px;
-                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-                font-size: 13px;
-                color: var(--fg);
-            }
-            #usagePanel.warn { background: var(--warn-bg); color: var(--warn-fg); }
-            #usagePanel.bad  { background: var(--bad-bg);  color: var(--bad-fg); }
-            #memoryShortPanel {
-                background: var(--bg);
-                padding: 10px 12px;
-                border-radius: 8px;
-                font-size: 12px;
-                max-height: 180px;
-                overflow: auto;
-            }
-            #memoryShortPanel ul { margin: 0; padding-left: 18px; }
-            #memoryShortPanel li { margin: 4px 0; }
+            .shortcut-toggle input { width: auto; margin: 0; }
+            .shortcut-limit-status { font-size: 12px; color: var(--muted); margin-top: 6px; }
+            .shortcut-limit-status.warn { color: #b45309; }
+            .premium-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+            .premium-status { font-size:13px; margin-bottom:10px; }
+            .premium-status.active { color: var(--good); font-weight:600; }
             .footer {
                 text-align: center;
                 color: var(--muted);
@@ -173,99 +161,113 @@
         <div class="container">
             <h1 class="app-title">MeetMate <span class="badge">Settings</span></h1>
 
-            <!-- Account / billing -->
+            <!-- Direct provider / BYOK -->
             <div class="card">
-                <h3>Account</h3>
-                <p class="desc">Top up credits to use the AI assistant during your meetings.</p>
-                <div class="balance-row">
+                <h3>AI Provider</h3>
+                <p class="desc">MeetMate calls your OpenAI-compatible provider directly. No MeetMate account, relay server, credits, or payment layer.</p>
+                <div class="row">
+                    <label for="baseURL">Base URL</label>
                     <div>
-                        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">Balance</div>
-                        <div class="balance-display">$<span id="balance">0.00</span></div>
+                        <input id="baseURL" type="text" placeholder="https://openrouter.ai/api/v1" />
+                        <div class="hint" style="grid-column:auto">Examples: OpenAI, DeepSeek, Z.ai-compatible gateways, LM Studio, or another OpenAI-compatible endpoint.</div>
                     </div>
-                    <div class="topup-tiers">
-                        <button data-amount="1"   class="primary topup-tier">$1</button>
-                        <button data-amount="10"  class="primary topup-tier">$10</button>
+                </div>
+                <div class="row">
+                    <label for="apiKey">API key</label>
+                    <div>
+                        <input id="apiKey" type="password" autocomplete="off" placeholder="Provider API key" />
+                        <div class="hint" style="grid-column:auto">Stored locally in Chrome extension storage and sent only to your configured provider.</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <label for="modelName">Model</label>
+                    <div>
+                        <select id="modelName">
+                            <option value="openrouter/auto">openrouter/auto — Auto router</option>
+                            <option value="openrouter/free">openrouter/free — Free router</option>
+                            <option value="custom">Custom model…</option>
+                        </select>
+                        <button id="refreshModels" class="subtle" type="button" style="margin-left:8px">Refresh models</button>
+                        <input id="customModelName" type="text" placeholder="provider/model" style="margin-top:8px; display:none" />
+                        <div id="modelStatus" class="hint" style="grid-column:auto">Loading models from <code>/models</code>…</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <label>Connection</label>
+                    <div>
+                        <button id="testConnection" class="primary">Test connection</button>
+                        <span id="testStatus" class="hint" style="grid-column:auto; margin-left:8px"></span>
                     </div>
                 </div>
             </div>
 
-            <!-- Model & context -->
+            <!-- Assistant preferences -->
             <div class="card">
-                <h3>Agent</h3>
-                <p class="desc">Choose the model and tell the assistant about you.</p>
+                <h3 data-i18n="assistantPreferences">Assistant preferences</h3>
+                <p class="desc" data-i18n="assistantPreferencesDesc">Applied to every typed Ask and shortcut Ask. Grounding rules always take priority.</p>
                 <div class="row">
-                    <label for="relayModel">Model</label>
-                    <div>
-                        <select id="relayModel">
-                            <option value="gpt-4.1">gpt-4.1</option>
-                            <option value="gpt-5.4">gpt-5.4</option>
-                        </select>
-                        <div class="hint" style="grid-column:auto">Used for in-meeting suggestions, chat, and minutes.</div>
-                    </div>
-                </div>
-                <div class="row">
-                    <label for="preferredLanguage">Preferred language</label>
+                    <label for="preferredLanguage" data-i18n="preferredLanguage">Preferred language</label>
                     <div>
                         <select id="preferredLanguage">
+                            <option id="browserLanguageOption" value="browser">Browser language</option>
+                            <option value="auto">Auto — follow the question</option>
                             <option value="English">English</option>
-                            <option value="中文 (Chinese)">中文 (Chinese)</option>
-                            <option value="日本語 (Japanese)">日本語 (Japanese)</option>
-                            <option value="한국어 (Korean)">한국어 (Korean)</option>
-                            <option value="Español (Spanish)">Español (Spanish)</option>
-                            <option value="Français (French)">Français (French)</option>
-                            <option value="Deutsch (German)">Deutsch (German)</option>
-                            <option value="Português (Portuguese)">Português (Portuguese)</option>
-                            <option value="Русский (Russian)">Русский (Russian)</option>
-                            <option value="العربية (Arabic)">العربية (Arabic)</option>
-                            <option value="हिन्दी (Hindi)">हिन्दी (Hindi)</option>
+                            <option value="Simplified Chinese">简体中文</option>
+                            <option value="Traditional Chinese">繁體中文</option>
+                            <option value="Japanese">日本語</option>
+                            <option value="Korean">한국어</option>
+                            <option value="French">Français</option>
+                            <option value="German">Deutsch</option>
+                            <option value="Spanish">Español</option>
                         </select>
-                        <div class="hint" style="grid-column:auto">The language you read most fluently. Used by the 🌐 Translate toolbar button.</div>
+                        <div class="hint" style="grid-column:auto">Auto answers in the language of your question. A selected language is preferred for every answer.</div>
                     </div>
                 </div>
                 <div class="row">
-                    <label for="userContext">Your context</label>
+                    <label for="customInstructions" data-i18n="customInstructions">Custom instructions</label>
                     <div>
-                        <textarea id="userContext" style="min-height:280px" placeholder="Markdown. Use sections like ## About me, ## People I meet with, ## How I want the agent to help, ## Knowledge, ## Goals."></textarea>
-                        <div class="hint" style="grid-column:auto">
-                            Injected into the agent system prompt as the user_context block.
-                            <button id="userContextReset" class="subtle" style="margin-left:6px">Reset to template</button>
-                        </div>
+                        <textarea id="customInstructions" placeholder="Example: Be concise. Prefer bullets. Challenge assumptions when useful. Give me wording I can say aloud."></textarea>
+                        <div class="hint" style="grid-column:auto">Use this for your preferred tone, format, role, or recurring guidance.</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Memory -->
+            <!-- Premium: deliberately lightweight client-side entitlement -->
+            <div class="card" id="premiumCard">
+                <h3>MeetMate Premium</h3>
+                <p class="desc">Unlock answer provenance, structured meeting reports, and unlimited shown shortcuts.</p>
+                <div id="premiumStatusText" class="premium-status">Checking…</div>
+                <label style="display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:13px">
+                    <input id="premiumStructuredReport" type="checkbox" style="width:auto; margin:0" />
+                    Generate a structured meeting report at meeting end
+                </label>
+                <div class="premium-actions">
+                    <button id="premiumUpgrade" class="primary" type="button">Upgrade</button>
+                    <button id="premiumLogin" class="subtle" type="button">Restore purchase</button>
+                    <button id="premiumRefresh" class="subtle" type="button">Refresh status</button>
+                    <button id="premiumPreview" class="subtle" type="button" style="display:none">Enable Premium Preview</button>
+                </div>
+            </div>
+
+            <!-- Shortcuts: the one-tap asks in the in-meeting rail -->
             <div class="card">
-                <h3>Memory</h3>
-                <p class="desc">Auto-distilled after each meeting. Loaded into the next meeting's system prompt. You can edit long-term facts directly below.</p>
-                <div class="row">
-                    <label for="memoryLong">Long-term facts</label>
-                    <div>
-                        <textarea id="memoryLong" placeholder="One fact per line. Saved automatically." style="min-height:140px"></textarea>
-                        <div class="hint" style="grid-column:auto">
-                            <span id="memoryLongCount">0</span> facts &middot;
-                            <span class="save-status" id="memoryLongStatus">Saved ✓</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <label>Recent meetings</label>
-                    <div>
-                        <div id="memoryShortPanel"><em style="color:var(--muted)">(empty)</em></div>
-                        <div class="hint" style="grid-column:auto;margin-top:8px">
-                            Edit any summary inline (autosaves), or click × to remove a single meeting.
-                        </div>
-                    </div>
-                </div>
+                <h3>Shortcuts</h3>
+                <p class="desc">
+                    Your shortcut library. The checkbox shows/hides a shortcut in the meeting
+                    rail. Free users can show up to 3; Premium has no limit.
+                </p>
+                <div id="shortcutsList"></div>
+                <div id="shortcutLimitStatus" class="shortcut-limit-status"></div>
             </div>
 
             <!-- Knowledge (uploaded docs the assistant can reference in meetings) -->
             <div class="card">
                 <h3>Knowledge</h3>
                 <p class="desc">
-                    Drop in design docs, briefs, or notes. The assistant
-                    indexes them and can recall passages by topic during
-                    meetings via its <code>recall_knowledge</code> tool.
+                    Drop in design docs, briefs, or notes. MeetMate gives the assistant
+                    only a small high-level catalog of what knowledge exists. The assistant
+                    can call <code>search_knowledge</code> when it needs details. Nothing is sent
+                    to the model on upload.
                 </p>
                 <div class="row">
                     <label>Documents</label>
@@ -286,10 +288,6 @@
                 <div id="knowledgeList" style="margin-top:10px"></div>
             </div>
 
-            <div class="footer">
-                <a href='https://ai.qili2.com' target='_blank'>@ai.qili2</a>
-            </div>
         </div>
     </body>
 </html>
-

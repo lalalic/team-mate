@@ -1,9 +1,8 @@
 //https://opentextcorporation-my.sharepoint.com/*
-const { makePredictAPI} = require("./util")
+const { rephrase } = require("./util")
 
 const ID='OneTranscript'
 let enabled=false
-const chatgpt=makePredictAPI()
 
 function checkStatus(mutationList, observer){
     if(!enabled){
@@ -40,7 +39,7 @@ function startTranscription(){
         if(!message)
             return 
         try{
-            const response=await chatgpt.rephrase(message)
+            const response=await rephrase(message)
             if(response){
                 responseEl.textContent=response;
             }
