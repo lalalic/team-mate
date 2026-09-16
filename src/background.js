@@ -231,6 +231,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             const iconPath = "icon.png"
             chrome.action.setIcon({ path: { "16": iconPath, "48": iconPath, "128": iconPath } })
             chrome.action.setBadgeText({ text: "" })
+            // The content script waits for this acknowledgement before showing
+            // the final "Transcript/report saved" status. Without a response,
+            // Chrome reports "The message port closed before a response was
+            // received", which looks like a save failure even though downloads
+            // were already started.
+            sendResponse({ ok: true })
             return
         }
         case 'llm_list_models':

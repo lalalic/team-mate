@@ -1,6 +1,6 @@
 {
   "name": "team-mate",
-  "version": "4.4.5",
+  "version": "4.4.6",
   "description": "MeetMate — real-time AI assistant for Microsoft Teams meetings",
   "private": true,
   "scripts": {
