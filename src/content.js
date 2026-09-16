@@ -124,7 +124,7 @@ async function init() {
     function checkStatus() {
         const liveCaptionOnId = '#captions-settings-menu-trigger-button, #captions-settings-menu-trigger-button-non-overflow'
         const meetingOnId = '#call-duration-custom, [data-tid="call-duration"]'
-        let trigger
+
         if (!enabled) {
             if (!isV2 && !observerOnIframe) {
                 const iframe = document.querySelector('iframe')
@@ -136,30 +136,31 @@ async function init() {
                 }
             }
 
-            if (startMeeting.doing) {
-                if (!observed.querySelector(meetingOnId)) delete startMeeting.doing
-            } else if (observed.querySelector(meetingOnId)) {
-                startMeeting()
-            }
-
-            if (!!(trigger = observed.querySelector(liveCaptionOnId))) {
-                enabled = true
-                startTranscription(document.body)
-                // Polling backstop: mutation events may stop firing once the
-                // page settles after Leave, which would orphan the rail.
-                if (_endPollTimer) clearInterval(_endPollTimer)
-                _endPollTimer = setInterval(() => {
-                    if (!enabled) return
-                    if (!observed.querySelector(liveCaptionOnId) || !observed.querySelector(meetingOnId)) {
-                        enabled = false
-                        try { stopTranscription() } catch (e) { console.warn('[meetmate] poll teardown failed', e) }
-                        delete startMeeting.doing
-                        clearInterval(_endPollTimer); _endPollTimer = null
-                    }
-                }, 1500)
+            const meetingActive = !!observed.querySelector(meetingOnId)
+            if (!meetingActive) {
+                delete startMeeting.doing
                 return
             }
-        } else if (!observed.querySelector(liveCaptionOnId) || !observed.querySelector(meetingOnId)) {
+
+            enabled = true
+            startTranscription(document.body)
+
+            if (!observed.querySelector(liveCaptionOnId)) startMeeting()
+
+            if (_endPollTimer) clearInterval(_endPollTimer)
+            _endPollTimer = setInterval(() => {
+                if (!enabled) return
+                if (!observed.querySelector(meetingOnId)) {
+                    enabled = false
+                    try { stopTranscription() } catch (e) { console.warn('[meetmate] poll teardown failed', e) }
+                    delete startMeeting.doing
+                    clearInterval(_endPollTimer); _endPollTimer = null
+                }
+            }, 1500)
+            return
+        }
+
+        if (!observed.querySelector(meetingOnId)) {
             enabled = false
             stopTranscription()
             delete startMeeting.doing
@@ -170,7 +171,9 @@ async function init() {
     function startMeeting() {
         if (startMeeting.doing) return
         startMeeting.doing = true
-        observed.querySelector('#callingButtons-showMoreBtn').click()
+        const moreButton = observed.querySelector('#callingButtons-showMoreBtn')
+        if (!moreButton) { delete startMeeting.doing; return }
+        moreButton.click()
         setTimeout(() => observed.querySelector('#LanguageSpeechMenuControl-id')?.click(), 500)
         setTimeout(() => observed.querySelector('#closed-captions-button')?.click(), 1000)
     }
