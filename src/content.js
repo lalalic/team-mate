@@ -276,17 +276,34 @@ async function init() {
             if (containerObserver) { containerObserver.disconnect(); containerObserver = null }
             if (_confHandler) { chrome.storage.onChanged.removeListener(_confHandler); _confHandler = null }
 
+            // The meeting UI should leave with the meeting. Report generation can
+            // continue after teardown, with a small explicit status indicator.
+            try { _ui?.destroy(); _ui = null } catch (_) {}
+
+            const hasTranscript = transcripts.length > 0
+            if (hasTranscript) showStatus("Saving meeting transcript…", 60000)
+
             let premiumReport = ""
+            const conf = await getConf().catch(() => ({}))
+            const generatingReport = _premium && transcripts.length > 0 && conf?.premiumStructuredReport === true
+            if (generatingReport) showStatus(hasTranscript ? "Saving transcript · Generating report…" : "Generating meeting report…", 60000)
             try { premiumReport = await buildPremiumReport() }
             catch (e) { console.warn('[meetmate] premium report failed', e) }
-
-            try { _ui?.destroy(); _ui = null } catch (_) {}
+            if (generatingReport && !premiumReport) showStatus("Transcript saved · Report could not be generated", 3500)
 
             chrome.runtime.sendMessage({
                 message: "stop_capture",
                 transcripts,
                 premiumReport,
                 name: getMeetingName(),
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    console.warn('[meetmate] meeting files save failed', chrome.runtime.lastError.message)
+                    showStatus("Could not save meeting files", 4000)
+                    return
+                }
+                if (generatingReport && premiumReport) showStatus("Transcript + report saved", 3500)
+                else if (hasTranscript) showStatus("Transcript saved", 3500)
             })
         } finally {
             try { Array.from(document.querySelectorAll('.shouldRemove')).forEach(a => a.remove()) } catch (_) {}

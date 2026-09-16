@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Model picker --------------------------------------------------------
     const modelSelect = document.querySelector('#modelName')
+    const modelFilter = document.querySelector('#modelFilter')
     const customModelInput = document.querySelector('#customModelName')
     const baseURLInput = document.querySelector('#baseURL')
     const apiKeyInput = document.querySelector('#apiKey')
@@ -118,6 +119,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         const id = String(model?.id || model || '')
         const name = String(model?.name || '')
         return name && name !== id ? `${name} — ${id}` : id
+    }
+
+    let modelOptions = []
+
+    function renderModelOptions(selected = modelSelect?.value || '') {
+        if (!modelSelect) return
+        const query = String(modelFilter?.value || '').trim().toLowerCase()
+        const visible = query ? modelOptions.filter(item => `${item.id} ${item.label}`.toLowerCase().includes(query)) : modelOptions
+        modelSelect.innerHTML = ''
+        for (const item of visible) {
+            const opt = document.createElement('option')
+            opt.value = item.id
+            opt.textContent = item.label
+            modelSelect.appendChild(opt)
+        }
+        const custom = document.createElement('option')
+        custom.value = 'custom'
+        custom.textContent = 'Custom model…'
+        modelSelect.appendChild(custom)
+        if (visible.some(item => item.id === selected)) modelSelect.value = selected
+        else if (selected && modelOptions.some(item => item.id === selected)) {
+            const current = modelOptions.find(item => item.id === selected)
+            const opt = document.createElement('option')
+            opt.value = current.id; opt.textContent = `✓ ${current.label}`; modelSelect.insertBefore(opt, modelSelect.firstChild); modelSelect.value = selected
+        }
     }
 
     async function populateModels({ preserve = true } = {}) {
@@ -152,17 +178,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             .sort((a, b) => String(a?.name || a?.id || '').localeCompare(String(b?.name || b?.id || '')))
             .forEach(m => add(m?.id, modelLabel(m)))
 
-        modelSelect.innerHTML = ''
-        for (const item of options) {
-            const opt = document.createElement('option')
-            opt.value = item.id
-            opt.textContent = item.label
-            modelSelect.appendChild(opt)
-        }
-        const custom = document.createElement('option')
-        custom.value = 'custom'
-        custom.textContent = 'Custom model…'
-        modelSelect.appendChild(custom)
+        modelOptions = options
+        renderModelOptions(selected)
 
         if (selected && seen.has(selected)) {
             modelSelect.value = selected
@@ -201,6 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const value = customModelInput.value.trim()
             if (value) await changeConf({ modelName: value })
         })
+        modelFilter?.addEventListener('input', () => renderModelOptions(modelSelect.value))
         refreshModelsBtn?.addEventListener('click', () => populateModels())
         baseURLInput?.addEventListener('change', () => setTimeout(() => populateModels(), 0))
         apiKeyInput?.addEventListener('change', () => setTimeout(() => populateModels(), 0))
