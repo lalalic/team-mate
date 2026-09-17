@@ -18,7 +18,7 @@ async function init() {
     const transcripts = []
     const conversation = []
     const observer = new MutationObserver(checkStatus)
-    let observed = null, enabled = false, startTime = null, containerObserver = null
+    let observed = null, enabled = false, startTime = null, containerObserver = null, meetingName = ""
     let _ui = null
     let _confHandler = null
     const _streamTargets = new Map()
@@ -189,6 +189,7 @@ async function init() {
         const durationEl = observed?.querySelector('#call-duration-custom') || observed?.querySelector('[data-tid="call-duration"]') || document.querySelector('[data-tid="call-duration"]')
         const [seconds, minutes, hours = 0] = (durationEl?.textContent || '0:00').split(":").map(a => parseInt(a)).reverse()
         startTime = Date.now() - (hours * 60 * 60 + minutes * 60 + seconds) * 1000
+        meetingName = getMeetingName()
         await changeConf({ author: getAuthorName() })
         chrome.runtime.sendMessage({ message: "start_capture" })
 
@@ -253,7 +254,7 @@ async function init() {
                 question: q,
                 transcripts: transcriptSnapshot,
                 conversation: priorConversation,
-                meetingName: getMeetingName(),
+                meetingName,
                 includeProvenance: _premium,
                 stream: true,
                 streamId,
@@ -279,7 +280,7 @@ async function init() {
                 question: "Create the structured meeting report now.",
                 transcripts: transcripts.slice(),
                 conversation: conversation.slice(),
-                meetingName: getMeetingName(),
+                meetingName,
                 maxTranscriptChars: 30000,
                 responseMode: 'report',
             })
@@ -318,7 +319,7 @@ async function init() {
                 message: "stop_capture",
                 transcripts,
                 premiumReport,
-                name: getMeetingName(),
+                name: meetingName || "Meeting",
             }, () => {
                 if (chrome.runtime.lastError) {
                     console.warn('[meetmate] meeting files save failed', chrome.runtime.lastError.message)
@@ -333,6 +334,7 @@ async function init() {
             try { if (messageContainer) messageContainer.innerHTML = '' } catch (_) {}
             _pendingAsks = 0
             startTime = null
+            meetingName = ""
             transcripts.splice(0)
             conversation.splice(0)
             _stopping = false
