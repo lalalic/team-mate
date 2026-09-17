@@ -12,7 +12,7 @@
 //   │ [Ask anything…      ][↩] │  ← free-form ask
 //   └──────────────────────────┘
 
-import { formatAnswerHtml } from "./focused.js";
+import { appendAnswerChunk, formatAnswerHtml } from "./focused.js";
 
 const escapeHtml = (s) => String(s == null ? "" : s)
     .replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
@@ -75,6 +75,7 @@ export function createUIController({ onAsk, onDelete, shortcuts = [] } = {}) {
     let minimized = false;
     let entrySeq = 0;
     let currentShortcuts = [];
+    const streamedAnswers = new Map();
 
     function setMinimized(next) {
         minimized = !!next;
@@ -206,6 +207,7 @@ export function createUIController({ onAsk, onDelete, shortcuts = [] } = {}) {
 
     function removeEntry(id) {
         document.getElementById(id)?.remove();
+        streamedAnswers.delete(id);
         if (expandedForId === id) closeExpanded();
         onDelete?.(id);
     }
@@ -214,6 +216,7 @@ export function createUIController({ onAsk, onDelete, shortcuts = [] } = {}) {
     function resolveAsk(id, answer, sources = []) {
         const detail = detailOf(id);
         if (!detail) return false;
+        streamedAnswers.delete(id);
         const text = String(answer || "").trim();
         detail.innerHTML = text
             ? `<div class="mm-r-answer">${formatAnswerHtml(text)}</div>`
@@ -249,7 +252,9 @@ export function createUIController({ onAsk, onDelete, shortcuts = [] } = {}) {
     function streamAsk(id, answer) {
         const detail = detailOf(id);
         if (!detail) return false;
-        const html = formatAnswerHtml(answer);
+        const accumulated = appendAnswerChunk(streamedAnswers.get(id), answer);
+        streamedAnswers.set(id, accumulated);
+        const html = formatAnswerHtml(accumulated);
         if (html) {
             detail.innerHTML = `<div class="mm-r-answer">${html}</div>`;
             detail.style.display = "block";
@@ -263,6 +268,7 @@ export function createUIController({ onAsk, onDelete, shortcuts = [] } = {}) {
     function failAsk(id, message) {
         const detail = detailOf(id);
         if (!detail) return false;
+        streamedAnswers.delete(id);
         const text = message && message.message ? message.message : message;
         detail.innerHTML = `<em class="mm-r-loading">⚠️ ${escapeHtml(text || "Failed.")}</em>`;
         detail.style.display = "block";

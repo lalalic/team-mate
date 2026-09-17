@@ -490,6 +490,11 @@ export function formatAnswerHtml(answer = "") {
     return blocks.join("");
 }
 
+export function appendAnswerChunk(accumulated = "", delta = "") {
+    const text = String(delta || "");
+    return text ? `${String(accumulated || "")}${text}` : String(accumulated || "");
+}
+
 /**
  * Build the relay payload for one explicit user question.
  *

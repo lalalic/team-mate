@@ -22,6 +22,7 @@ import {
     rankTranscriptSources,
     buildAskMessages,
     formatAnswerHtml,
+    appendAnswerChunk,
 } from "../src/focused.js"
 
 let passed = 0
@@ -119,6 +120,12 @@ test("buildAskMessages: shortcut title stays independent of the prompt sent to t
     assert.ok(!title.includes(prompt));
     const messages = buildAskMessages({ question: prompt }).messages;
     assert.ok(messages.at(-1).content.includes(prompt));
+})
+
+test("appendAnswerChunk: accumulates streaming chunks for one answer", () => {
+    assert.equal(appendAnswerChunk("", "Main"), "Main")
+    assert.equal(appendAnswerChunk("Main", " **risk**"), "Main **risk**")
+    assert.equal(appendAnswerChunk("Main **risk**", ""), "Main **risk**")
 })
 
 test("formatTranscript: renders Name : Text and collapses whitespace", () => {
