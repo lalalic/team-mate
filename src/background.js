@@ -191,7 +191,7 @@ async function directListModels(request = {}) {
         .filter(Boolean)
 }
 
-async function directChatCompletion(request = {}) {
+async function directChatCompletion(request = {}, sender = null) {
     const conf = (await getConf()) || {}
     const baseURL = String(request.baseURL || conf.baseURL || "https://openrouter.ai/api/v1").replace(/\/$/, "")
     const apiKey = String(request.apiKey || conf.apiKey || "").trim()
@@ -201,6 +201,7 @@ async function directChatCompletion(request = {}) {
     if (request.tools) body.tools = request.tools
     if (request.tool_choice) body.tool_choice = request.tool_choice
     if (request.temperature != null) body.temperature = request.temperature
+    if (request.stream) body.stream = true
 
     const res = await fetch(`${baseURL}/chat/completions`, {
         method: "POST",
@@ -212,7 +213,65 @@ async function directChatCompletion(request = {}) {
         const text = await res.text().catch(() => "")
         throw new Error(`chat/completions failed (${res.status}): ${text || res.statusText}`)
     }
-    return res.json()
+    if (!request.stream) return res.json()
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+    let content = ""
+    let finishReason = null
+    const toolCalls = new Map()
+    const sendChunk = (delta, sender) => {
+        if (!delta || sender?.tab?.id == null) return
+        chrome.tabs.sendMessage(sender.tab.id, {
+            message: "llm_chat_completion_chunk",
+            id: request.requestId,
+            delta,
+        }).catch(() => {})
+    }
+
+    while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        let newline = buffer.indexOf("\n")
+        while (newline >= 0) {
+            const line = buffer.slice(0, newline).trim()
+            buffer = buffer.slice(newline + 1)
+            newline = buffer.indexOf("\n")
+            if (!line.startsWith("data:")) continue
+            const payload = line.slice(5).trim()
+            if (payload === "[DONE]") continue
+            try {
+                const event = JSON.parse(payload)
+                const choice = event.choices?.[0] || {}
+                const delta = choice.delta?.content || ""
+                content += delta
+                for (const call of choice.delta?.tool_calls || []) {
+                    const index = Number(call.index || 0)
+                    const item = toolCalls.get(index) || { id: "", type: "function", function: { name: "", arguments: "" } }
+                    if (call.id) item.id = call.id
+                    if (call.function?.name) item.function.name += call.function.name
+                    if (call.function?.arguments) item.function.arguments += call.function.arguments
+                    toolCalls.set(index, item)
+                }
+                if (choice.finish_reason) finishReason = choice.finish_reason
+                sendChunk(delta, sender)
+            } catch (_) {
+                // Ignore keep-alives and malformed provider comments.
+            }
+        }
+    }
+
+    const message = { role: "assistant", content: content || null }
+    if (toolCalls.size) message.tool_calls = [...toolCalls.entries()].sort(([a], [b]) => a - b).map(([, call]) => call)
+    return {
+        id: `chatcmpl-stream-${Date.now()}`,
+        object: "chat.completion",
+        created: Math.floor(Date.now() / 1000),
+        model,
+        choices: [{ index: 0, message, finish_reason: finishReason || "stop" }],
+    }
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -245,7 +304,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true
         case 'llm_chat_completion':
-            directChatCompletion(request.request)
+            directChatCompletion(request.request, sender)
                 .then(data => sendResponse({ ok: true, data }))
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true

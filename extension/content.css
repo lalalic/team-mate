@@ -628,6 +628,136 @@ button.meetmate-action:active {
     flex: 1 1 auto;
     white-space: pre-wrap;
 }
+@media (prefers-reduced-motion: reduce) {
+    #meetmate-rail .mm-r-log-entry { transition: none; }
+}
+
+#meetmate-rail .mm-r-entry-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 2px;
+}
+
+#meetmate-rail .mm-r-entry-button {
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    font: 600 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 0;
+}
+
+#meetmate-rail .mm-r-entry-button:hover,
+#meetmate-rail .mm-r-entry-button:focus-visible {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+#meetmate-rail .mm-r-entry-button.mm-r-delete:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+#meetmate-rail .mm-r-answer p { margin: 0 0 6px; }
+#meetmate-rail .mm-r-answer p:last-child { margin-bottom: 0; }
+#meetmate-rail .mm-r-answer ul { margin: 0 0 6px; padding-left: 18px; }
+#meetmate-rail .mm-r-answer ul:last-child { margin-bottom: 0; }
+#meetmate-rail .mm-r-answer code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 0 3px;
+}
+
+#meetmate-answer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+#meetmate-answer-overlay .mm-answer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, .54);
+}
+
+#meetmate-answer-overlay .mm-answer-window {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(900px, calc(100vw - 48px));
+    max-height: min(78vh, 720px);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, .3);
+    overflow: hidden;
+}
+
+#meetmate-answer-overlay .mm-answer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #e5e7eb;
+    font: 600 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #111827;
+}
+
+#meetmate-answer-overlay .mm-answer-close {
+    appearance: none;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    font: 600 17px/1 inherit;
+}
+
+#meetmate-answer-overlay .mm-answer-close:hover { background: #f3f4f6; color: #111827; }
+
+#meetmate-answer-overlay .mm-answer-body {
+    overflow: auto;
+    padding: 18px;
+    font: 400 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #1f2937;
+}
+
+#meetmate-answer-overlay .mm-answer-body .mm-r-log-detail {
+    margin-top: 0;
+    padding: 0;
+    background: transparent;
+    font-size: inherit;
+}
+
+#meetmate-answer-overlay .mm-answer-body p { margin: 0 0 10px; }
+#meetmate-answer-overlay .mm-answer-body ul { margin: 0 0 10px; padding-left: 22px; }
+#meetmate-answer-overlay .mm-answer-body .mm-r-sources {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+}
+#meetmate-answer-overlay .mm-answer-body summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+#meetmate-answer-overlay .mm-answer-body .mm-r-source {
+    display: grid;
+    gap: 2px;
+    margin-top: 8px;
+}
 #meetmate-rail .mm-r-clickable {
     cursor: pointer;
 }

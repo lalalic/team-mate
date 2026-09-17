@@ -102,7 +102,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Model picker --------------------------------------------------------
     const modelSelect = document.querySelector('#modelName')
-    const modelFilter = document.querySelector('#modelFilter')
     const customModelInput = document.querySelector('#customModelName')
     const baseURLInput = document.querySelector('#baseURL')
     const apiKeyInput = document.querySelector('#apiKey')
@@ -125,8 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderModelOptions(selected = modelSelect?.value || '') {
         if (!modelSelect) return
-        const query = String(modelFilter?.value || '').trim().toLowerCase()
-        const visible = query ? modelOptions.filter(item => `${item.id} ${item.label}`.toLowerCase().includes(query)) : modelOptions
+        const visible = modelOptions
         modelSelect.innerHTML = ''
         for (const item of visible) {
             const opt = document.createElement('option')
@@ -218,7 +216,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const value = customModelInput.value.trim()
             if (value) await changeConf({ modelName: value })
         })
-        modelFilter?.addEventListener('input', () => renderModelOptions(modelSelect.value))
         refreshModelsBtn?.addEventListener('click', () => populateModels())
         baseURLInput?.addEventListener('change', () => setTimeout(() => populateModels(), 0))
         apiKeyInput?.addEventListener('change', () => setTimeout(() => populateModels(), 0))

@@ -59,6 +59,8 @@ export async function chatCompletion(req = {}) {
             tools: req.tools,
             tool_choice: req.tool_choice,
             temperature: req.temperature,
+            stream: req.stream === true,
+            requestId: req.streamId || "",
         },
     })
 }

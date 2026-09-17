@@ -12,10 +12,10 @@
 //   │ [Ask anything…      ][↩] │  ← free-form ask
 //   └──────────────────────────┘
 
+import { formatAnswerHtml } from "./focused.js";
+
 const escapeHtml = (s) => String(s == null ? "" : s)
     .replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
-
-const withBreaks = (s) => escapeHtml(s).replace(/\n/g, "<br>");
 
 const LOG_MAX = 40;
 
@@ -25,7 +25,7 @@ const LOG_MAX = 40;
  *        shortcut taps and typed questions.
  * @param {Array<{label: string, prompt: string}>} [opts.shortcuts]
  */
-export function createUIController({ onAsk, shortcuts = [] } = {}) {
+export function createUIController({ onAsk, onDelete, shortcuts = [] } = {}) {
     const rail = ensureEl("meetmate-rail", `
         <div class="mm-r-head">
             <span class="mm-r-title">MeetMate</span>
@@ -100,10 +100,10 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
     });
 
     /** Fire an ask for `question` and render the pending row. */
-    function submit(question) {
+    function submit(question, title) {
         const q = String(question || "").trim();
         if (!q) return null;
-        const id = addUserAsk(q);
+        const id = addUserAsk(title || q);
         try { onAsk?.(q, id); } catch (e) { console.warn("[meetmate] ask failed", e); }
         return id;
     }
@@ -131,6 +131,10 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
             <div class="mm-r-log-row">
                 <span class="mm-r-log-icon" title="You asked">👤</span>
                 <span class="mm-r-log-text">${escapeHtml(q)}</span>
+                <span class="mm-r-entry-actions">
+                    <button class="mm-r-entry-button mm-r-expand" type="button" title="Expand answer" aria-label="Expand answer">⛶</button>
+                    <button class="mm-r-entry-button mm-r-delete" type="button" title="Delete" aria-label="Delete this question and answer">×</button>
+                </span>
             </div>
             <div class="mm-r-log-detail"><em class="mm-r-loading">Thinking…</em></div>
         `;
@@ -138,6 +142,14 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
         entry.addEventListener("click", (ev) => {
             ev.stopPropagation();
             detailEl.style.display = detailEl.style.display === "none" ? "block" : "none";
+        });
+        entry.querySelector(".mm-r-expand").addEventListener("click", (event) => {
+            event.stopPropagation();
+            expandEntry(id, q);
+        });
+        entry.querySelector(".mm-r-delete").addEventListener("click", (event) => {
+            event.stopPropagation();
+            removeEntry(id);
         });
         logEl.appendChild(entry);
         logEl.scrollTop = logEl.scrollHeight;
@@ -150,13 +162,61 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
         return entry ? entry.querySelector(".mm-r-log-detail") : null;
     }
 
+    const answerOverlay = ensureEl("meetmate-answer-overlay", `
+        <div class="mm-answer-backdrop" data-answer-close></div>
+        <div class="mm-answer-window" role="dialog" aria-modal="true" aria-labelledby="mm-answer-title">
+            <div class="mm-answer-head">
+                <span id="mm-answer-title"></span>
+                <button class="mm-answer-close" type="button" data-answer-close title="Close" aria-label="Close expanded answer">×</button>
+            </div>
+            <div class="mm-answer-body"></div>
+        </div>
+    `);
+    answerOverlay.style.display = "none";
+    let expandedForId = null;
+    answerOverlay.addEventListener("click", (event) => {
+        if (event.target.closest("[data-answer-close]")) closeExpanded();
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeExpanded();
+    });
+
+    function closeExpanded() {
+        answerOverlay.style.display = "none";
+        expandedForId = null;
+    }
+
+    function expandEntry(id, title) {
+        const source = detailOf(id);
+        if (!source) return;
+        answerOverlay.querySelector("#mm-answer-title").textContent = title;
+        answerOverlay.querySelector(".mm-answer-body").replaceChildren(...source.cloneNode(true).children);
+        answerOverlay.querySelectorAll("details").forEach((details) => { details.open = true; });
+        answerOverlay.style.display = "";
+        expandedForId = id;
+    }
+
+    function refreshExpanded(id) {
+        if (expandedForId === id) {
+            const entry = document.getElementById(id);
+            const title = entry?.querySelector(".mm-r-log-text")?.textContent || "";
+            expandEntry(id, title);
+        }
+    }
+
+    function removeEntry(id) {
+        document.getElementById(id)?.remove();
+        if (expandedForId === id) closeExpanded();
+        onDelete?.(id);
+    }
+
     /** Fill the row's detail block with the grounded answer. */
     function resolveAsk(id, answer, sources = []) {
         const detail = detailOf(id);
         if (!detail) return false;
         const text = String(answer || "").trim();
         detail.innerHTML = text
-            ? `<div class="mm-r-answer">${withBreaks(text)}</div>`
+            ? `<div class="mm-r-answer">${formatAnswerHtml(text)}</div>`
             : '<em class="mm-r-loading">No answer returned.</em>';
 
         const usable = Array.isArray(sources) ? sources.filter(Boolean) : [];
@@ -177,11 +237,25 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
                 }
                 box.appendChild(row);
             }
-            detail.appendChild(box);
+        detail.appendChild(box);
         }
 
         detail.style.display = "block";
+        refreshExpanded(id);
         logEl.scrollTop = logEl.scrollHeight;
+        return true;
+    }
+
+    function streamAsk(id, answer) {
+        const detail = detailOf(id);
+        if (!detail) return false;
+        const html = formatAnswerHtml(answer);
+        if (html) {
+            detail.innerHTML = `<div class="mm-r-answer">${html}</div>`;
+            detail.style.display = "block";
+            refreshExpanded(id);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
         return true;
     }
 
@@ -204,13 +278,13 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
             const btn = document.createElement("button");
             btn.className = "mm-r-chip";
             btn.type = "button";
-            btn.setAttribute("aria-label", `${s.label}: ${s.prompt}`);
+            btn.setAttribute("aria-label", s.label);
             btn.innerHTML = `<span class="mm-r-chip-text">${escapeHtml(s.label)}</span>`;
             btn.addEventListener("mouseenter", () => showShortcutTooltip(btn, s.prompt));
             btn.addEventListener("mouseleave", hideShortcutTooltip);
             btn.addEventListener("focus", () => showShortcutTooltip(btn, s.prompt));
             btn.addEventListener("blur", hideShortcutTooltip);
-            btn.addEventListener("click", () => { hideShortcutTooltip(); submit(s.prompt); });
+            btn.addEventListener("click", () => { hideShortcutTooltip(); submit(s.prompt, s.label); });
             chipsEl.appendChild(btn);
         }
         chipsEl.style.display = currentShortcuts.length ? "" : "none";
@@ -219,6 +293,7 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
 
     function destroy() {
         try { rail.remove() } catch (_) {}
+        try { answerOverlay.remove() } catch (_) {}
         try { shortcutTooltip.remove() } catch (_) {}
     }
 
@@ -226,6 +301,7 @@ export function createUIController({ onAsk, shortcuts = [] } = {}) {
         setShortcuts,
         submit,
         addUserAsk,
+        streamAsk,
         resolveAsk,
         failAsk,
         setMinimized,
