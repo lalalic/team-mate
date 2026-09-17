@@ -21,6 +21,8 @@ import {
     formatKnowledgeToolResult,
     rankTranscriptSources,
     buildAskMessages,
+    formatAnswerHtml,
+    appendAnswerChunk,
 } from "../src/focused.js"
 
 let passed = 0
@@ -99,6 +101,31 @@ test("formatTranscript: empty input yields an empty string", () => {
     assert.equal(formatTranscript([]), "")
     assert.equal(formatTranscript(undefined), "")
     assert.equal(formatTranscript([{ Name: "Bob", Text: "   " }]), "")
+})
+
+test("formatAnswerHtml: safely renders bullets and bold emphasis", () => {
+    const html = formatAnswerHtml("**Decision**: delay launch\n- **Risk:** dual writes\n- `<script>` is text")
+    assert.equal(
+        html,
+        "<p><strong>Decision</strong>: delay launch</p><ul><li><strong>Risk:</strong> dual writes</li><li><code>&lt;script&gt;</code> is text</li></ul>",
+    )
+    assert.ok(!html.includes("<script>"))
+})
+
+test("buildAskMessages: shortcut title stays independent of the prompt sent to the model", () => {
+    const title = "Reply";
+    const prompt = "Give me a concise response I can say now based on the current discussion.";
+    assert.equal(title.length, 5);
+    assert.ok(title.length < prompt.length);
+    assert.ok(!title.includes(prompt));
+    const messages = buildAskMessages({ question: prompt }).messages;
+    assert.ok(messages.at(-1).content.includes(prompt));
+})
+
+test("appendAnswerChunk: accumulates streaming chunks for one answer", () => {
+    assert.equal(appendAnswerChunk("", "Main"), "Main")
+    assert.equal(appendAnswerChunk("Main", " **risk**"), "Main **risk**")
+    assert.equal(appendAnswerChunk("Main **risk**", ""), "Main **risk**")
 })
 
 test("formatTranscript: renders Name : Text and collapses whitespace", () => {

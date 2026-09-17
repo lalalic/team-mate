@@ -18,9 +18,10 @@ async function init() {
     const transcripts = []
     const conversation = []
     const observer = new MutationObserver(checkStatus)
-    let observed = null, enabled = false, startTime = null, containerObserver = null
+    let observed = null, enabled = false, startTime = null, containerObserver = null, meetingName = ""
     let _ui = null
     let _confHandler = null
+    const _streamTargets = new Map()
     let _pendingAsks = 0
     let _premium = false
 
@@ -168,6 +169,12 @@ async function init() {
         }
     }
 
+    chrome.runtime.onMessage.addListener((message) => {
+        if (message?.message !== "llm_chat_completion_chunk" || !message.id) return
+        const entryId = _streamTargets.get(message.id)
+        if (entryId && message.delta) _ui?.streamAsk?.(entryId, String(message.delta))
+    })
+
     function startMeeting() {
         if (startMeeting.doing) return
         startMeeting.doing = true
@@ -182,6 +189,7 @@ async function init() {
         const durationEl = observed?.querySelector('#call-duration-custom') || observed?.querySelector('[data-tid="call-duration"]') || document.querySelector('[data-tid="call-duration"]')
         const [seconds, minutes, hours = 0] = (durationEl?.textContent || '0:00').split(":").map(a => parseInt(a)).reverse()
         startTime = Date.now() - (hours * 60 * 60 + minutes * 60 + seconds) * 1000
+        meetingName = getMeetingName()
         await changeConf({ author: getAuthorName() })
         chrome.runtime.sendMessage({ message: "start_capture" })
 
@@ -202,14 +210,22 @@ async function init() {
         _premium = status?.paid === true
         const allShortcuts = await getShortcuts()
         const shortcuts = getShownShortcuts(allShortcuts, { premium: _premium })
-        _ui = createUIController({ shortcuts, onAsk: handleAsk })
+        _ui = createUIController({
+            shortcuts,
+            onAsk: handleAsk,
+            onDelete: (entryId) => {
+                for (let index = conversation.length - 1; index >= 0; index -= 1) {
+                    if (conversation[index].entryId === entryId) conversation.splice(index, 1)
+                }
+            },
+        })
         // Live-apply shortcut edits made in Setup. Setup lives in a different
         // tab, so listen on chrome.storage instead of a page-local event.
         _confHandler = (changes, area) => {
             if (area !== 'local' || !changes.conf) return
             const list = changes.conf.newValue?.shortcuts
             try {
-                const normalized = normalizeShortcuts(list !== undefined ? list : allShortcuts)
+                const normalized = normalizeShortcuts(changes.conf.newValue?.shortcuts)
                 _ui?.setShortcuts(getShownShortcuts(normalized, { premium: _premium }))
             } catch (_) {}
         }
@@ -220,7 +236,7 @@ async function init() {
      * The ONE ask path. Both typed questions and shortcut taps land here.
      */
     async function handleAsk(question, entryId) {
-        const q = String(question || '').trim()
+            const q = String(question || '').trim()
         if (!q) return
 
         // Freeze the meeting context at the instant the user asks. The user
@@ -228,7 +244,9 @@ async function init() {
         // interleaved correctly with this Q&A on the next Ask.
         const transcriptSnapshot = transcripts.slice()
         const priorConversation = conversation.slice()
-        conversation.push({ role: 'user', content: q, _ts: Date.now() })
+        const streamId = `mm-stream-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        _streamTargets.set(streamId, entryId)
+        conversation.push({ role: 'user', content: q, _ts: Date.now(), entryId })
 
         _pendingAsks++
         try {
@@ -236,10 +254,12 @@ async function init() {
                 question: q,
                 transcripts: transcriptSnapshot,
                 conversation: priorConversation,
-                meetingName: getMeetingName(),
+                meetingName,
                 includeProvenance: _premium,
+                stream: true,
+                streamId,
             })
-            conversation.push({ role: 'assistant', content: result.answer, _ts: Date.now() })
+            conversation.push({ role: 'assistant', content: result.answer, _ts: Date.now(), entryId })
             _ui?.resolveAsk?.(entryId, result.answer, _premium ? result.sources : [])
         } catch (e) {
             console.warn('[meetmate] ask failed', e)
@@ -247,6 +267,7 @@ async function init() {
             _ui?.failAsk?.(entryId, msg)
         } finally {
             _pendingAsks--
+            _streamTargets.delete(streamId)
         }
     }
 
@@ -259,7 +280,7 @@ async function init() {
                 question: "Create the structured meeting report now.",
                 transcripts: transcripts.slice(),
                 conversation: conversation.slice(),
-                meetingName: getMeetingName(),
+                meetingName,
                 maxTranscriptChars: 30000,
                 responseMode: 'report',
             })
@@ -298,7 +319,7 @@ async function init() {
                 message: "stop_capture",
                 transcripts,
                 premiumReport,
-                name: getMeetingName(),
+                name: meetingName || "Meeting",
             }, () => {
                 if (chrome.runtime.lastError) {
                     console.warn('[meetmate] meeting files save failed', chrome.runtime.lastError.message)
@@ -313,6 +334,7 @@ async function init() {
             try { if (messageContainer) messageContainer.innerHTML = '' } catch (_) {}
             _pendingAsks = 0
             startTime = null
+            meetingName = ""
             transcripts.splice(0)
             conversation.splice(0)
             _stopping = false

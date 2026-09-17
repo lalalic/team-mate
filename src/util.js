@@ -149,8 +149,8 @@ function toolCallUnsupported(error) {
     return /tool|function|unsupported|not support|400|404|422/.test(text);
 }
 
-async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable) {
-    if (!knowledgeAvailable) return { response: await chatCompletion({ messages, signal }), knowledgeHits: [] };
+async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, { stream = false, streamId = "" } = {}) {
+    if (!knowledgeAvailable) return { response: await chatCompletion({ messages, signal, stream, streamId }), knowledgeHits: [] };
     const tools = [KNOWLEDGE_SEARCH_TOOL];
     let working = messages.slice();
     let searches = 0;
@@ -158,13 +158,13 @@ async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable) {
     let response;
 
     try {
-        response = await chatCompletion({ messages: working, tools, tool_choice: "auto", signal });
+        response = await chatCompletion({ messages: working, tools, tool_choice: "auto", signal, stream, streamId });
     } catch (error) {
         if (!toolCallUnsupported(error)) throw error;
         const fallback = working.map((m, i) => i === 0 && m.role === "system"
             ? { ...m, content: `${m.content}\n\nRUNTIME NOTE: search_knowledge is unavailable with the current model/provider. Answer from meeting context only and do not claim you searched the knowledge library.` }
             : m);
-        return { response: await chatCompletion({ messages: fallback, signal }), knowledgeHits: [] };
+        return { response: await chatCompletion({ messages: fallback, signal, stream, streamId }), knowledgeHits: [] };
     }
 
     for (let round = 0; round < 3; round++) {
@@ -196,8 +196,8 @@ async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable) {
             working.push({ role: "tool", tool_call_id: call?.id || `tool-${round}-${searches}`, content });
         }
 
-        if (searches >= 2) return { response: await chatCompletion({ messages: working, signal }), knowledgeHits };
-        response = await chatCompletion({ messages: working, tools, tool_choice: "auto", signal });
+        if (searches >= 2) return { response: await chatCompletion({ messages: working, signal, stream, streamId }), knowledgeHits };
+        response = await chatCompletion({ messages: working, tools, tool_choice: "auto", signal, stream, streamId });
     }
 
     return { response, knowledgeHits };
@@ -230,7 +230,7 @@ function resolvePreferredLanguage(value) {
     return raw;
 }
 
-export async function askDetailed({ question, transcripts = [], conversation = [], author, meetingName, signal, maxTranscriptChars, includeProvenance = false, responseMode = "live" } = {}) {
+export async function askDetailed({ question, transcripts = [], conversation = [], author, meetingName, signal, maxTranscriptChars, includeProvenance = false, responseMode = "live", stream = false, streamId = "" } = {}) {
     const q = String(question || "").trim();
     if (!q) return { answer: "", sources: [] };
 
@@ -255,7 +255,10 @@ export async function askDetailed({ question, transcripts = [], conversation = [
         maxTranscriptChars: maxTranscriptChars || 6000,
     });
 
-    const { response, knowledgeHits } = await completeWithKnowledgeTool(messages, signal, knowledgeDocs.length > 0);
+    const { response, knowledgeHits } = await completeWithKnowledgeTool(messages, signal, knowledgeDocs.length > 0, {
+        stream,
+        streamId,
+    });
     const answer = String(response?.choices?.[0]?.message?.content || "").trim();
     if (!includeProvenance) return { answer, sources: [] };
 

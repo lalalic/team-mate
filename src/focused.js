@@ -438,8 +438,8 @@ GROUNDING RULES (in order of priority):
 
 STYLE:
 - Lead with the answer. No preamble, no restating the question.
-- 1-4 short sentences, or a tight list. Live-readable: this is being read while someone else is talking.
-- Plain text. No markdown headings, no tables.
+- 1-4 short sentences, or a tight bullet list. Live-readable: this is being read while someone else is talking.
+- When a list helps, keep every bullet short and bold only key terms, names, decisions, risks, or numbers with **term**. Use no headings, links, code fences, or tables.
 - Follow the configured preferred language and custom instructions when supplied.
 
 MEETING: {name}
@@ -449,6 +449,50 @@ export function fillPrompt(template, variables = {}) {
     return String(template || "").replace(/\{(\w+)\}/g, (_m, key) =>
         key in variables ? String(variables[key] == null ? "" : variables[key]) : ""
     );
+}
+
+function inlineSafeMarkup(line) {
+    let html = String(line == null ? "" : line)
+        .replace(/[&<>"']/g, (char) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+        }[char]));
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+    html = html.replace(/(\*\*|__)([^*_]+)\1/g, "<strong>$2</strong>");
+    return html;
+}
+
+export function formatAnswerHtml(answer = "") {
+    const lines = String(answer == null ? "" : answer).replace(/\r\n?/g, "\n").split("\n");
+    const blocks = [];
+    let bullets = null;
+    const closeBullets = () => {
+        if (bullets) {
+            blocks.push(`<ul>${bullets.map((item) => `<li>${inlineSafeMarkup(item)}</li>`).join("")}</ul>`);
+            bullets = null;
+        }
+    };
+
+    for (const line of lines) {
+        const bullet = line.match(/^\s*(?:[-*•])\s+(.*)$/);
+        if (bullet) {
+            bullets = bullets || [];
+            bullets.push(bullet[1]);
+            continue;
+        }
+        closeBullets();
+        if (line.trim()) blocks.push(`<p>${inlineSafeMarkup(line)}</p>`);
+    }
+    closeBullets();
+    return blocks.join("");
+}
+
+export function appendAnswerChunk(accumulated = "", delta = "") {
+    const text = String(delta || "");
+    return text ? `${String(accumulated || "")}${text}` : String(accumulated || "");
 }
 
 /**
