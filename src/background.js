@@ -129,7 +129,7 @@ function sanitizeFileName(name) {
 function save({ transcripts, premiumReport = "", name }) {
     const safeName = sanitizeFileName(name || "Meeting")
     const stamp = new Date().toISOString().split("T")[0].replace(/-/g, "")
-    const base = `${safeName}/${stamp}`
+    const base = `meeting join/${safeName}/${stamp}`
 
     if (transcripts?.length) {
         const parts = []
