@@ -3,6 +3,11 @@ const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPrevie
 
 document.addEventListener('DOMContentLoaded', async () => {
     const conf = await initSetupPage()
+    const feedbackLink = document.querySelector('#feedbackLink')
+    if (feedbackLink) {
+        const manifest = chrome.runtime.getManifest()
+        feedbackLink.href = `https://ai.qili2.com/support.html?version=${encodeURIComponent(manifest.version)}&extensionId=${encodeURIComponent(chrome.runtime.id)}`
+    }
 
     const uiLanguage = chrome.i18n.getUILanguage?.() || navigator.language || 'en'
     const browserLanguageOption = document.querySelector('#browserLanguageOption')

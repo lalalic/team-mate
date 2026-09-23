@@ -8,7 +8,7 @@
     "build": "webpack -c ./webpack.config.js --mode=production --devtool=false && npm run zip",
     "dev": "webpack -c ./webpack.config.js --watch",
     "qiniu": "python3 ./scripts/upload_cdn.py",
-    "test": "node ./tests/test-focused-helpers.js && node ./tests/test-conf-merge.js",
+    "test": "node ./tests/test-focused-helpers.js && node ./tests/test-conf-merge.js && node ./tests/test-feedback-entry.js",
     "publish:cws": "node ./scripts/publish.mjs",
     "publish:cws:dry": "node ./scripts/publish.mjs --dry-run",
     "publish:cws:draft": "node ./scripts/publish.mjs --draft",
