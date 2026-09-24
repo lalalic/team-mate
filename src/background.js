@@ -2,19 +2,14 @@
 //
 // Service worker. Owns badge/icon state, VTT export, and direct provider HTTP.
 // There is no MeetMate AI relay/account server. Provider calls are proxied here
-// to avoid content-script CORS; lightweight Premium entitlement uses ExtensionPay.
+// to avoid content-script CORS. Stripe checkout activation is a soft local gate;
+// no Stripe secret or payment verification code is shipped in the extension.
 
 const { initConf, getConf } = require("./util");
 const { DEFAULT_SHORTCUTS } = require("./focused");
+const { createStripeEntitlement, premiumState, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
 
-const ExtPay = require("extpay");
-const EXTPAY_EXTENSION_ID = typeof __EXTPAY_EXTENSION_ID__ !== "undefined" ? String(__EXTPAY_EXTENSION_ID__ || "").trim() : "";
-const PREMIUM_CACHE_MS = 7 * 24 * 60 * 60 * 1000;
-
-if (EXTPAY_EXTENSION_ID) {
-    try { ExtPay(EXTPAY_EXTENSION_ID).startBackground(); }
-    catch (e) { console.warn("[meetmate] ExtensionPay background init failed", e); }
-}
+const STRIPE_PAYMENT_LINK = typeof __STRIPE_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_PAYMENT_LINK__ || "").trim() : "";
 
 function getLocal(keys) {
     return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
@@ -25,59 +20,31 @@ function setLocal(value) {
 }
 
 async function premiumStatus({ force = false } = {}) {
-    const stored = await getLocal(["premiumCache", "premiumDevOverride"]);
-    const preview = !EXTPAY_EXTENSION_ID && stored.premiumDevOverride === true;
-    if (preview) {
-        return { paid: true, configured: false, preview: true, source: "local-preview" };
-    }
-
-    const cache = stored.premiumCache || {};
-    const age = Date.now() - Number(cache.checkedAt || 0);
-    if (!force && cache.paid === true && age >= 0 && age < PREMIUM_CACHE_MS) {
-        return { paid: true, configured: !!EXTPAY_EXTENSION_ID, preview: false, cached: true, source: "cache" };
-    }
-
-    if (!EXTPAY_EXTENSION_ID) {
-        return { paid: false, configured: false, preview: false, source: "unconfigured" };
-    }
-
-    try {
-        // MV3 service workers may be restarted, so recreate ExtPay in callbacks.
-        const user = await ExtPay(EXTPAY_EXTENSION_ID).getUser();
-        const next = { paid: user?.paid === true, checkedAt: Date.now() };
-        await setLocal({ premiumCache: next });
-        return {
-            paid: next.paid,
-            configured: true,
-            preview: false,
-            cached: false,
-            source: "extensionpay",
-            paidAt: user?.paidAt || null,
-        };
-    } catch (error) {
-        if (cache.paid === true) {
-            return { paid: true, configured: true, preview: false, cached: true, stale: true, source: "cache", error: error?.message || String(error) };
-        }
-        return { paid: false, configured: true, preview: false, source: "extensionpay-error", error: error?.message || String(error) };
-    }
+    void force;
+    const stored = await getLocal([PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY]);
+    return premiumState({ entitlement: stored[PREMIUM_ENTITLEMENT_KEY], preview: stored[PREMIUM_PREVIEW_KEY] === true, paymentLink: STRIPE_PAYMENT_LINK });
 }
 
 async function openPremiumPayment() {
-    if (!EXTPAY_EXTENSION_ID) throw new Error("ExtensionPay is not configured in this build. Enable Premium Preview in Settings for local testing.");
-    await ExtPay(EXTPAY_EXTENSION_ID).openPaymentPage();
-    return { opened: true };
+    if (!STRIPE_PAYMENT_LINK) throw new Error("Stripe Payment Link is not configured in this build. Enable Premium Preview in Settings for local testing.");
+    await chrome.tabs.create({ url: STRIPE_PAYMENT_LINK });
+    return { opened: true, provider: "stripe" };
 }
 
 async function openPremiumLogin() {
-    if (!EXTPAY_EXTENSION_ID) throw new Error("ExtensionPay is not configured in this build.");
-    await ExtPay(EXTPAY_EXTENSION_ID).openLoginPage();
-    return { opened: true };
+    throw new Error("Stripe purchases are activated from the payment success link; there is no separate MeetMate login.");
 }
 
 async function setPremiumPreview(enabled) {
-    if (EXTPAY_EXTENSION_ID) throw new Error("Premium Preview is only available in builds without an ExtensionPay id.");
-    await setLocal({ premiumDevOverride: enabled === true });
-    return { paid: enabled === true, configured: false, preview: enabled === true };
+    await setLocal({ [PREMIUM_PREVIEW_KEY]: enabled === true });
+    return premiumState({ preview: enabled === true, paymentLink: STRIPE_PAYMENT_LINK });
+}
+
+async function activateStripeSession(sessionId) {
+    const entitlement = createStripeEntitlement(sessionId);
+    if (!entitlement) throw new Error("Invalid Stripe Checkout session id.");
+    await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement, [PREMIUM_PREVIEW_KEY]: false });
+    return premiumState({ entitlement, paymentLink: STRIPE_PAYMENT_LINK });
 }
 
 initConf({
@@ -320,6 +287,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return true
         case 'premium_login':
             openPremiumLogin()
+                .then(data => sendResponse({ ok: true, data }))
+                .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
+            return true
+        case 'premium_activate':
+            activateStripeSession(request.sessionId)
                 .then(data => sendResponse({ ok: true, data }))
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true

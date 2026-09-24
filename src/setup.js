@@ -1,5 +1,6 @@
 const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels } = require("./util")
-const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview } = require("./premium")
+const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
+const { extractStripeSessionId } = require("./premium-state")
 
 document.addEventListener('DOMContentLoaded', async () => {
     const conf = await initSetupPage()
@@ -21,6 +22,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const premiumStructuredReport = document.querySelector('#premiumStructuredReport')
     const shortcutsList = document.querySelector('#shortcutsList')
     const shortcutLimitStatus = document.querySelector('#shortcutLimitStatus')
+    const stripeSessionId = extractStripeSessionId(window.location)
+    if (stripeSessionId) {
+        try {
+            await activateStripeSession(stripeSessionId)
+            window.history.replaceState({}, document.title, window.location.pathname)
+        } catch (e) { console.warn('[meetmate] Stripe activation failed', e) }
+    }
     const escapeAttr = (s) => String(s == null ? "" : s)
         .replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]))
 

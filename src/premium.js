@@ -1,9 +1,4 @@
-// MeetMate Premium — deliberately soft client-side gating.
-//
-// ExtensionPay is used only in background.js. UI/content code talks to the
-// background through these small helpers so payment code never leaks into the
-// meeting logic. A local preview override is available only in builds where
-// no ExtensionPay extension id was configured.
+// MeetMate Premium — deliberately soft local gating for a Stripe purchase.
 
 function runtimeRequest(message, payload = {}) {
     return new Promise((resolve, reject) => {
@@ -33,3 +28,6 @@ export async function setPremiumPreview(enabled) {
     return runtimeRequest("premium_preview", { enabled: !!enabled });
 }
 
+export async function activateStripeSession(sessionId) {
+    return runtimeRequest("premium_activate", { sessionId: String(sessionId || "") });
+}

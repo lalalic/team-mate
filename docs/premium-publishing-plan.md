@@ -1,11 +1,13 @@
 # MeetMate Premium Publishing Plan
 
-This PR is the implementation handoff for turning the current local Premium Preview into a lightweight production flow without running a MeetMate application server.
+This document records the implemented Stripe-only architecture. It is a soft
+client-side entitlement flow: the extension never receives a Stripe secret and
+does not claim server-side payment verification.
 
 ## Goals
 
 1. Host the MeetMate public site and payment success page with GitHub Pages from this repository.
-2. Use Stripe-hosted checkout/payment links instead of ExtensionPay.
+2. Use the user's existing Stripe-hosted Payment Link instead of ExtensionPay.
 3. Keep entitlement intentionally lightweight and client-side. Strong anti-tamper protection is not a requirement.
 4. Publish the assets needed for the Chrome Web Store and public product page.
 5. Make release/publish steps repeatable and preferably automated.
@@ -16,9 +18,9 @@ This PR is the implementation handoff for turning the current local Premium Prev
 Chrome extension
   -> Upgrade to Premium
 Stripe Payment Link / hosted checkout
-  -> successful payment redirect
-GitHub Pages premium-success page
-  -> activation handshake with installed extension
+  -> successful payment redirect with {CHECKOUT_SESSION_ID}
+public success page
+  -> return to extension setup.html?session_id=cs_...
 chrome.storage.local premium entitlement
 ```
 
@@ -32,7 +34,7 @@ Suggested pages:
 
 - `docs/index.html` — product/landing page
 - `docs/premium.html` — Premium value proposition and upgrade CTA
-- `docs/premium-success.html` — post-payment activation page
+- `www/premium-success.html` — post-payment activation page
 - `docs/privacy.html` — privacy disclosure for Chrome Web Store and users
 - `docs/support.html` — support/contact and troubleshooting
 
@@ -40,7 +42,11 @@ The site should explain clearly that meeting transcripts and uploaded knowledge 
 
 ## Stripe payment
 
-Replace ExtensionPay with Stripe Payment Links.
+Use the `STRIPE_PAYMENT_LINK` build variable for the existing Stripe Payment
+Link. The extension validates the shape of the returned `cs_test_…` or
+`cs_live_…` identifier and stores it locally; it deliberately ignores arbitrary
+`premium=true`, `credit`, or amount parameters. This is a soft product gate,
+not proof against a determined user or a refund after activation.
 
 Initial commercial model: one MeetMate Premium entitlement. The implementation should support a one-time/lifetime purchase first because it does not require ongoing server-side subscription reconciliation.
 
@@ -49,10 +55,10 @@ Requirements:
 - Upgrade button opens the configured Stripe Payment Link.
 - Stripe redirects successful purchases to the GitHub Pages success page.
 - Success page can activate Premium in the installed extension.
-- Activation token/handshake should avoid an obvious plain `premium=true` link, while accepting that a determined user can bypass the gate.
+- Activation uses a Stripe Checkout session id rather than a plain boolean.
 - Successful entitlement is stored locally and survives browser restarts.
 - Keep a development Premium Preview mechanism for local testing, but make it visually distinct from a real purchase.
-- Remove ExtensionPay dependency and related code after Stripe flow is working.
+- ExtensionPay dependency and runtime code are removed.
 
 ## Premium feature boundary
 
@@ -129,7 +135,8 @@ Package and manifest versions should be kept in sync automatically where possibl
 - [ ] Free users can show at most 3 shortcuts; Premium users can show unlimited shortcuts.
 - [ ] Premium provenance works.
 - [ ] Premium structured report works.
-- [ ] ExtensionPay code/dependency is removed.
+- [x] ExtensionPay code/dependency is removed.
+- [x] Stripe-only local activation and focused state tests are implemented.
 - [ ] Store/site assets are checked into the repo.
 - [ ] `npm test` passes.
 - [ ] clean production build succeeds.

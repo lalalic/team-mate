@@ -53,11 +53,12 @@ flowchart LR
   (no vector DB, no new dependency).
 - **Transcript export** — the meeting transcript is written to a `.vtt` file
   on Leave.
-- **Pay-as-you-go** — usage billed against a Stripe credits ledger. Top-up via
-  Stripe live Payment Links ($1 / $10 / $100). Stripe redirects back to
-  `setup.html?session=…`, and the extension POSTs the session id to the
-  relay's `/stripe/verify`, which confirms `payment_status=paid` and returns
-  the verified amount. The URL `credit` parameter is ignored (forgeable).
+- **Stripe Premium** — production builds open the existing Stripe-hosted
+  Payment Link configured with `STRIPE_PAYMENT_LINK`. Stripe redirects to the
+  public success page, which returns the user to `setup.html?session_id=cs_…`;
+  the extension stores that Checkout session as a local soft entitlement. No
+  Stripe secret is shipped in the extension, and development Preview is kept
+  separate from real purchase state.
 
 ## What was removed (and is not coming back)
 
@@ -129,6 +130,12 @@ npm run build           # webpack production + zip → team-mate.zip
 npm test                # focused helper unit tests (node, no network)
 npm run dev             # webpack --watch (no zip)
 ```
+
+For a production payment build, set `STRIPE_PAYMENT_LINK` before building and
+configure that Payment Link's success URL with Stripe's
+`{CHECKOUT_SESSION_ID}` placeholder. Never put `STRIPE_SECRET_KEY` in this
+repository or the extension bundle. The extension contains no ExtensionPay
+runtime or dependency.
 
 Load unpacked: `chrome://extensions/` → Developer mode → "Load unpacked" →
 point at `team-mate/extension/`.

@@ -164,7 +164,7 @@
             <!-- Direct provider / BYOK -->
             <div class="card">
                 <h3>AI Provider</h3>
-                <p class="desc">MeetMate calls your OpenAI-compatible provider directly. No MeetMate account, relay server, credits, or payment layer.</p>
+                <p class="desc">MeetMate calls your OpenAI-compatible provider directly. Your provider key stays in this browser; MeetMate does not proxy model requests.</p>
                 <div class="row">
                     <label for="baseURL">Base URL</label>
                     <div>
@@ -232,7 +232,7 @@
                 </div>
             </div>
 
-            <!-- Premium: deliberately lightweight client-side entitlement -->
+            <!-- Premium: Stripe Payment Link + local soft entitlement -->
             <div class="card" id="premiumCard">
                 <h3>MeetMate Premium</h3>
                 <p class="desc">Unlock answer provenance, structured meeting reports, and unlimited shown shortcuts.</p>
@@ -243,7 +243,7 @@
                 </label>
                 <div class="premium-actions">
                     <button id="premiumUpgrade" class="primary" type="button">Upgrade</button>
-                    <button id="premiumLogin" class="subtle" type="button">Restore purchase</button>
+                    <button id="premiumLogin" class="subtle" type="button">How to activate</button>
                     <button id="premiumRefresh" class="subtle" type="button">Refresh status</button>
                     <button id="premiumPreview" class="subtle" type="button" style="display:none">Enable Premium Preview</button>
                 </div>
