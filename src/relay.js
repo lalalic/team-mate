@@ -1,7 +1,8 @@
 // Direct OpenAI-compatible client for MeetMate.
 //
-// There is deliberately no relay account, wallet, Stripe flow, device
-// registration, or autonomous session. Every request is an explicit user Ask.
+// There is deliberately no relay account, wallet, or autonomous session.
+// Stripe checkout/entitlement is owned by the background payment boundary;
+// every model request remains an explicit user Ask.
 // Network I/O is delegated to the extension service worker so provider CORS
 // policies do not leak into the Teams content script.
 

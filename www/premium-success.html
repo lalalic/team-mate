@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeetMate Premium</title>
+<style>body{font:16px system-ui,sans-serif;max-width:640px;margin:15vh auto;padding:24px;color:#1f2937}a{display:inline-block;padding:12px 18px;background:#5865f2;color:white;border-radius:8px;text-decoration:none}code{word-break:break-all}</style>
+<h1>Payment received</h1>
+<p>Return to MeetMate Setup to activate Premium on this browser.</p>
+<p id="state"></p>
+<a id="activate" href="#">Open MeetMate Setup</a>
+<script>
+  const params = new URLSearchParams(location.search)
+  const session = params.get('session_id') || ''
+  const state = document.querySelector('#state')
+  const link = document.querySelector('#activate')
+  if (/^cs_(test|live)_[A-Za-z0-9_-]+$/.test(session)) {
+    state.textContent = 'Checkout session: ' + session
+    link.href = 'chrome-extension://immkojolaicdjhkbbhkldmndhfjbehmf/setup.html?session_id=' + encodeURIComponent(session)
+  } else {
+    state.textContent = 'The payment session is missing or invalid. Reopen the success link from Stripe.'
+    link.remove()
+  }
+</script>
