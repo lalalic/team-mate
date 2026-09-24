@@ -42,7 +42,7 @@ export {
     rankTranscriptSources,
 } from "./focused";
 
-export const isV2 = location.pathname.startsWith("/v2");
+export const isV2 = location.pathname.startsWith("/v2") || location.hostname === "teams.cloud.microsoft";
 
 export function getMeetingName() {
     const title = String(document.title || "");
