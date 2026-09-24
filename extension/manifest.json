@@ -1,9 +1,9 @@
 {
-  "version": "4.4.7",
+  "version": "4.4.8",
   "manifest_version": 3,
   "name": "__MSG_appName__",
   "description": "__MSG_appDesc__",
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvI9oFtL+GJhImZETjxyjvHM8B+YxrUz8aSQLnvn4Y26l7LWzsDjc9N0c24li5Rqt4JmxWs0ezjMLaLEJhH3YfOnSWatd4c50Yi3OZGMhba1sq/FOm5r1lpRTk26lx/JTNYX10SrbEDb22b1fIqLU7KS00nCUnJoe4M6c+mWU95QqZKWeKGpzYOMnMMqGkpmxKqPh1GWQ3vbUw4WgibgrojUhDPm0p1Mivito66TtZLTpT0N5ypQXkSlVol/xR9MlrrXdg+uL1ODHJiH7SzPTVj9EN6dpzehlLNw9WgmiH9RVXt21wwSMTavKfPSn41ILvoDicjjkzOqpy8GdfvndzwIDAQAB",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEAvI9oFtL+GJhImZETjxyjvHM8B+YxrUz8aSQLnvn4Y26l7LWzsDjc9N0c24li5Rqt4JmxWs0ezjMLaLEJhH3YfOnSWatd4c50Yi3OZGMhba1sq/FOm5r1lpRTk26lx/JTNYX10SrbEDb22b1fIqLU7KS00nCUnJoe4M6c+mWU95QqZKWeKGpzYOMnMMqGkpmxKqPh1GWQ3vbUw4WgibgrojUhDPm0p1Mivito66TtZLTpT0N5ypQXkSlVol/xR9MlrrXdg+uL1ODHJiH7SzPTVj9EN6dpzehlLNw9WgmiH9RVXt21wwSMTavKfPSn41ILvoDicjjkzOqpy8GdfvndzwIDAQAB",
   "permissions": [
     "storage",
     "activeTab",
@@ -24,6 +24,7 @@
   },
   "host_permissions": [
     "https://teams.microsoft.com/*",
+    "https://teams.cloud.microsoft/*",
     "https://*/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
@@ -31,7 +32,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://teams.microsoft.com/*"
+        "https://teams.microsoft.com/*",
+        "https://teams.cloud.microsoft/*"
       ],
       "js": [
         "content.js"
