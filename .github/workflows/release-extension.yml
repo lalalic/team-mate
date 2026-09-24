@@ -1,0 +1,40 @@
+name: Release extension ZIP
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - extension/manifest.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(node -p "require('./extension/manifest.json').version")"
+          TAG="v$VERSION"
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG"               --target "$GITHUB_SHA"               --title "$TAG"               --generate-notes
+          fi
+
+          gh release upload "$TAG" team-mate.zip --clobber
