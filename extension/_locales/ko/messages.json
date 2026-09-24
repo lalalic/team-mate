@@ -3,7 +3,7 @@
     "message": "MeetMate — Teams 실시간 회의 Q&A + 내 지식"
   },
   "appDesc": {
-    "message": "Teams 실시간 자막과 내 지식을 바탕으로 질문하세요. 사용자 지정 바로가기, 회의 종료 자동 결과, BYOK 지원. 봇과 오디오 수집 없음."
+    "message": "Teams 실시간 자막과 내 지식으로 Q&A. 바로가기, 회의 종료 결과, BYOK 지원. 봇·오디오 수집 없음."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."

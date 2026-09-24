@@ -3,7 +3,7 @@
     "message": "MeetMate — Preguntas en vivo con tu conocimiento para Teams"
   },
   "appDesc": {
-    "message": "Haz preguntas usando los subtítulos en vivo de Teams y tu propio conocimiento. Atajos personalizados, resultados automáticos al terminar y BYOK. Sin bot ni audio."
+    "message": "Preguntas en vivo en Teams con tu conocimiento, atajos, resultados al final y BYOK. Sin bot ni audio."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."

@@ -3,7 +3,7 @@
     "message": "MeetMate — Q&R en réunion avec vos connaissances pour Teams"
   },
   "appDesc": {
-    "message": "Posez des questions à partir des sous-titres Teams en direct et de vos propres connaissances. Raccourcis, résultats automatiques en fin de réunion et BYOK. Sans bot ni audio."
+    "message": "Q&R Teams en direct avec vos connaissances, raccourcis, résultats de fin de réunion et BYOK. Sans bot ni audio."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."

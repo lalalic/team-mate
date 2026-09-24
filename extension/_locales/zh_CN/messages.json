@@ -3,7 +3,7 @@
     "message": "MeetMate — Teams 实时会议问答 + 你的知识库"
   },
   "appDesc": {
-    "message": "基于 Teams 实时字幕和你的知识库直接提问。支持自定义快捷提问、会议结束自动生成结果和 BYOK。无需机器人，无需录音。"
+    "message": "基于 Teams 实时字幕和你的知识库问答，支持快捷提问、会议结束结果和 BYOK。无需机器人或录音。"
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."

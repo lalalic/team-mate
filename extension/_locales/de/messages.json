@@ -3,7 +3,7 @@
     "message": "MeetMate — Live-Meeting-Q&A mit Ihrem Wissen für Teams"
   },
   "appDesc": {
-    "message": "Fragen mit Live-Untertiteln aus Teams und Ihrem eigenen Wissen beantworten. Eigene Kurzbefehle, automatische Ergebnisse am Meetingende und BYOK. Kein Bot, kein Audio."
+    "message": "Live-Q&A in Teams mit eigenem Wissen, Kurzbefehlen, Meeting-Ergebnissen und BYOK. Kein Bot oder Audio."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
