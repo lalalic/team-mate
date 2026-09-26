@@ -85,7 +85,7 @@ src/focused.js       pure helpers: shortcut normalization, transcript
 src/util.js          focused config/knowledge/ask helpers; `ask()` is the
                      single LLM entry point
 src/relay.js         direct OpenAI-compatible client via background service worker
-src/background.js    badge/icon, VTT export, top-up
+src/background.js    badge/icon, VTT export, Stripe Premium activation
 src/setup.js         provider / shortcuts / knowledge
 ```
 

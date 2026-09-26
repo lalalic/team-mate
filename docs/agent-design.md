@@ -21,7 +21,7 @@ Two invariants define the product:
 | [src/ui-controller.js](../src/ui-controller.js) | The rail: shortcuts row, question/answer log, Ask input |
 | [src/focused.js](../src/focused.js) | Pure helpers: shortcut normalization, transcript formatting, knowledge chunking + TF-IDF retrieval, ask payload |
 | [src/util.js](../src/util.js) | `ask()` — retrieval + payload + one relay call; knowledge and shortcut accessors |
-| [src/relay.js](../src/relay.js) | Stateless HTTPS client for copilot-relay; auth, wallet, usage |
+| [src/relay.js](../src/relay.js) | Stateless HTTPS client for the user's configured OpenAI-compatible provider |
 
 There is **no** state machine, loop session, heartbeat, memory store, or
 minutes generator. Their files were deleted with the feature

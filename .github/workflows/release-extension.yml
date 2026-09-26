@@ -1,0 +1,38 @@
+name: Build extension release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      STRIPE_PAYMENT_LINK: ${{ secrets.STRIPE_PAYMENT_LINK }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Verify unconfigured safety path
+        run: |
+          rm -f team-mate.zip
+          env -u STRIPE_PAYMENT_LINK npm run build
+          node scripts/verify-release-build.mjs
+          unzip -t team-mate.zip >/dev/null
+      - name: Verify configured production path when the secret is available
+        if: ${{ env.STRIPE_PAYMENT_LINK != '' }}
+        env:
+          EXPECT_STRIPE_CONFIGURED: "1"
+        run: |
+          rm -f team-mate.zip
+          npm run build
+          node scripts/verify-release-build.mjs
+          unzip -t team-mate.zip >/dev/null
+      - name: Verify safe unconfigured release when no Payment Link secret is configured
+        if: ${{ env.STRIPE_PAYMENT_LINK == '' }}
+        run: echo "STRIPE_PAYMENT_LINK is not configured; the artifact keeps the explicit safe free-plan path."

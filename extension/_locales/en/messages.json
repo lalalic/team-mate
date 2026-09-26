@@ -3,7 +3,7 @@
     "message": "MeetMate — Live Meeting Q&A with Your Knowledge for Teams"
   },
   "appDesc": {
-    "message": "Ask questions using live Teams captions and your own knowledge. Custom shortcuts, end-of-meeting auto results, and BYOK. No bot, no audio."
+    "message": "Ask questions using live Teams captions and your own knowledge. Custom shortcuts and BYOK. No bot, no audio."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
@@ -24,7 +24,7 @@
     "message": "Test: Hello"
   },
   "topup": {
-    "message": "Top up for AI Assistant"
+    "message": "MeetMate Premium"
   },
   "autoDownload": {
     "message": "Auto Download Live Captions"
@@ -42,7 +42,7 @@
     "message": "Optional: describe this meeting goal/theme..."
   },
   "needTopup": {
-    "message": "Top up first!It's very very cheap to use."
+    "message": "Enable Premium to unlock additional features."
   },
   "onWayBuy": {
     "message": "On the way to buy ..."

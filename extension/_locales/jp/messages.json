@@ -3,7 +3,7 @@
     "message": "MeetMate — Teams会議のリアルタイムQ&A＋あなたのナレッジ"
   },
   "appDesc": {
-    "message": "Teamsのリアルタイム字幕と自分のナレッジを使って質問。カスタムショートカット、会議終了時の自動結果、BYOKに対応。ボット不要、音声取得なし。"
+    "message": "Teamsのリアルタイム字幕と自分のナレッジで質問。カスタムショートカットとBYOKに対応。ボット不要、音声取得なし。"
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."

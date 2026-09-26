@@ -3,7 +3,7 @@
     "message": "MeetMate — Вопросы по встрече и вашим знаниям для Teams"
   },
   "appDesc": {
-    "message": "Задавайте вопросы на основе живых субтитров Teams и собственных знаний. Настраиваемые ярлыки, авто-результаты в конце встречи и BYOK. Без бота и аудио."
+    "message": "Задавайте вопросы на основе живых субтитров Teams и собственных знаний. Настраиваемые ярлыки и BYOK. Без бота и аудио."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
