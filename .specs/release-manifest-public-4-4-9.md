@@ -59,5 +59,27 @@ The package is not submitted. A prepared build is not release evidence.
   Market Agent.
 - Restore or update the public homepage, privacy, and support destinations.
 
+## Attempt-2 reconciliation evidence
+
+- Revalidation was performed on the same candidate head,
+  `c7bd3d688ef5e82c1ecfe1224b533e56ec41962d`, with `npm ci`, `npm test`,
+  `npm run build`, `node scripts/verify-release-build.mjs`, and ZIP integrity
+  checking. All passed; the rebuilt ZIP manifest reported exactly `4.4.9`.
+  Rebuild SHA-256:
+  `1a4e4c407773f1076de124d5b331569cd9f020c1dcf1b6769232120f79fbebb9`.
+- The read-only `check-status` browser-platform action returned
+  `status=unknown` with the explicit error `authenticated Chrome Web Store
+  publisher session required`. No upload, listing update, or submission was
+  attempted.
+- A public Browser Harness observation resolved the selected listing ID and
+  rendered version `4.2.0`, independently confirming that the public target is
+  not the candidate.
+- The configured package URLs at `ai.qili2.com` failed DNS resolution.
+  Separately, `https://cdn.qili2.com/pub/teams/index.html`,
+  `privacy.html`, and `support.html` returned HTTP 200 but differed byte-for-byte
+  from the reviewed `www/` files. The deployed homepage still displayed retired
+  pay-as-you-go, live-minutes, cross-meeting-memory, and automatic-suggestion
+  claims.
+
 No review state is claimed. No draft submission is claimed. Public availability
 of exact version `4.4.9` remains **not verified**.
