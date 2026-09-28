@@ -3,7 +3,7 @@
 **Package status:** approved for release review, with the evidence and external-verification gaps listed below.
 
 **Product:** MeetMate Chrome extension for Microsoft Teams
-**Reviewed product identity:** PR #6 head `7b492f49dea95a9645a34c4c60aa15c9e5c8fc59`; extension manifest version `4.4.9`.
+**Reviewed product identity:** PR #6 head `e961604d0b122b78db7f1faef4ffdf1c7f266787`; extension manifest version `4.4.9`.
 **Package owner:** Market Agent
 **Audience:** people who need a concise, private answer while a Teams meeting is still happening.
 
@@ -142,14 +142,14 @@ Rejected or deliberately omitted claims: public availability, install/user/reven
 - [ ] Public homepage, privacy, support, and Chrome Web Store listing reachability verified.
 - [ ] Configured Stripe production build and successful checkout redirect verified.
 - [ ] Exact public extension version 4.4.9 verified after publication.
-- [ ] `package.json` reports 4.4.8 while the extension manifest is 4.4.9; release validation should decide whether this metadata mismatch must be reconciled before submission.
+- [x] `package.json`, `package-lock.json`, and the extension manifest all report release version 4.4.9.
 
 ## Package manifest
 
 | Artifact | Status | Downstream use |
 | --- | --- | --- |
 | `.specs/market-package-v1.md` | **Approved content package** | Release listing copy, claim review, launch preparation |
-| `extension/manifest.json` version 4.4.9 | **Reviewed source fact** | Release version identity; verify exact published version |
+| `package.json`, `package-lock.json`, and `extension/manifest.json` version 4.4.9 | **Reviewed source fact** | Release version identity; verify exact published version |
 | `www/index.html`, `www/privacy.html`, `www/support.html` | **Existing, not publication-verified** | Homepage/privacy/support destinations |
 | `www/team-mate-demo.mp4` | **Pending visual QA** | Optional demo asset only |
 | `www/screenshots/logo-128.png` | **Existing logo, not feature screenshot** | Site poster/icon only; not a store screenshot |
