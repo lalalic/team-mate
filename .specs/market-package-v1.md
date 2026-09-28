@@ -3,7 +3,7 @@
 **Package status:** approved for release review, with the evidence and external-verification gaps listed below.
 
 **Product:** MeetMate Chrome extension for Microsoft Teams
-**Reviewed product identity:** PR #6 head `6e8e4bc98e8745b89dc1dc94cd62248813a2f26f`; extension manifest version `4.4.9`.
+**Reviewed product identity:** PR #6 head `7b492f49dea95a9645a34c4c60aa15c9e5c8fc59`; extension manifest version `4.4.9`.
 **Package owner:** Market Agent
 **Audience:** people who need a concise, private answer while a Teams meeting is still happening.
 
@@ -126,7 +126,7 @@ Use the existing `www/team-mate-demo.mp4` only after a visual/product QA pass co
 | Transcript export is VTT on Leave | `README.md:54-55,118-122`; `src/background.js:96-117` |
 | Premium is Stripe-only, with local soft entitlement and no Stripe secret in the bundle | `README.md:56-61`; `src/background.js:1-47`; `src/premium-state.js:1-36`; `docs/premium-publishing-plan.md:43-60` |
 | Privacy/support wording and configured destinations | `www/index.html:105-110,211-218`; `www/privacy.html:35-45`; `www/support.html:24-39` |
-| Reviewed release identity | `extension/manifest.json:1-5`; PR #6 head `6e8e4bc98e8745b89dc1dc94cd62248813a2f26f` |
+| Reviewed release identity | `extension/manifest.json:1-5`; PR #6 head `7b492f49dea95a9645a34c4c60aa15c9e5c8fc59` |
 
 Rejected or deliberately omitted claims: public availability, install/user/revenue numbers, review state, a specific price, subscription/lifetime terms, customer testimonials, automatic meeting summaries/minutes, audio recording, bot participation, server-side payment verification, and any feature not backed by the map above.
 
