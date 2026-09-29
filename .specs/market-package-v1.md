@@ -89,7 +89,7 @@ MeetMate 4.4.9 focuses the product on ask-first, grounded Q&A:
 
 ## Screenshot and media plan
 
-No screenshot is approved in this package. The repository contains `www/team-mate-demo.mp4` and `www/screenshots/logo-128.png`, but the video has not been visually reviewed in this task and the logo is not a product-workflow screenshot. Do not submit either as a feature screenshot without visual QA.
+No existing screenshot or demo video is approved for this release. Create a fresh screenshot set and a new demo video from the current 4.4.9 product flow, then run visual/product QA before Chrome Web Store submission.
 
 Create and approve these screenshots from the reviewed 4.4.9 build:
 
@@ -103,7 +103,7 @@ The release agent should use synthetic meeting text and redact provider/account 
 
 ### Demo brief
 
-Use the existing `www/team-mate-demo.mp4` only after a visual/product QA pass confirms it shows the current ask-first flow and does not imply removed autonomous suggestions, automatic minutes, or unsupported Premium behavior. If it is stale, replace it with a short walkthrough: install/setup → turn on Teams captions → show no request on caption arrival → type Ask → show grounded answer → open Knowledge/Shortcuts → optionally show Premium controls. Asset approval is **pending**.
+Create a new demo video for 4.4.9. Required flow: install/setup → turn on Teams captions → show no request on caption arrival → type Ask → show grounded answer → open Knowledge/Shortcuts → optionally show Premium controls. Do not reuse the old demo as release evidence. New screenshot and video approval is **pending**.
 
 ## CTA and destinations
 
@@ -137,8 +137,8 @@ Rejected or deliberately omitted claims: public availability, install/user/reven
 - [x] Claim-to-evidence map and rejected-claim list included.
 - [x] Homepage, privacy, and support use the canonical GitHub repository page.
 - [x] Screenshot narrative and safe capture instructions prepared.
-- [ ] Product screenshots captured and visually approved.
-- [ ] Demo walkthrough verified against current behavior.
+- [ ] New 4.4.9 product screenshots captured and visually approved.
+- [ ] New 4.4.9 demo video produced and visually approved.
 - [x] Canonical GitHub repository page reachability verified; Chrome Web Store listing exact-version verification remains required.
 - [ ] Configured Stripe production build and successful checkout redirect verified.
 - [ ] Exact public extension version 4.4.9 verified after publication.
@@ -157,4 +157,4 @@ Rejected or deliberately omitted claims: public availability, install/user/reven
 
 ## Exact handoff to Release Agent
 
-Use this package as the source of listing copy and claims. Before submission, capture the five synthetic screenshots, verify the demo or mark it unused, validate the configured Stripe build without exposing secrets, reconcile the package/manifest version decision, use the canonical repository page for public homepage/privacy/support, and publish only after exact version `4.4.9` and actual store availability can be observed. Do not infer public availability, revenue, or payment conversion from this package.
+Use this package as the source of listing copy and claims. Before submission, create and approve the new 4.4.9 screenshot set and new demo video, validate the configured Stripe build without exposing secrets, reconcile the package/manifest version decision, use the canonical repository page for public homepage/privacy/support, and publish only after exact version `4.4.9` and actual store availability can be observed. Do not infer public availability, revenue, or payment conversion from this package.

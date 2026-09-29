@@ -43,8 +43,7 @@ The package is not submitted. A prepared build is not release evidence.
    `STRIPE_PAYMENT_LINK` was unset in the release environment. The built package
    therefore uses the explicit safe unconfigured path, which the Market Package
    forbids publishing as the production paid boundary.
-3. **Required synthetic store screenshots are not present.** This is a Market
-   Package gap and must return to Market before listing submission.
+3. **Fresh 4.4.9 store media is not yet complete.** Create a new screenshot set and a new demo video from the current product, then complete Market/visual QA before listing submission. Old screenshots/video are not release evidence for 4.4.9.
 
 ## Next human inputs
 
@@ -52,8 +51,7 @@ The package is not submitted. A prepared build is not release evidence.
   publisher identity and complete any owner/MFA acknowledgement.
 - Supply the approved production `STRIPE_PAYMENT_LINK` as release-time
   configuration without exposing a Stripe secret.
-- Return the five approved synthetic screenshots and completed demo QA from the
-  Market Agent.
+- Return the newly produced and approved 4.4.9 screenshots and demo video from the Market Agent.
 
 ## Attempt-2 reconciliation evidence
 
