@@ -42,17 +42,16 @@ The site should explain clearly that meeting transcripts and uploaded knowledge 
 
 ## Stripe payment
 
-Use the `STRIPE_PAYMENT_LINK` build variable for the existing Stripe Payment
-Link. The extension validates the shape of the returned `cs_test_…` or
+Use two build variables: `STRIPE_ONE_TIME_PAYMENT_LINK` for the US$1.99 7-day pass and `STRIPE_WEEKLY_PAYMENT_LINK` for the US$1.99/week recurring subscription. The extension validates the shape of the returned `cs_test_…` or
 `cs_live_…` identifier and stores it locally; it deliberately ignores arbitrary
 `premium=true`, `credit`, or amount parameters. This is a soft product gate,
 not proof against a determined user or a refund after activation.
 
-Initial commercial model: one MeetMate Premium entitlement. The implementation should support a one-time/lifetime purchase first because it does not require ongoing server-side subscription reconciliation.
+Commercial model: two purchase choices for the same Premium feature set — US$1.99 for a 7-day one-time pass, or US$1.99/week recurring. The extension records which choice produced the checkout session. Weekly cancellation/payment-failure reconciliation remains outside this soft local gate until a Stripe-backed server/webhook is added.
 
 Requirements:
 
-- Upgrade button opens the configured Stripe Payment Link.
+- Premium UI exposes both configured purchase choices and opens the corresponding Stripe Payment Link.
 - Stripe redirects successful purchases to the GitHub Pages success page.
 - Success page can activate Premium in the installed extension.
 - Activation uses a Stripe Checkout session id rather than a plain boolean.

@@ -16,8 +16,8 @@ export async function getPremiumStatus({ force = false } = {}) {
     return runtimeRequest("premium_status", { force: !!force });
 }
 
-export async function openPremiumUpgrade() {
-    return runtimeRequest("premium_upgrade");
+export async function openPremiumUpgrade(purchaseMode = "one_time") {
+    return runtimeRequest("premium_upgrade", { purchaseMode });
 }
 
 export async function openPremiumLogin() {
@@ -28,6 +28,6 @@ export async function setPremiumPreview(enabled) {
     return runtimeRequest("premium_preview", { enabled: !!enabled });
 }
 
-export async function activateStripeSession(sessionId) {
-    return runtimeRequest("premium_activate", { sessionId: String(sessionId || "") });
+export async function activateStripeSession(sessionId, purchaseMode = "one_time") {
+    return runtimeRequest("premium_activate", { sessionId: String(sessionId || ""), purchaseMode });
 }

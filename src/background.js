@@ -9,7 +9,9 @@ const { initConf, getConf } = require("./util");
 const { DEFAULT_SHORTCUTS } = require("./focused");
 const { createStripeEntitlement, premiumState, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
 
-const STRIPE_PAYMENT_LINK = typeof __STRIPE_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_PAYMENT_LINK__ || "").trim() : "";
+const STRIPE_ONE_TIME_PAYMENT_LINK = typeof __STRIPE_ONE_TIME_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_ONE_TIME_PAYMENT_LINK__ || "").trim() : "";
+const STRIPE_WEEKLY_PAYMENT_LINK = typeof __STRIPE_WEEKLY_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_WEEKLY_PAYMENT_LINK__ || "").trim() : "";
+const STRIPE_PAYMENT_LINKS = { one_time: STRIPE_ONE_TIME_PAYMENT_LINK, weekly: STRIPE_WEEKLY_PAYMENT_LINK };
 
 function getLocal(keys) {
     return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
@@ -22,13 +24,15 @@ function setLocal(value) {
 async function premiumStatus({ force = false } = {}) {
     void force;
     const stored = await getLocal([PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY]);
-    return premiumState({ entitlement: stored[PREMIUM_ENTITLEMENT_KEY], preview: stored[PREMIUM_PREVIEW_KEY] === true, paymentLink: STRIPE_PAYMENT_LINK });
+    return premiumState({ entitlement: stored[PREMIUM_ENTITLEMENT_KEY], preview: stored[PREMIUM_PREVIEW_KEY] === true, paymentLinks: STRIPE_PAYMENT_LINKS });
 }
 
-async function openPremiumPayment() {
-    if (!STRIPE_PAYMENT_LINK) throw new Error("Stripe Payment Link is not configured in this build. Enable Premium Preview in Settings for local testing.");
-    await chrome.tabs.create({ url: STRIPE_PAYMENT_LINK });
-    return { opened: true, provider: "stripe" };
+async function openPremiumPayment(purchaseMode = "one_time") {
+    const mode = purchaseMode === "weekly" ? "weekly" : "one_time";
+    const paymentLink = STRIPE_PAYMENT_LINKS[mode];
+    if (!paymentLink) throw new Error(`Stripe ${mode === "weekly" ? "weekly" : "one-time"} Payment Link is not configured in this build.`);
+    await chrome.tabs.create({ url: paymentLink });
+    return { opened: true, provider: "stripe", purchaseMode: mode };
 }
 
 async function openPremiumLogin() {
@@ -37,14 +41,14 @@ async function openPremiumLogin() {
 
 async function setPremiumPreview(enabled) {
     await setLocal({ [PREMIUM_PREVIEW_KEY]: enabled === true });
-    return premiumState({ preview: enabled === true, paymentLink: STRIPE_PAYMENT_LINK });
+    return premiumState({ preview: enabled === true, paymentLinks: STRIPE_PAYMENT_LINKS });
 }
 
-async function activateStripeSession(sessionId) {
-    const entitlement = createStripeEntitlement(sessionId);
+async function activateStripeSession(sessionId, purchaseMode = "one_time") {
+    const entitlement = createStripeEntitlement(sessionId, Date.now(), purchaseMode);
     if (!entitlement) throw new Error("Invalid Stripe Checkout session id.");
     await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement, [PREMIUM_PREVIEW_KEY]: false });
-    return premiumState({ entitlement, paymentLink: STRIPE_PAYMENT_LINK });
+    return premiumState({ entitlement, paymentLinks: STRIPE_PAYMENT_LINKS });
 }
 
 initConf({
@@ -281,7 +285,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true
         case 'premium_upgrade':
-            openPremiumPayment()
+            openPremiumPayment(request.purchaseMode)
                 .then(data => sendResponse({ ok: true, data }))
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true
@@ -291,7 +295,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true
         case 'premium_activate':
-            activateStripeSession(request.sessionId)
+            activateStripeSession(request.sessionId, request.purchaseMode)
                 .then(data => sendResponse({ ok: true, data }))
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true

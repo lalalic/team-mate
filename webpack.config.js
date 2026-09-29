@@ -16,7 +16,8 @@ module.exports = {
     mode: "development",
     plugins: [
         new webpack.DefinePlugin({
-            __STRIPE_PAYMENT_LINK__: JSON.stringify(process.env.STRIPE_PAYMENT_LINK || ''),
+            __STRIPE_ONE_TIME_PAYMENT_LINK__: JSON.stringify(process.env.STRIPE_ONE_TIME_PAYMENT_LINK || ''),
+            __STRIPE_WEEKLY_PAYMENT_LINK__: JSON.stringify(process.env.STRIPE_WEEKLY_PAYMENT_LINK || ''),
         }),
     ],
     devtool: "inline-source-map",

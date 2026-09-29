@@ -53,12 +53,12 @@ flowchart LR
   (no vector DB, no new dependency).
 - **Transcript export** — the meeting transcript is written to a `.vtt` file
   on Leave.
-- **Stripe Premium** — production builds open the existing Stripe-hosted
-  Payment Link configured with `STRIPE_PAYMENT_LINK`. Stripe redirects to the
-  public success page, which returns the user to `setup.html?session_id=cs_…`;
-  the extension stores that Checkout session as a local soft entitlement. No
-  Stripe secret is shipped in the extension, and development Preview is kept
-  separate from real purchase state.
+- **Stripe Premium** — production builds expose two Stripe-hosted purchase paths:
+  US$1.99 for a 7-day pass via `STRIPE_ONE_TIME_PAYMENT_LINK`, or US$1.99/week
+  recurring via `STRIPE_WEEKLY_PAYMENT_LINK`. The success URL returns the Checkout
+  session plus `purchase=one_time|weekly`; the extension stores that as a local
+  soft entitlement. No Stripe secret is shipped in the extension, and development
+  Preview remains separate from real purchase state.
 
 ## What was removed (and is not coming back)
 
@@ -131,9 +131,15 @@ npm test                # focused helper unit tests (node, no network)
 npm run dev             # webpack --watch (no zip)
 ```
 
-For a production payment build, set `STRIPE_PAYMENT_LINK` before building and
-configure that Payment Link's success URL with Stripe's
-`{CHECKOUT_SESSION_ID}` placeholder. Never put `STRIPE_SECRET_KEY` in this
+For a production payment build, set `STRIPE_ONE_TIME_PAYMENT_LINK` and/or
+`STRIPE_WEEKLY_PAYMENT_LINK` before building. The one-time link is the US$1.99
+7-day pass; the weekly link is the US$1.99/week recurring subscription. Configure
+their Stripe success URLs with `{CHECKOUT_SESSION_ID}` and a static purchase mode:
+
+- one-time: `https://<public-host>/premium-success.html?session_id={CHECKOUT_SESSION_ID}&purchase=one_time`
+- weekly: `https://<public-host>/premium-success.html?session_id={CHECKOUT_SESSION_ID}&purchase=weekly`
+
+Never put `STRIPE_SECRET_KEY` in this
 repository or the extension bundle. The extension contains no ExtensionPay
 runtime or dependency.
 
