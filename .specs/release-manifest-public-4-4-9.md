@@ -43,10 +43,7 @@ The package is not submitted. A prepared build is not release evidence.
    `STRIPE_PAYMENT_LINK` was unset in the release environment. The built package
    therefore uses the explicit safe unconfigured path, which the Market Package
    forbids publishing as the production paid boundary.
-3. **Public product destinations do not resolve.** DNS lookup failed for
-   `https://ai.qili2.com/index.html`, `https://ai.qili2.com/privacy.html`, and
-   `https://ai.qili2.com/support.html`.
-4. **Required synthetic store screenshots are not present.** This is a Market
+3. **Required synthetic store screenshots are not present.** This is a Market
    Package gap and must return to Market before listing submission.
 
 ## Next human inputs
@@ -57,7 +54,6 @@ The package is not submitted. A prepared build is not release evidence.
   configuration without exposing a Stripe secret.
 - Return the five approved synthetic screenshots and completed demo QA from the
   Market Agent.
-- Restore or update the public homepage, privacy, and support destinations.
 
 ## Attempt-2 reconciliation evidence
 
@@ -74,12 +70,7 @@ The package is not submitted. A prepared build is not release evidence.
 - A public Browser Harness observation resolved the selected listing ID and
   rendered version `4.2.0`, independently confirming that the public target is
   not the candidate.
-- The configured package URLs at `ai.qili2.com` failed DNS resolution.
-  Separately, `https://cdn.qili2.com/pub/teams/index.html`,
-  `privacy.html`, and `support.html` returned HTTP 200 but differed byte-for-byte
-  from the reviewed `www/` files. The deployed homepage still displayed retired
-  pay-as-you-go, live-minutes, cross-meeting-memory, and automatic-suggestion
-  claims.
+- Public homepage/privacy/support are now intentionally represented by the canonical repository page: `https://github.com/lalalic/team-mate`. The previous `ai.qili2.com` / CDN destinations are no longer release requirements for 4.4.9.
 
 No review state is claimed. No draft submission is claimed. Public availability
 of exact version `4.4.9` remains **not verified**.

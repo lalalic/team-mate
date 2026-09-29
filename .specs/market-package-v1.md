@@ -109,10 +109,10 @@ Use the existing `www/team-mate-demo.mp4` only after a visual/product QA pass co
 
 - **Primary CTA:** `Install MeetMate free for Chrome`.
 - **Secondary CTA:** `Ask your first meeting question`.
-- **Homepage configured in source:** `https://ai.qili2.com/index.html` (reachability/public availability not verified here).
+- **Homepage / public product destination:** `https://github.com/lalalic/team-mate`.
 - **Chrome Web Store destination configured in source:** `https://chromewebstore.google.com/detail/immkojolaicdjhkbbhkldmndhfjbehmf` (listing/version not verified here).
-- **Privacy destination:** `https://ai.qili2.com/privacy.html` (reachability not verified here).
-- **Support destination:** `https://ai.qili2.com/support.html` (reachability not verified here).
+- **Privacy destination:** `https://github.com/lalalic/team-mate` (repository page is the canonical public destination for this release).
+- **Support destination:** `https://github.com/lalalic/team-mate` (repository page is the canonical public destination for this release).
 - **Payment destination:** configured at build time through `STRIPE_PAYMENT_LINK`; do not publish a placeholder or claim that checkout is live until the release agent verifies the configured production build.
 
 ## Claim-to-evidence map
@@ -135,11 +135,11 @@ Rejected or deliberately omitted claims: public availability, install/user/reven
 - [x] Product title, subtitle/short description, long description, positioning, users, use cases, CTA, release notes.
 - [x] Current shortcut defaults and Premium boundary reconciled against implementation.
 - [x] Claim-to-evidence map and rejected-claim list included.
-- [x] Privacy and support destinations identified without asserting reachability.
+- [x] Homepage, privacy, and support use the canonical GitHub repository page.
 - [x] Screenshot narrative and safe capture instructions prepared.
 - [ ] Product screenshots captured and visually approved.
 - [ ] Demo walkthrough verified against current behavior.
-- [ ] Public homepage, privacy, support, and Chrome Web Store listing reachability verified.
+- [x] Canonical GitHub repository page reachability verified; Chrome Web Store listing exact-version verification remains required.
 - [ ] Configured Stripe production build and successful checkout redirect verified.
 - [ ] Exact public extension version 4.4.9 verified after publication.
 - [x] `package.json`, `package-lock.json`, and the extension manifest all report release version 4.4.9.
@@ -157,4 +157,4 @@ Rejected or deliberately omitted claims: public availability, install/user/reven
 
 ## Exact handoff to Release Agent
 
-Use this package as the source of listing copy and claims. Before submission, capture the five synthetic screenshots, verify the demo or mark it unused, validate the configured Stripe build without exposing secrets, reconcile the package/manifest version decision, verify all public URLs, and publish only after exact version `4.4.9` and actual store availability can be observed. Do not infer public availability, revenue, or payment conversion from this package.
+Use this package as the source of listing copy and claims. Before submission, capture the five synthetic screenshots, verify the demo or mark it unused, validate the configured Stripe build without exposing secrets, reconcile the package/manifest version decision, use the canonical repository page for public homepage/privacy/support, and publish only after exact version `4.4.9` and actual store availability can be observed. Do not infer public availability, revenue, or payment conversion from this package.
