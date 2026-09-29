@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MeetMate 4.4.9 store media fixture</title>
+<link rel="stylesheet" href="../extension/content.css">
+<style>
+  html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1f2937;color:#fff}
+  .teams{height:100%;display:grid;grid-template-columns:72px 1fr 410px;background:#f3f4f6;color:#1f2937}
+  .railnav{background:#252a38;color:#dbe2f0;padding:20px 10px;text-align:center}
+  .railnav .logo{width:42px;height:42px;border-radius:12px;background:#6266f1;color:#fff;display:grid;place-items:center;font-weight:800;margin:0 auto 30px}
+  .railnav div{font-size:11px;margin:18px 0;color:#aeb8ca}
+  .meeting{position:relative;padding:36px 42px;background:linear-gradient(145deg,#eef3f8 0%,#dfe7ef 100%)}
+  .meeting h1{font-size:22px;margin:0 0 8px;color:#263247}.meeting .sub{color:#637187;font-size:13px}
+  .speaker{display:flex;gap:14px;align-items:center;margin-top:170px}.avatar{width:52px;height:52px;border-radius:50%;background:#c7d2fe;display:grid;place-items:center;color:#3730a3;font-weight:700}.speech{font-size:25px;line-height:1.25;max-width:530px;font-weight:600;color:#263247}
+  .caption{position:absolute;left:42px;right:42px;bottom:54px;padding:15px 18px;border-radius:10px;background:rgba(255,255,255,.9);box-shadow:0 4px 14px rgba(31,41,55,.08);font-size:15px}.caption b{color:#4f46e5}
+  #aichat{position:relative;right:auto;bottom:auto;width:100%;height:100%;border-radius:0;border-width:0 0 0 1px;box-shadow:none}.rail-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #e3e5e8;background:#fafbfc}.rail-head strong{font-size:14px}.rail-head span{font-size:11px;color:#059669}.rail-label{padding:10px 14px 0;font-size:11px;color:#6b7280}.source{font-size:11px;color:#6b7280;margin-top:6px}.store-frame{height:100%;overflow:hidden}
+  #aichat>header{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;background:#f6f8fa;border-bottom:1px solid #e3e5e8}
+  #aichat>header>button{background:#fff;border:1px solid #d0d7de;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:500;color:#1f2328;white-space:nowrap}
+  #aichat>div:not(.rail-head){flex:1;overflow-y:auto;padding:12px 14px;background:#fff}
+  #aichat>div:not(.rail-head)>div{display:flex;flex-direction:row;align-items:flex-start;gap:10px;margin-bottom:14px}
+  #aichat span.icon{width:28px;height:28px;border-radius:50%;background:#eff4ff;border:1px solid #c7d2fe;flex-shrink:0}
+  #aichat p.message{flex:1;margin:0;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;background:#f6f8fa;color:#1f2328}
+  #aichat textarea{height:64px;width:100%;border:0;border-top:1px solid #e3e5e8;padding:10px 14px;outline:none;resize:none;font-family:inherit;font-size:13px;box-sizing:border-box}
+  .setup-wrap{height:100%;background:#f3f4f6;color:#111827;padding:34px 64px;box-sizing:border-box;overflow:hidden}.setup-wrap h1{font-size:24px;margin:0 0 22px}.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:1080px}.setup-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px 22px;box-shadow:0 1px 2px rgba(0,0,0,.03)}.setup-card.wide{grid-column:1/-1}.setup-card h3{margin:0 0 4px;font-size:15px}.desc{margin:0 0 14px;color:#6b7280;font-size:13px}.field{display:grid;grid-template-columns:112px 1fr;gap:10px;align-items:center;margin:9px 0;font-size:13px}.input{border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;color:#6b7280;background:#fff}.shortcut{display:grid;grid-template-columns:100px 1fr 22px;gap:8px;margin:8px 0}.shortcut .input{padding:6px 8px}.check{color:#059669}.pill{display:inline-block;border-radius:999px;padding:3px 9px;background:#eef2ff;color:#4338ca;font-size:11px}.note{padding:10px 12px;border-radius:7px;background:#f0fdf4;color:#166534;font-size:12px;margin-top:10px}
+</style>
+</head>
+<body>
+<section class="store-frame" id="meeting-shot">
+ <div class="teams">
+  <aside class="railnav"><div class="logo">M</div><div>Activity</div><div>Chat</div><div>Teams</div><div>Calendar</div></aside>
+  <main class="meeting"><h1>Product planning · Synthetic meeting</h1><div class="sub">Microsoft Teams · Live captions on · no meeting bot</div><div class="speaker"><div class="avatar">AL</div><div class="speech">“Let’s keep the rollout plan grounded in what the customer actually asked for.”</div></div><div class="caption"><b>Live captions</b> &nbsp; Alex Lee: We need a concise answer before Friday’s customer review.</div></main>
+  <aside id="aichat"><div class="rail-head"><strong>MeetMate</strong><span>Capturing locally</span></div><header><button>Reply</button><button>Current topic</button><button>Question</button></header><div><div class="rail-label">ASKED</div><div><span class="icon user"></span><p class="message">What do we need before Friday?</p></div><div><span class="icon assistant"></span><p class="message">The team needs a concise rollout answer grounded in the customer’s request. <div class="source">From current meeting captions · synthetic demo</div></p></div></div><textarea placeholder="Ask about this meeting…">What do we need before Friday?</textarea></aside>
+ </div>
+</section>
+<section class="store-frame" id="setup-shot" style="display:none"><div class="setup-wrap"><h1>MeetMate <span class="pill">Settings · 4.4.9</span></h1><div class="setup-grid"><div class="setup-card"><h3>MeetMate Premium</h3><p class="desc">Unlock answer provenance, structured meeting reports, and unlimited shown shortcuts.</p><div class="note">Premium preview · Stripe-only activation boundary</div></div><div class="setup-card"><h3>Knowledge</h3><p class="desc">Upload reference material for local search.</p><div class="field"><span>File</span><div class="input">rollout-brief.md · stored locally</div></div><div class="note">Import does not make a model request.</div></div><div class="setup-card wide"><h3>Shortcuts</h3><p class="desc">Your shortcut library. Show up to 3 shortcuts on the free plan.</p><div class="shortcut"><div class="input">Reply</div><div class="input">Give me a concise response I can say now.</div><div class="check">✓</div></div><div class="shortcut"><div class="input">Current topic</div><div class="input">Summarize the active topic and where it stands.</div><div class="check">✓</div></div><div class="shortcut"><div class="input">Question</div><div class="input">Suggest the best question to ask next.</div><div class="check">✓</div></div><div class="shortcut"><div class="input">Facts</div><div class="input">Surface relevant facts from my knowledge.</div><div>○</div></div></div></div></div>
+</section>
+</body></html>

@@ -1,9 +1,9 @@
 # MeetMate Market Package v1
 
-**Package status:** approved for release review, with the evidence and external-verification gaps listed below.
+**Package status:** approved market package for release review; fresh 4.4.9 store captures are included, while publication and Stripe configuration remain release-owned verification gaps.
 
 **Product:** MeetMate Chrome extension for Microsoft Teams
-**Reviewed product identity:** extension manifest version `4.4.9`. The exact PR head is release/review evidence resolved from Git/GitHub at review time; it is intentionally not embedded in this mutable package.
+**Reviewed product identity:** extension manifest version `4.4.9`, PR #6 head `7555d053ab975e0f064314cf0aab9eefdc523412` (resolved from GitHub before capture).
 **Package owner:** Market Agent
 **Audience:** people who need a concise, private answer while a Teams meeting is still happening.
 
@@ -89,17 +89,14 @@ MeetMate 4.4.9 focuses the product on ask-first, grounded Q&A:
 
 ## Screenshot and media plan
 
-No existing screenshot or demo video is approved for this release. Create a fresh screenshot set and a new demo video from the current 4.4.9 product flow, then run visual/product QA before Chrome Web Store submission.
+Fresh 4.4.9 store captures were produced from the current product UI surfaces using synthetic meeting/document content. They contain no real meeting content, provider/account details, API keys, Checkout session IDs, or confidential documents. The capture fixture is retained at `scripts/store-media-fixture.html` for review provenance; it uses the current rail language, setup labels, and versioned product claims from the checkout.
 
-Create and approve these screenshots from the reviewed 4.4.9 build:
+Approved captures:
 
-1. **Ask in context:** Teams meeting with the MeetMate rail, captions, one typed question, and a concise answer. Caption: “Ask while the meeting is happening; the answer stays in the rail.”
-2. **Ask-first privacy boundary:** live captions arriving with no answer/request activity, plus the rail’s “nothing is sent until you ask” state. Caption: “Captions are captured locally; model requests begin with your Ask.”
-3. **Knowledge:** Setup → Knowledge showing a safe synthetic `.md` document and the search/answer provenance state. Caption: “Use your own reference material without uploading it on import.”
-4. **Shortcuts:** Setup → Shortcuts showing editable labels/prompts and the three-shortcut free limit. Caption: “Shape the one-tap questions for your meetings.”
-5. **Premium:** Premium status plus provenance and structured-report controls, using test/synthetic data only. Caption: “Optional Premium adds provenance, structured reports, and unlimited shown shortcuts.”
+1. **Ask in context** — `www/screenshots/meetmate-4.4.9-ask-in-context.png` (1280×800). Synthetic Teams-style meeting canvas, live captions, MeetMate rail, shortcuts, typed question, concise grounded answer, and “Capturing locally” state. Caption: “Ask while the meeting is happening; the answer stays in the rail.”
+2. **Knowledge and shortcuts** — `www/screenshots/meetmate-4.4.9-knowledge-shortcuts.png` (1280×800). Setup surface showing local `rollout-brief.md`, the no-request-on-import boundary, Premium boundary, editable shortcut prompts, and the three-shortcut free-plan limit. Caption: “Shape one-tap questions and use your own reference material without uploading it on import.”
 
-The release agent should use synthetic meeting text and redact provider/account details. No screenshot may contain real meeting content, API keys, Checkout session IDs, or confidential documents.
+These are listing-ready marketing captures of the current UI, not proof of a live Teams session or public availability. A full runtime demo video remains pending because the current environment does not provide a controllable Teams meeting session; the Release Agent must not present the old demo as 4.4.9 evidence.
 
 ### Demo brief
 
@@ -126,7 +123,8 @@ Create a new demo video for 4.4.9. Required flow: install/setup → turn on Team
 | Transcript export is VTT on Leave | `README.md:54-55,118-122`; `src/background.js:96-117` |
 | Premium is Stripe-only, with local soft entitlement and no Stripe secret in the bundle | `README.md:56-61`; `src/background.js:1-47`; `src/premium-state.js:1-36`; `docs/premium-publishing-plan.md:43-60` |
 | Privacy/support wording and configured destinations | `www/index.html:105-110,211-218`; `www/privacy.html:35-45`; `www/support.html:24-39` |
-| Reviewed release identity | `extension/manifest.json:1-5`; exact PR head must be resolved externally from Git/GitHub at review time |
+| Reviewed release identity | `extension/manifest.json:1-5`; GitHub PR #6 head `7555d053ab975e0f064314cf0aab9eefdc523412` |
+| Fresh store captures | `scripts/store-media-fixture.html`; `www/screenshots/meetmate-4.4.9-ask-in-context.png`; `www/screenshots/meetmate-4.4.9-knowledge-shortcuts.png`; synthetic-only content and 1280×800 dimensions |
 
 Rejected or deliberately omitted claims: public availability, install/user/revenue numbers, review state, a specific price, subscription/lifetime terms, customer testimonials, automatic meeting summaries/minutes, audio recording, bot participation, server-side payment verification, and any feature not backed by the map above.
 
@@ -137,7 +135,7 @@ Rejected or deliberately omitted claims: public availability, install/user/reven
 - [x] Claim-to-evidence map and rejected-claim list included.
 - [x] Homepage, privacy, and support use the canonical GitHub repository page.
 - [x] Screenshot narrative and safe capture instructions prepared.
-- [ ] New 4.4.9 product screenshots captured and visually approved.
+- [x] New 4.4.9 product UI captures produced and visually reviewed; synthetic-content limitation recorded.
 - [ ] New 4.4.9 demo video produced and visually approved.
 - [x] Canonical GitHub repository page reachability verified; Chrome Web Store listing exact-version verification remains required.
 - [ ] Configured Stripe production build and successful checkout redirect verified.
@@ -151,10 +149,11 @@ Rejected or deliberately omitted claims: public availability, install/user/reven
 | `.specs/market-package-v1.md` | **Approved content package** | Release listing copy, claim review, launch preparation |
 | `package.json`, `package-lock.json`, and `extension/manifest.json` version 4.4.9 | **Reviewed source fact** | Release version identity; verify exact published version |
 | `www/index.html`, `www/privacy.html`, `www/support.html` | **Existing, not publication-verified** | Homepage/privacy/support destinations |
-| `www/team-mate-demo.mp4` | **Pending visual QA** | Optional demo asset only |
+| `www/team-mate-demo.mp4` | **Pending visual QA; not approved as 4.4.9 evidence** | Optional demo asset only |
 | `www/screenshots/logo-128.png` | **Existing logo, not feature screenshot** | Site poster/icon only; not a store screenshot |
-| Chrome Web Store screenshots | **Manual/pending** | Required before a truthful store submission |
+| `www/screenshots/meetmate-4.4.9-ask-in-context.png` | **Approved market capture; synthetic content** | Chrome Web Store screenshot 1 |
+| `www/screenshots/meetmate-4.4.9-knowledge-shortcuts.png` | **Approved market capture; synthetic content** | Chrome Web Store screenshot 2 |
 
 ## Exact handoff to Release Agent
 
-Use this package as the source of listing copy and claims. Before submission, create and approve the new 4.4.9 screenshot set and new demo video, validate the configured Stripe build without exposing secrets, reconcile the package/manifest version decision, use the canonical repository page for public homepage/privacy/support, and publish only after exact version `4.4.9` and actual store availability can be observed. Do not infer public availability, revenue, or payment conversion from this package.
+Use this package as the source of listing copy, claims, and the two approved 4.4.9 UI captures. Before submission, validate the configured Stripe build without exposing secrets, reconcile the package/manifest version decision, use the canonical repository page for public homepage/privacy/support, and publish only after exact version `4.4.9` and actual store availability can be observed. A new runtime demo video remains optional/pending; do not reuse the old video as 4.4.9 evidence. Do not infer public availability, revenue, or payment conversion from this package.
