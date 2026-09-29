@@ -30,7 +30,7 @@ export function createStripeEntitlement(sessionId, activatedAt = Date.now(), pur
         purchaseMode: mode,
         recurring: mode === "weekly",
         activatedAt: at,
-        ...(mode === "one_time" ? { expiresAt: at + ONE_TIME_DURATION_MS } : {}),
+        expiresAt: at + ONE_TIME_DURATION_MS,
     }
 }
 
@@ -38,7 +38,6 @@ export function isPaidEntitlement(record, now = Date.now()) {
     if (!(record?.paid === true && record?.source === "stripe" && isStripeCheckoutSessionId(record.sessionId))) return false
     // Legacy entitlements predate purchase-mode tracking; keep them readable/paid.
     if (!record.purchaseMode) return true
-    if (normalizePurchaseMode(record.purchaseMode) === "weekly") return true
     const expiresAt = Number(record.expiresAt)
     return Number.isFinite(expiresAt) && expiresAt > Number(now)
 }
@@ -71,7 +70,23 @@ export function premiumState({ entitlement, preview = false, paymentLinks = {}, 
     }
     return {
         paid: false, configured, configuredModes, preview: false, source: configured ? "stripe" : "unconfigured",
-        expired: !!entitlement?.purchaseMode && entitlement.purchaseMode !== "weekly" && Number(entitlement?.expiresAt) > 0 && Number(entitlement.expiresAt) <= Number(now),
+        expired: !!entitlement?.purchaseMode && Number(entitlement?.expiresAt) > 0 && Number(entitlement.expiresAt) <= Number(now),
         expiresAt: entitlement?.expiresAt,
     }
+}
+
+export function shouldRefreshWeeklyEntitlement(record, { force = false, now = Date.now() } = {}) {
+    if (record?.purchaseMode !== "weekly" || !isStripeCheckoutSessionId(record?.sessionId)) return false
+    if (force) return true
+    const expiresAt = Number(record.expiresAt)
+    return !Number.isFinite(expiresAt) || expiresAt <= Number(now)
+}
+
+export function applyWeeklyEntitlementStatus(record, remote, now = Date.now()) {
+    if (record?.purchaseMode !== "weekly") return record
+    if (remote?.active !== true) return { ...record, paid: false, expiresAt: Number(now), stripeStatus: String(remote?.status || "inactive") }
+    const remoteEnd = Date.parse(String(remote.currentPeriodEnd || ""))
+    const localWindowEnd = Number(now) + ONE_TIME_DURATION_MS
+    const expiresAt = Number.isFinite(remoteEnd) && remoteEnd > Number(now) ? Math.min(localWindowEnd, remoteEnd) : localWindowEnd
+    return { ...record, paid: true, expiresAt, stripeStatus: String(remote.status || "active"), checkedAt: Number(now) }
 }

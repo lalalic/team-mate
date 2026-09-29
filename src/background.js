@@ -7,11 +7,12 @@
 
 const { initConf, getConf } = require("./util");
 const { DEFAULT_SHORTCUTS } = require("./focused");
-const { createStripeEntitlement, premiumState, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
+const { createStripeEntitlement, premiumState, shouldRefreshWeeklyEntitlement, applyWeeklyEntitlementStatus, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
 
 const STRIPE_ONE_TIME_PAYMENT_LINK = typeof __STRIPE_ONE_TIME_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_ONE_TIME_PAYMENT_LINK__ || "").trim() : "";
 const STRIPE_WEEKLY_PAYMENT_LINK = typeof __STRIPE_WEEKLY_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_WEEKLY_PAYMENT_LINK__ || "").trim() : "";
 const STRIPE_PAYMENT_LINKS = { one_time: STRIPE_ONE_TIME_PAYMENT_LINK, weekly: STRIPE_WEEKLY_PAYMENT_LINK };
+const STRIPE_ENTITLEMENT_ENDPOINT = typeof __STRIPE_ENTITLEMENT_ENDPOINT__ !== "undefined" ? String(__STRIPE_ENTITLEMENT_ENDPOINT__ || "").replace(/\/$/, "") : "";
 
 function getLocal(keys) {
     return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
@@ -22,9 +23,29 @@ function setLocal(value) {
 }
 
 async function premiumStatus({ force = false } = {}) {
-    void force;
     const stored = await getLocal([PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY]);
-    return premiumState({ entitlement: stored[PREMIUM_ENTITLEMENT_KEY], preview: stored[PREMIUM_PREVIEW_KEY] === true, paymentLinks: STRIPE_PAYMENT_LINKS });
+    let entitlement = stored[PREMIUM_ENTITLEMENT_KEY];
+    if (shouldRefreshWeeklyEntitlement(entitlement, { force })) {
+        if (!STRIPE_ENTITLEMENT_ENDPOINT) {
+            if (!force && premiumState({ entitlement, paymentLinks: STRIPE_PAYMENT_LINKS }).paid) return premiumState({ entitlement, preview: stored[PREMIUM_PREVIEW_KEY] === true, paymentLinks: STRIPE_PAYMENT_LINKS });
+            entitlement = { ...entitlement, paid: false, stripeStatus: "endpoint_unconfigured" };
+            await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement });
+        } else {
+            try {
+                const response = await fetch(`${STRIPE_ENTITLEMENT_ENDPOINT}/v1/entitlement?session_id=${encodeURIComponent(entitlement.sessionId)}`, { cache: "no-store" });
+                if (!response.ok) throw new Error(`Entitlement service returned ${response.status}`);
+                const remote = await response.json();
+                entitlement = applyWeeklyEntitlementStatus(entitlement, remote);
+                await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement });
+            } catch (error) {
+                if (!premiumState({ entitlement, paymentLinks: STRIPE_PAYMENT_LINKS }).paid) {
+                    entitlement = { ...entitlement, paid: false, stripeStatus: "check_failed", lastCheckError: error?.message || String(error) };
+                    await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement });
+                }
+            }
+        }
+    }
+    return premiumState({ entitlement, preview: stored[PREMIUM_PREVIEW_KEY] === true, paymentLinks: STRIPE_PAYMENT_LINKS });
 }
 
 async function openPremiumPayment(purchaseMode = "one_time") {

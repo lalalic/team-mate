@@ -58,7 +58,7 @@ flowchart LR
   recurring via `STRIPE_WEEKLY_PAYMENT_LINK`. The success URL returns the Checkout
   session plus `purchase=one_time|weekly`; the extension stores that as a local
   soft entitlement. No Stripe secret is shipped in the extension, and development
-  Preview remains separate from real purchase state.
+  Preview remains separate from real purchase state. Weekly Premium is cached locally for seven days; only expiry or an explicit Refresh calls the stateless Stripe entitlement Worker.
 
 ## What was removed (and is not coming back)
 

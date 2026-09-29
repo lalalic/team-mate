@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import {
     ONE_TIME_DURATION_MS, createStripeEntitlement, extractStripePurchaseMode, extractStripeSessionId,
-    isPaidEntitlement, premiumState,
+    isPaidEntitlement, premiumState, shouldRefreshWeeklyEntitlement, applyWeeklyEntitlementStatus,
 } from "../src/premium-state.js"
 
 const session = "cs_test_1234567890"
@@ -18,8 +18,17 @@ assert.equal(isPaidEntitlement(oneTime, 1_000 + ONE_TIME_DURATION_MS), false)
 const weekly = createStripeEntitlement(session, 1_000, "weekly")
 assert.equal(weekly.purchaseMode, "weekly")
 assert.equal(weekly.recurring, true)
-assert.equal(weekly.expiresAt, undefined)
-assert.equal(isPaidEntitlement(weekly, 1_000 + 100 * ONE_TIME_DURATION_MS), true)
+assert.equal(weekly.expiresAt, 1_000 + ONE_TIME_DURATION_MS)
+assert.equal(isPaidEntitlement(weekly, 1_000 + ONE_TIME_DURATION_MS - 1), true)
+assert.equal(isPaidEntitlement(weekly, 1_000 + ONE_TIME_DURATION_MS), false)
+assert.equal(shouldRefreshWeeklyEntitlement(weekly, { now: 1_000 }), false)
+assert.equal(shouldRefreshWeeklyEntitlement(weekly, { now: weekly.expiresAt }), true)
+assert.equal(shouldRefreshWeeklyEntitlement(weekly, { force: true, now: 1_000 }), true)
+const refreshed = applyWeeklyEntitlementStatus(weekly, { active: true, status: "active", currentPeriodEnd: new Date(1_000 + 2 * ONE_TIME_DURATION_MS).toISOString() }, 1_000 + ONE_TIME_DURATION_MS)
+assert.equal(refreshed.paid, true)
+assert.equal(refreshed.expiresAt, 1_000 + 2 * ONE_TIME_DURATION_MS)
+const revoked = applyWeeklyEntitlementStatus(weekly, { active: false, status: "canceled", currentPeriodEnd: null }, weekly.expiresAt)
+assert.equal(revoked.paid, false)
 
 assert.equal(isPaidEntitlement({ paid: true, source: "extensionpay", sessionId: session }), false)
 assert.equal(extractStripeSessionId(`https://meetmate.invalid/setup.html?session_id=${session}&purchase=weekly`), session)
