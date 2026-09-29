@@ -143,3 +143,8 @@ Package and manifest versions should be kept in sync automatically where possibl
 - [ ] GitHub Pages deploy is automated or documented.
 - [ ] Chrome Web Store publish is automated or documented.
 - [ ] README documents setup, payment configuration, release, and publish procedures.
+
+
+### Stripe entitlement metadata
+
+The weekly Team Mate Payment Link/Subscription must carry Stripe metadata `product=team-mate` and should carry `plan=weekly`. Team Mate sends `product=team-mate` to the shared `https://stripe.qili2.com/v1/entitlement` service, which refuses subscriptions belonging to another product. Other apps/extensions reuse the same service with their own stable lowercase kebab-case product id.

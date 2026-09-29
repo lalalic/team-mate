@@ -90,3 +90,11 @@ export function applyWeeklyEntitlementStatus(record, remote, now = Date.now()) {
     const expiresAt = Number.isFinite(remoteEnd) && remoteEnd > Number(now) ? Math.min(localWindowEnd, remoteEnd) : localWindowEnd
     return { ...record, paid: true, expiresAt, stripeStatus: String(remote.status || "active"), checkedAt: Number(now) }
 }
+
+export function buildEntitlementStatusUrl(endpoint, sessionId, product) {
+    const base = String(endpoint || "").replace(/\/$/, "")
+    const id = String(sessionId || "").trim()
+    const productId = String(product || "").trim().toLowerCase()
+    if (!base || !isStripeCheckoutSessionId(id) || !/^[a-z0-9][a-z0-9-]{1,63}$/.test(productId)) return ""
+    return `${base}/v1/entitlement?session_id=${encodeURIComponent(id)}&product=${encodeURIComponent(productId)}`
+}

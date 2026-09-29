@@ -7,12 +7,13 @@
 
 const { initConf, getConf } = require("./util");
 const { DEFAULT_SHORTCUTS } = require("./focused");
-const { createStripeEntitlement, premiumState, shouldRefreshWeeklyEntitlement, applyWeeklyEntitlementStatus, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
+const { createStripeEntitlement, premiumState, shouldRefreshWeeklyEntitlement, applyWeeklyEntitlementStatus, buildEntitlementStatusUrl, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
 
 const STRIPE_ONE_TIME_PAYMENT_LINK = typeof __STRIPE_ONE_TIME_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_ONE_TIME_PAYMENT_LINK__ || "").trim() : "";
 const STRIPE_WEEKLY_PAYMENT_LINK = typeof __STRIPE_WEEKLY_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_WEEKLY_PAYMENT_LINK__ || "").trim() : "";
 const STRIPE_PAYMENT_LINKS = { one_time: STRIPE_ONE_TIME_PAYMENT_LINK, weekly: STRIPE_WEEKLY_PAYMENT_LINK };
 const STRIPE_ENTITLEMENT_ENDPOINT = typeof __STRIPE_ENTITLEMENT_ENDPOINT__ !== "undefined" ? String(__STRIPE_ENTITLEMENT_ENDPOINT__ || "").replace(/\/$/, "") : "";
+const STRIPE_ENTITLEMENT_PRODUCT = "team-mate";
 
 function getLocal(keys) {
     return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
@@ -32,7 +33,8 @@ async function premiumStatus({ force = false } = {}) {
             await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement });
         } else {
             try {
-                const response = await fetch(`${STRIPE_ENTITLEMENT_ENDPOINT}/v1/entitlement?session_id=${encodeURIComponent(entitlement.sessionId)}`, { cache: "no-store" });
+                const entitlementUrl = buildEntitlementStatusUrl(STRIPE_ENTITLEMENT_ENDPOINT, entitlement.sessionId, STRIPE_ENTITLEMENT_PRODUCT);
+                const response = await fetch(entitlementUrl, { cache: "no-store" });
                 if (!response.ok) throw new Error(`Entitlement service returned ${response.status}`);
                 const remote = await response.json();
                 entitlement = applyWeeklyEntitlementStatus(entitlement, remote);
