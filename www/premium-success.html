@@ -15,7 +15,7 @@
   const state = document.querySelector('#state')
   const link = document.querySelector('#activate')
   if (/^cs_(test|live)_[A-Za-z0-9_-]+$/.test(session)) {
-    state.textContent = purchase === 'weekly' ? 'Weekly subscription activated.' : '7-day pass activated.'
+    state.textContent = purchase === 'weekly' ? '1.99$/week subscription activated.' : '1.99$ one-time 7-day pass activated.'
     link.href = 'chrome-extension://immkojolaicdjhkbbhkldmndhfjbehmf/setup.html?session_id=' + encodeURIComponent(session) + '&purchase=' + encodeURIComponent(purchase)
   } else {
     state.textContent = 'The payment session is missing or invalid. Reopen the success link from Stripe.'

@@ -307,6 +307,12 @@ async function init() {
             const hasTranscript = transcripts.length > 0
             if (hasTranscript) showStatus("Saving meeting transcript…", 60000)
 
+            // Teams can initially expose a generic "meeting join" title and
+            // replace it with the real meeting title only after the call is
+            // fully loaded. Re-read document.title at save time so exports use
+            // the final meeting name rather than the early startup placeholder.
+            meetingName = getMeetingName() || meetingName || "Meeting"
+
             let premiumReport = ""
             const conf = await getConf().catch(() => ({}))
             const generatingReport = _premium && transcripts.length > 0 && conf?.premiumStructuredReport === true

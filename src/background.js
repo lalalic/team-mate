@@ -8,6 +8,7 @@
 const { initConf, getConf } = require("./util");
 const { DEFAULT_SHORTCUTS } = require("./focused");
 const { createStripeEntitlement, premiumState, shouldRefreshWeeklyEntitlement, applyWeeklyEntitlementStatus, buildEntitlementStatusUrl, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
+const { sanitizeMeetingFileName, buildMeetingDownloadPaths } = require("./meeting-files");
 
 const STRIPE_ONE_TIME_PAYMENT_LINK = typeof __STRIPE_ONE_TIME_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_ONE_TIME_PAYMENT_LINK__ || "").trim() : "";
 const STRIPE_WEEKLY_PAYMENT_LINK = typeof __STRIPE_WEEKLY_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_WEEKLY_PAYMENT_LINK__ || "").trim() : "";
@@ -113,17 +114,9 @@ initConf({
     if (changed) chrome.storage.local.set({ conf: next })
 })
 
-function sanitizeFileName(name) {
-    const invalidChars = /[\/\\:*?"<>|]/g;
-    name = name.replace(invalidChars, '_');
-    if (name.length > 255) name = name.substring(0, 255);
-    return name;
-}
-
 function save({ transcripts, premiumReport = "", name }) {
-    const safeName = sanitizeFileName(name || "Meeting")
-    const stamp = new Date().toISOString().split("T")[0].replace(/-/g, "")
-    const base = `meeting join/${safeName}/${stamp}`
+    const safeName = sanitizeMeetingFileName(name || "Meeting")
+    const paths = buildMeetingDownloadPaths(safeName)
 
     if (transcripts?.length) {
         const parts = []
@@ -135,7 +128,7 @@ function save({ transcripts, premiumReport = "", name }) {
         const content = `WEBVTT\n\n` + parts.join('\n')
         chrome.downloads.download({
             url: "data:text/vtt;charset=utf-8," + encodeURIComponent(content),
-            filename: `${base}.vtt`,
+            filename: paths.transcript,
         })
     }
 
@@ -144,7 +137,7 @@ function save({ transcripts, premiumReport = "", name }) {
         const markdown = `# ${safeName} · MeetMate Report\n\n${report}\n`
         chrome.downloads.download({
             url: "data:text/markdown;charset=utf-8," + encodeURIComponent(markdown),
-            filename: `${base}-report.md`,
+            filename: paths.report,
         })
     }
 }

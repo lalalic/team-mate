@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (premiumStatusText) {
             premiumStatusText.classList.toggle('active', paid)
             premiumStatusText.textContent = paid
-                ? `Premium active${premiumState.preview ? ' · local preview' : premiumState.purchaseMode === 'weekly' ? ' · $1.99/week' : premiumState.purchaseMode === 'one_time' ? ' · 7-day pass' : ''}`
+                ? `Premium active${premiumState.preview ? ' · local preview' : premiumState.purchaseMode === 'weekly' ? ' · 1.99$/week' : premiumState.purchaseMode === 'one_time' ? ' · 1.99$ one time' : ''}`
                 : (premiumState.configured ? 'Free plan · up to 3 shown shortcuts' : 'Payment not configured in this build · Free plan')
         }
         if (premiumOneTime) premiumOneTime.style.display = (!paid && premiumState.configuredModes?.includes('one_time')) ? '' : 'none'
