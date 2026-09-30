@@ -72,3 +72,45 @@ The package is not submitted. A prepared build is not release evidence.
 
 No review state is claimed. No draft submission is claimed. Public availability
 of exact version `4.4.9` remains **not verified**.
+
+## Attempt v2 — current-head preflight (2026-09-30)
+
+**Task:** `public-release-4-4-9-v2`
+**Candidate head:** `autonomous/market-revenue-v2` @
+`c65af6e26a58fbe747441e4a35ebffb9f63929ca`
+**Release state:** `blocked_before_submission`
+
+The current candidate was freshly validated. `npm test` passed 32 focused
+assertions plus 4 configuration checks. After installing the lockfile
+dependencies, `npm run build` produced `team-mate.zip`; `npm run verify:release`
+passed with both Stripe links unconfigured and no Stripe secrets in the bundle.
+The ZIP contains manifest version `4.4.9`; SHA-256 is
+`55485d9b6fca23e337c6b8e926cde003bc3257b9fa0b410e3d9f2476e5d2281d`.
+
+Fresh public-destination checks returned HTTP 200 for:
+
+- `https://github.com/lalalic/team-mate`
+- `https://github.com/lalalic/team-mate/blob/main/www/privacy.html`
+- `https://github.com/lalalic/team-mate/blob/main/www/support.html`
+
+The live public Chrome Web Store listing
+`https://chromewebstore.google.com/detail/immkojolaicdjhkbbhkldmndhfjbehmf`
+was freshly fetched and still displays the legacy title “MeetMate — Live Facts,
+Knowledge, Speaking Coach & Memory for Teams” and version `4.2.0`, not the
+candidate `4.4.9`.
+
+The publisher dashboard was freshly opened for the configured publisher scope.
+It redirected to Google account verification for `lalalic@gmail.com` with the
+message “Verify it’s you”; no authenticated publisher session was available.
+No upload, listing update, draft save, or review submission was attempted.
+
+The release environment exposes neither
+`STRIPE_ONE_TIME_PAYMENT_LINK` nor `STRIPE_WEEKLY_PAYMENT_LINK`; the release
+workflow expects these as GitHub Actions secrets. The source confirms the
+entitlement endpoint is fixed to `https://stripe.qili2.com` with product
+`team-mate`, but checkout cannot be claimed live without configured production
+Payment Links and a successful checkout verification.
+
+**Current blockers:** publisher Google account verification/MFA, and absent
+production Stripe Payment Link configuration. Exact public version `4.4.9`
+remains **not verified**; no publication or revenue is claimed.
