@@ -16,6 +16,8 @@ import {
     normalizeShortcuts,
     getShownShortcuts,
     knowledgeSearch,
+    mergeKnowledgeDocs,
+    buildKnowledgeAskMessages,
     formatTranscript,
     formatMeetingTimeline,
     buildAskMessages,
@@ -33,6 +35,8 @@ export {
     normalizeShortcuts,
     getShownShortcuts,
     knowledgeSearch,
+    mergeKnowledgeDocs,
+    buildKnowledgeAskMessages,
     formatTranscript,
     formatMeetingTimeline,
     buildAskMessages,
@@ -149,7 +153,7 @@ function toolCallUnsupported(error) {
     return /tool|function|unsupported|not support|400|404|422/.test(text);
 }
 
-async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, { stream = false, streamId = "" } = {}) {
+async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, { stream = false, streamId = "", maxSearches = 2, maxRounds = 3 } = {}) {
     if (!knowledgeAvailable) return { response: await chatCompletion({ messages, signal, stream, streamId }), knowledgeHits: [] };
     const tools = [KNOWLEDGE_SEARCH_TOOL];
     let working = messages.slice();
@@ -167,7 +171,7 @@ async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, {
         return { response: await chatCompletion({ messages: fallback, signal, stream, streamId }), knowledgeHits: [] };
     }
 
-    for (let round = 0; round < 3; round++) {
+    for (let round = 0; round < maxRounds; round++) {
         const assistant = response?.choices?.[0]?.message || {};
         const calls = Array.isArray(assistant.tool_calls) ? assistant.tool_calls : [];
         if (!calls.length) return { response, knowledgeHits };
@@ -179,8 +183,8 @@ async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, {
             let content;
             if (name !== "search_knowledge") {
                 content = JSON.stringify({ error: `Unknown tool: ${name || "(missing)"}` });
-            } else if (searches >= 2) {
-                content = JSON.stringify({ error: "Knowledge search limit reached for this Ask (maximum 2)." });
+            } else if (searches >= maxSearches) {
+                content = JSON.stringify({ error: `Knowledge search limit reached for this Ask (maximum ${maxSearches}).` });
             } else {
                 searches++;
                 const args = parseToolArguments(call?.function?.arguments);
@@ -196,11 +200,27 @@ async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, {
             working.push({ role: "tool", tool_call_id: call?.id || `tool-${round}-${searches}`, content });
         }
 
-        if (searches >= 2) return { response: await chatCompletion({ messages: working, signal, stream, streamId }), knowledgeHits };
+        if (searches >= maxSearches) return { response: await chatCompletion({ messages: working, signal, stream, streamId }), knowledgeHits };
         response = await chatCompletion({ messages: working, tools, tool_choice: "auto", signal, stream, streamId });
     }
 
     return { response, knowledgeHits };
+}
+
+export async function askKnowledge(question, { signal } = {}) {
+    const q = String(question || "").trim();
+    if (!q) return "";
+    const conf = (await getConf()) || {};
+    const docs = await getKnowledgeDocs();
+    if (!docs.length) throw new Error("Upload at least one knowledge document first.");
+    const messages = buildKnowledgeAskMessages({
+        question: q,
+        knowledgeWiki: buildKnowledgeWiki(docs),
+        preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
+        customInstructions: conf.customInstructions || "",
+    });
+    const { response } = await completeWithKnowledgeTool(messages, signal, true, { maxSearches: 8, maxRounds: 8 });
+    return String(response?.choices?.[0]?.message?.content || "").trim();
 }
 
 // ── Explicit ask (the ONLY path that calls the LLM in a meeting) ───────────
