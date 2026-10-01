@@ -465,9 +465,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!knowledgeTree || !knowledgeLeafDetail) return
         knowledgeTree.innerHTML = ''
         knowledgeLeafDetail.textContent = ''
-        if (!k?.organized || k.organizedStatus !== 'ready') {
+        if (!k?.organized) {
             knowledgeTree.innerHTML = '<em style="color:var(--muted)">(organized knowledge not ready)</em>'
             return
+        }
+        if (k.organizedStatus === 'stale') {
+            const stale = document.createElement('div')
+            stale.className = 'hint'
+            stale.style.marginBottom = '8px'
+            stale.textContent = 'Files changed. This tree is stale — click Organize now to rebuild it.'
+            knowledgeTree.appendChild(stale)
         }
         const tree = parseOrganizedKnowledgeTree(k.organized)
         const renderNodes = (nodes, parent) => {
@@ -509,6 +516,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderNodes(tree.children || [], knowledgeTree)
     }
 
+    function markKnowledgeStale(k) {
+        if (k?.organized) k.organizedStatus = 'stale'
+        else k.organizedStatus = 'empty'
+        delete k.organizedError
+        return k
+    }
+
     async function reorganizeCurrentKnowledge() {
         const cur = await getKnowledge()
         if (!(cur.docs || []).length) {
@@ -541,8 +555,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Raw files remain local. A model call happens only after the user explicitly
-    // changes the library, to rebuild the organized knowledge from current files.
+    // Raw file changes never call the model. Only the explicit Organize now action
+    // rebuilds organized knowledge from the current library.
     async function refreshKnowledge() {
         if (!knowledgeList) return
         const paid = premiumState?.paid === true
@@ -580,10 +594,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             knowledgeStatus.textContent = k.organizedStatus === 'organizing'
                 ? 'Reorganizing current knowledge…'
                 : k.organizedStatus === 'failed'
-                    ? `Knowledge changed, but reorganization failed: ${k.organizedError || 'unknown error'}`
-                    : k.organized
-                        ? 'Knowledge organized from current files.'
-                        : 'Knowledge has not been organized yet.'
+                    ? `Organization failed: ${k.organizedError || 'unknown error'}`
+                    : k.organizedStatus === 'stale'
+                        ? 'Files changed · click Organize now to rebuild organized knowledge.'
+                        : k.organized
+                            ? 'Knowledge organized from current files.'
+                            : 'Knowledge has not been organized yet · click Organize now.'
         }
         knowledgeList.querySelectorAll('[data-knowledge-delete]').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -591,8 +607,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const cur = await getKnowledge()
                 cur.docs = (cur.docs || []).filter(d => d.id !== id)
                 try {
+                    markKnowledgeStale(cur)
                     await setKnowledge(cur)
-                    await reorganizeCurrentKnowledge()
                 } catch (err) {
                     alert(`Could not update knowledge library — browser storage is full or unavailable: ${err.message || err}`)
                 }
@@ -636,8 +652,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             try {
+                markKnowledgeStale(cur)
                 await setKnowledge(cur)
-                await reorganizeCurrentKnowledge()
             } catch (err) {
                 alert(`Could not save knowledge library — browser storage is full or unavailable: ${err.message || err}`)
             }
