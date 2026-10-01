@@ -345,6 +345,43 @@ ${customInstructions ? `7. User instructions: ${String(customInstructions)}` : "
     return [{ role: "system", content: system }, { role: "user", content: q }];
 }
 
+export function parseOrganizedKnowledgeTree(markdown = "") {
+    const root = { type: "root", title: "Knowledge", children: [] };
+    const stack = [{ level: 0, node: root }];
+    const lines = String(markdown || "").replace(/\r\n?/g, "\n").split("\n");
+    let lastLeaf = null;
+    for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) continue;
+        const heading = line.match(/^(#{1,6})\s+(.+)$/);
+        if (heading) {
+            const level = heading[1].length;
+            const node = { type: "branch", title: heading[2].trim(), children: [] };
+            while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+            const parent = stack[stack.length - 1]?.node || root;
+            parent.children.push(node);
+            stack.push({ level, node });
+            lastLeaf = null;
+            continue;
+        }
+        const bullet = line.match(/^[-*•]\s+(.+)$/);
+        if (bullet) {
+            const text = bullet[1].trim();
+            const parent = stack[stack.length - 1]?.node || root;
+            const node = { type: "leaf", title: text, content: text };
+            parent.children.push(node);
+            lastLeaf = node;
+            continue;
+        }
+        if (lastLeaf) {
+            lastLeaf.content += "\n" + line;
+        } else {
+            root.children.push({ type: "leaf", title: line, content: line });
+        }
+    }
+    return root;
+}
+
 export function knowledgeSearch(docs, query, k = 5) {
     const qTokens = knowledgeTokenize(query);
     if (!qTokens.length) return [];

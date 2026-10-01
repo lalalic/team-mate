@@ -300,7 +300,15 @@
                 </div>
                 <div id="knowledgePlanNote" class="hint" style="margin:8px 0; color:var(--muted)">Free · final organized knowledge is limited to 5,000 characters. Premium removes this limit.</div>
                 <div id="knowledgeList" style="margin-top:10px"></div>
-                <div id="knowledgeStatus" class="hint" style="margin-top:10px">No organized knowledge yet.</div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:10px">
+                    <button id="knowledgeOrganizeBtn" class="primary" type="button">Organize now</button>
+                    <div id="knowledgeStatus" class="hint">No organized knowledge yet.</div>
+                </div>
+                <div style="margin-top:14px">
+                    <div style="font-weight:600; margin-bottom:6px">Organized knowledge</div>
+                    <div id="knowledgeTree" style="border:1px solid var(--border); border-radius:8px; padding:10px; min-height:50px"></div>
+                    <pre id="knowledgeLeafDetail" style="white-space:pre-wrap; margin-top:8px; padding:10px; border:1px solid var(--border); border-radius:8px; min-height:44px; font:inherit"></pre>
+                </div>
                 <div class="row" style="margin-top:14px">
                     <label for="knowledgeTestQuestion">Test Q&A</label>
                     <div>

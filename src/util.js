@@ -28,6 +28,7 @@ import {
     formatKnowledgeToolResult,
     buildKnowledgeWiki,
     rankTranscriptSources,
+    parseOrganizedKnowledgeTree,
 } from "./focused";
 
 export * from "./shared";
@@ -48,6 +49,7 @@ export {
     formatKnowledgeToolResult,
     buildKnowledgeWiki,
     rankTranscriptSources,
+    parseOrganizedKnowledgeTree,
 } from "./focused";
 
 export const isV2 = location.pathname.startsWith("/v2") || location.hostname === "teams.cloud.microsoft";
