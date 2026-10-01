@@ -27,6 +27,7 @@ import {
     buildAskMessages,
     formatAnswerHtml,
     appendAnswerChunk,
+    parseOrganizedKnowledgeTree,
 } from "../src/focused.js"
 
 let passed = 0
@@ -143,6 +144,17 @@ test("buildKnowledgeReorganizeMessages: Free plan strongly limits final organize
     assert.ok(!premium[0].content.includes("FREE PLAN HARD LIMIT"))
     assert.equal(capOrganizedKnowledge("x".repeat(6000), 5000).length, 5000)
     assert.equal(capOrganizedKnowledge("x".repeat(6000), 0).length, 6000)
+})
+
+test("parseOrganizedKnowledgeTree: headings become branches and bullets become clickable leaves", () => {
+    const tree = parseOrganizedKnowledgeTree("# Product\n- Pricing: $1.99/week\n## Knowledge\n- Free organized catalog: 5,000 chars\n- Premium organized catalog: unlimited")
+    assert.equal(tree.children[0].type, "branch")
+    assert.equal(tree.children[0].title, "Product")
+    assert.equal(tree.children[0].children[0].type, "leaf")
+    assert.equal(tree.children[0].children[0].content, "Pricing: $1.99/week")
+    const knowledge = tree.children[0].children.find(x => x.type === "branch" && x.title === "Knowledge")
+    assert.ok(knowledge)
+    assert.equal(knowledge.children.length, 2)
 })
 
 test("buildKnowledgeQATestMessages: user input tests current knowledge without meeting context", () => {

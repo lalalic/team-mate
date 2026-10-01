@@ -1,4 +1,4 @@
-const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, testKnowledgeQnA, mergeKnowledgeDocs } = require("./util")
+const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, testKnowledgeQnA, mergeKnowledgeDocs, parseOrganizedKnowledgeTree } = require("./util")
 const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
 const { extractStripeSessionId, extractStripePurchaseMode } = require("./premium-state")
 
@@ -456,7 +456,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     const knowledgeTestQuestion = document.querySelector('#knowledgeTestQuestion')
     const knowledgeTestBtn = document.querySelector('#knowledgeTestBtn')
     const knowledgeTestAnswer = document.querySelector('#knowledgeTestAnswer')
+    const knowledgeOrganizeBtn = document.querySelector('#knowledgeOrganizeBtn')
+    const knowledgeTree = document.querySelector('#knowledgeTree')
+    const knowledgeLeafDetail = document.querySelector('#knowledgeLeafDetail')
     const knowledgePlanNote = document.querySelector('#knowledgePlanNote')
+
+    function renderOrganizedKnowledge(k) {
+        if (!knowledgeTree || !knowledgeLeafDetail) return
+        knowledgeTree.innerHTML = ''
+        knowledgeLeafDetail.textContent = ''
+        if (!k?.organized || k.organizedStatus !== 'ready') {
+            knowledgeTree.innerHTML = '<em style="color:var(--muted)">(organized knowledge not ready)</em>'
+            return
+        }
+        const tree = parseOrganizedKnowledgeTree(k.organized)
+        const renderNodes = (nodes, parent) => {
+            const ul = document.createElement('ul')
+            ul.style.listStyle = 'none'
+            ul.style.paddingLeft = '16px'
+            ul.style.margin = '4px 0'
+            for (const node of nodes || []) {
+                const li = document.createElement('li')
+                li.style.margin = '4px 0'
+                if (node.type === 'branch') {
+                    const btn = document.createElement('button')
+                    btn.type = 'button'
+                    btn.className = 'subtle'
+                    btn.textContent = '▾ ' + node.title
+                    const holder = document.createElement('div')
+                    renderNodes(node.children || [], holder)
+                    btn.addEventListener('click', () => {
+                        const hidden = holder.style.display === 'none'
+                        holder.style.display = hidden ? '' : 'none'
+                        btn.textContent = (hidden ? '▾ ' : '▸ ') + node.title
+                    })
+                    li.appendChild(btn)
+                    li.appendChild(holder)
+                } else {
+                    const btn = document.createElement('button')
+                    btn.type = 'button'
+                    btn.className = 'subtle'
+                    btn.textContent = node.title
+                    btn.addEventListener('click', () => {
+                        knowledgeLeafDetail.textContent = node.content || node.title
+                    })
+                    li.appendChild(btn)
+                }
+                ul.appendChild(li)
+            }
+            parent.appendChild(ul)
+        }
+        renderNodes(tree.children || [], knowledgeTree)
+    }
 
     async function reorganizeCurrentKnowledge() {
         const cur = await getKnowledge()
@@ -502,6 +553,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             ? 'Premium · organized knowledge has no artificial character limit.'
             : 'Free · final organized knowledge is limited to 5,000 characters. Premium removes this limit.'
         const k = await getKnowledge()
+        renderOrganizedKnowledge(k)
         const total = totalBytes(k)
         const totalKb = (total / 1024).toFixed(1)
         const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
@@ -548,6 +600,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             })
         })
     }
+    if (knowledgeOrganizeBtn) {
+        knowledgeOrganizeBtn.addEventListener('click', async () => {
+            knowledgeOrganizeBtn.disabled = true
+            try {
+                await reorganizeCurrentKnowledge()
+                await refreshKnowledge()
+            } finally {
+                knowledgeOrganizeBtn.disabled = false
+            }
+        })
+    }
+
     if (knowledgeUpload) {
         knowledgeUpload.addEventListener('change', async (e) => {
             const files = Array.from(e.target.files || [])
