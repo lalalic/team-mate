@@ -1,4 +1,4 @@
-const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, testKnowledgeQnA, mergeKnowledgeDocs, parseOrganizedKnowledgeTree } = require("./util")
+const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, testKnowledgeQnA, mergeKnowledgeDocs } = require("./util")
 const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
 const { extractStripeSessionId, extractStripePurchaseMode } = require("./premium-state")
 
@@ -458,66 +458,92 @@ document.addEventListener('DOMContentLoaded', async () => {
     const knowledgeTestAnswer = document.querySelector('#knowledgeTestAnswer')
     const knowledgeOrganizeBtn = document.querySelector('#knowledgeOrganizeBtn')
     const knowledgeTree = document.querySelector('#knowledgeTree')
-    const knowledgeLeafDetail = document.querySelector('#knowledgeLeafDetail')
+    const knowledgeNodeModal = document.querySelector('#knowledgeNodeModal')
+    const knowledgeNodeModalTitle = document.querySelector('#knowledgeNodeModalTitle')
+    const knowledgeNodeModalSummary = document.querySelector('#knowledgeNodeModalSummary')
+    const knowledgeNodeModalContent = document.querySelector('#knowledgeNodeModalContent')
+    const knowledgeNodeModalClose = document.querySelector('#knowledgeNodeModalClose')
     const knowledgePlanNote = document.querySelector('#knowledgePlanNote')
 
+    function openKnowledgeNode(node, k) {
+        if (!knowledgeNodeModal || !node) return
+        if (knowledgeNodeModalTitle) knowledgeNodeModalTitle.textContent = node.name || 'Knowledge'
+        if (knowledgeNodeModalSummary) knowledgeNodeModalSummary.textContent = node.summary || ''
+        if (knowledgeNodeModalContent) knowledgeNodeModalContent.textContent = String(k?.nodeContents?.[node.id] || '(no organized content for this node)')
+        knowledgeNodeModal.hidden = false
+    }
+
+    function closeKnowledgeNode() {
+        if (knowledgeNodeModal) knowledgeNodeModal.hidden = true
+    }
+
+    knowledgeNodeModalClose?.addEventListener('click', closeKnowledgeNode)
+    knowledgeNodeModal?.addEventListener('click', (event) => {
+        if (event.target === knowledgeNodeModal) closeKnowledgeNode()
+    })
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && knowledgeNodeModal && !knowledgeNodeModal.hidden) closeKnowledgeNode()
+    })
+
     function renderOrganizedKnowledge(k) {
-        if (!knowledgeTree || !knowledgeLeafDetail) return
+        if (!knowledgeTree) return
         knowledgeTree.innerHTML = ''
-        knowledgeLeafDetail.textContent = ''
-        if (!k?.organized) {
+        const tree = Array.isArray(k?.tree) ? k.tree : []
+        if (!tree.length) {
             knowledgeTree.innerHTML = '<em style="color:var(--muted)">(organized knowledge not ready)</em>'
             return
         }
         if (k.organizedStatus === 'stale') {
             const stale = document.createElement('div')
             stale.className = 'hint'
-            stale.style.marginBottom = '8px'
-            stale.textContent = 'Files changed. This tree is stale — click Organize now to rebuild it.'
+            stale.style.marginBottom = '10px'
+            stale.textContent = 'Files changed. This TOC is stale — click Organize now to rebuild it.'
             knowledgeTree.appendChild(stale)
         }
-        const tree = parseOrganizedKnowledgeTree(k.organized)
-        const renderNodes = (nodes, parent) => {
-            const ul = document.createElement('ul')
-            ul.style.listStyle = 'none'
-            ul.style.paddingLeft = '16px'
-            ul.style.margin = '4px 0'
-            for (const node of nodes || []) {
-                const li = document.createElement('li')
-                li.style.margin = '4px 0'
-                if (node.type === 'branch') {
-                    const btn = document.createElement('button')
-                    btn.type = 'button'
-                    btn.className = 'subtle'
-                    btn.textContent = '▾ ' + node.title
-                    const holder = document.createElement('div')
-                    renderNodes(node.children || [], holder)
-                    btn.addEventListener('click', () => {
-                        const hidden = holder.style.display === 'none'
-                        holder.style.display = hidden ? '' : 'none'
-                        btn.textContent = (hidden ? '▾ ' : '▸ ') + node.title
-                    })
-                    li.appendChild(btn)
-                    li.appendChild(holder)
-                } else {
-                    const btn = document.createElement('button')
-                    btn.type = 'button'
-                    btn.className = 'subtle'
-                    btn.textContent = node.title
-                    btn.addEventListener('click', () => {
-                        knowledgeLeafDetail.textContent = node.content || node.title
-                    })
-                    li.appendChild(btn)
-                }
-                ul.appendChild(li)
+        for (const group of tree) {
+            const section = document.createElement('section')
+            section.style.borderBottom = '1px solid var(--border)'
+            section.style.padding = '8px 0'
+            const head = document.createElement('button')
+            head.type = 'button'
+            head.className = 'subtle'
+            head.style.fontWeight = '700'
+            head.style.width = '100%'
+            head.style.textAlign = 'left'
+            head.textContent = '▾ ' + String(group.name || 'Untitled')
+            const summary = document.createElement('div')
+            summary.className = 'hint'
+            summary.style.margin = '4px 0 6px 22px'
+            summary.textContent = String(group.summary || '')
+            const children = document.createElement('div')
+            children.style.marginLeft = '18px'
+            for (const node of Array.isArray(group.children) ? group.children : []) {
+                const btn = document.createElement('button')
+                btn.type = 'button'
+                btn.className = 'subtle'
+                btn.style.display = 'block'
+                btn.style.width = '100%'
+                btn.style.textAlign = 'left'
+                btn.style.margin = '4px 0'
+                btn.innerHTML = `<strong>${escapeAttr(node.name || 'Untitled')}</strong>${node.summary ? `<span class="hint"> · ${escapeAttr(node.summary)}</span>` : ''}`
+                btn.addEventListener('click', () => openKnowledgeNode(node, k))
+                children.appendChild(btn)
             }
-            parent.appendChild(ul)
+            head.addEventListener('click', () => {
+                const hidden = children.style.display === 'none'
+                children.style.display = hidden ? '' : 'none'
+                summary.style.display = hidden ? '' : 'none'
+                head.textContent = (hidden ? '▾ ' : '▸ ') + String(group.name || 'Untitled')
+            })
+            section.appendChild(head)
+            section.appendChild(summary)
+            section.appendChild(children)
+            knowledgeTree.appendChild(section)
         }
-        renderNodes(tree.children || [], knowledgeTree)
     }
 
     function markKnowledgeStale(k) {
-        if (k?.organized) k.organizedStatus = 'stale'
+        if (Array.isArray(k?.tree) && k.tree.length) k.organizedStatus = 'stale'
         else k.organizedStatus = 'empty'
         delete k.organizedError
         return k
@@ -526,7 +552,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function reorganizeCurrentKnowledge() {
         const cur = await getKnowledge()
         if (!(cur.docs || []).length) {
-            cur.organized = ''
+            cur.tree = []
+            cur.nodeContents = {}
             cur.organizedStatus = 'empty'
             delete cur.organizedError
             cur.organizedAt = Date.now()
@@ -536,12 +563,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (knowledgeStatus) knowledgeStatus.textContent = 'Reorganizing current knowledge…'
         cur.organizedStatus = 'organizing'
+        cur.tree = []
+        cur.nodeContents = {}
         await setKnowledge(cur)
         try {
             const organized = await reorganizeKnowledge({ maxChars: premiumState?.paid === true ? 0 : 5000 })
             const latest = await getKnowledge()
-            latest.organized = organized
-            latest.organizedStatus = 'ready'
+            latest.tree = organized.tree || []
+            latest.nodeContents = organized.nodeContents || {}
+            latest.organizedStatus = latest.tree.length ? 'ready' : 'failed'
             delete latest.organizedError
             latest.organizedAt = Date.now()
             await setKnowledge(latest)
@@ -597,7 +627,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ? `Organization failed: ${k.organizedError || 'unknown error'}`
                     : k.organizedStatus === 'stale'
                         ? 'Files changed · click Organize now to rebuild organized knowledge.'
-                        : k.organized
+                        : Array.isArray(k.tree) && k.tree.length
                             ? 'Knowledge organized from current files.'
                             : 'Knowledge has not been organized yet · click Organize now.'
         }
