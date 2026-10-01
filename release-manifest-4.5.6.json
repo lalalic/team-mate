@@ -2,7 +2,7 @@
   "source": {
     "repository": "lalalic/team-mate",
     "pullRequest": 6,
-    "commit": "983e7e0d7159869a40373d944f6a9ae499de2875",
+    "commit": "1c5dc2e36f4ef71c7985fb7683da98e587d9fb93",
     "version": "4.5.6"
   },
   "targets": [
@@ -14,12 +14,13 @@
       "observedPublicUrl": "https://chromewebstore.google.com/detail/meetmate-%E2%80%94-live-facts-kno/immkojolaicdjhkbbhkldmndhfjbehmf",
       "observedPublicVersion": "4.2.0",
       "evidence": [
-        "Local npm test suite passed.",
-        "Production build, ZIP integrity, and unconfigured Stripe-safe bundle verification passed.",
+        "Current checkout HEAD, package.json, and extension/manifest.json all identify version 4.5.6.",
+        "npm test passed (all focused, configuration, feedback, premium-state, and meeting-file checks).",
+        "Production build completed; team-mate.zip passed the unconfigured Stripe-safe bundle check and ZIP integrity validation.",
         "No Stripe secret material was found in the release bundle.",
         "The source entitlement product binding is team-mate.",
-        "The public listing is reachable but remains on version 4.2.0 with stale pre-4.5.6 copy.",
-        "Publisher console access could not be verified because no authenticated publisher session was available."
+        "The public listing https://chromewebstore.google.com/detail/meetmate-%E2%80%94-live-facts-kno/immkojolaicdjhkbbhkldmndhfjbehmf is reachable and reports version 4.2.0, not 4.5.6.",
+        "Fresh publisher-console navigation redirected to Google account confirmation; authenticated publisher access and MFA state could not be verified in the available browser session."
       ],
       "blocker": "Authenticated Chrome Web Store publisher access is required before package upload, review submission, or exact-version publication verification.",
       "publicationClaimed": false
