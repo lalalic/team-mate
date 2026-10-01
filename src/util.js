@@ -18,6 +18,7 @@ import {
     knowledgeSearch,
     mergeKnowledgeDocs,
     buildKnowledgeReorganizeMessages,
+    capOrganizedKnowledge,
     buildKnowledgeQATestMessages,
     formatTranscript,
     formatMeetingTimeline,
@@ -38,6 +39,7 @@ export {
     knowledgeSearch,
     mergeKnowledgeDocs,
     buildKnowledgeReorganizeMessages,
+    capOrganizedKnowledge,
     buildKnowledgeQATestMessages,
     formatTranscript,
     formatMeetingTimeline,
@@ -213,7 +215,7 @@ async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, {
     return { response, knowledgeHits };
 }
 
-export async function reorganizeKnowledge({ signal } = {}) {
+export async function reorganizeKnowledge({ signal, maxChars = 0 } = {}) {
     const conf = (await getConf()) || {};
     const state = await getKnowledgeState();
     const docs = Array.isArray(state.docs) ? state.docs : [];
@@ -222,12 +224,13 @@ export async function reorganizeKnowledge({ signal } = {}) {
     const messages = buildKnowledgeReorganizeMessages({
         previousKnowledge: state.organized || "",
         preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
+        maxChars,
     });
     const { response } = await completeWithKnowledgeTool(messages, signal, true, {
         maxSearches: 10,
         maxRounds: 10,
     });
-    return String(response?.choices?.[0]?.message?.content || "").trim();
+    return capOrganizedKnowledge(response?.choices?.[0]?.message?.content || "", maxChars);
 }
 
 export async function testKnowledgeQnA(question, { signal } = {}) {

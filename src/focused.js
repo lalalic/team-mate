@@ -296,7 +296,7 @@ export function mergeKnowledgeDocs(existing = [], incoming = []) {
     return Array.from(byName.values());
 }
 
-export function buildKnowledgeReorganizeMessages({ previousKnowledge = "", preferredLanguage = "auto" } = {}) {
+export function buildKnowledgeReorganizeMessages({ previousKnowledge = "", preferredLanguage = "auto", maxChars = 0 } = {}) {
     const previous = String(previousKnowledge || "").trim();
     const system = `You are MeetMate's knowledge organizer.
 
@@ -312,12 +312,19 @@ RULES:
 7. Preserve important concrete names, decisions, constraints, APIs, dates, numbers, and definitions when supported.
 8. Never invent facts.
 9. Return only concise Markdown organized into a useful 2-3 level hierarchy.
-10. Preferred language: ${String(preferredLanguage || "auto")}.`;
+10. Preferred language: ${String(preferredLanguage || "auto")}.${Number(maxChars) > 0 ? `\n11. FREE PLAN HARD LIMIT: the FINAL organized knowledge MUST be no more than ${Number(maxChars)} characters total. Prioritize the most important supported facts, compress aggressively, and stop before this limit.` : ""}`;
 
     const user = previous
         ? `Reorganize the current knowledge library now. Here is the PREVIOUS organized knowledge for structural continuity only:\n\n<previous-organized-knowledge>\n${previous}\n</previous-organized-knowledge>`
         : "Organize the current knowledge library now into a concise 2-3 level knowledge structure.";
     return [{ role: "system", content: system }, { role: "user", content: user }];
+}
+
+export function capOrganizedKnowledge(text, maxChars = 0) {
+    const value = String(text || "").trim();
+    const limit = Number(maxChars) || 0;
+    if (limit <= 0 || value.length <= limit) return value;
+    return value.slice(0, limit).trimEnd();
 }
 
 export function buildKnowledgeQATestMessages({ question, knowledgeWiki = "", preferredLanguage = "auto", customInstructions = "" } = {}) {

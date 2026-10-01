@@ -18,6 +18,7 @@ import {
     knowledgeSearch,
     mergeKnowledgeDocs,
     buildKnowledgeReorganizeMessages,
+    capOrganizedKnowledge,
     buildKnowledgeQATestMessages,
     buildKnowledgeWiki,
     KNOWLEDGE_SEARCH_TOOL,
@@ -132,6 +133,16 @@ test("buildKnowledgeReorganizeMessages: fixed prompt rebuilds current user knowl
     assert.ok(messages[1].content.includes("Passkeys are mandatory"));
     assert.ok(messages[1].content.includes("structural continuity only"));
     assert.ok(!messages[0].content.includes("extreme-auth.md"));
+})
+
+test("buildKnowledgeReorganizeMessages: Free plan strongly limits final organized knowledge to 5000 characters", () => {
+    const free = buildKnowledgeReorganizeMessages({ maxChars: 5000 })
+    const premium = buildKnowledgeReorganizeMessages({ maxChars: 0 })
+    assert.ok(free[0].content.includes("FREE PLAN HARD LIMIT"))
+    assert.ok(free[0].content.includes("5000 characters"))
+    assert.ok(!premium[0].content.includes("FREE PLAN HARD LIMIT"))
+    assert.equal(capOrganizedKnowledge("x".repeat(6000), 5000).length, 5000)
+    assert.equal(capOrganizedKnowledge("x".repeat(6000), 0).length, 6000)
 })
 
 test("buildKnowledgeQATestMessages: user input tests current knowledge without meeting context", () => {
