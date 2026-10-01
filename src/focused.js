@@ -302,21 +302,21 @@ export function buildKnowledgeReorganizeMessages({ previousKnowledge = "", prefe
 
 Rebuild the user's organized knowledge from the COMPLETE CURRENT uploaded knowledge library.
 
-RULES:
-1. Current uploaded documents are the only factual source of truth.
-2. Use search_knowledge repeatedly with focused queries until you have enough coverage to rebuild the knowledge.
-3. Previous organized knowledge, when supplied, is only a structure/continuity hint. It is NOT factual evidence.
-4. Drop anything from previous organized knowledge that is no longer supported by the current uploaded documents.
-5. Merge duplicates and reconcile overlapping material.
-6. Organize by concepts and content, never by filenames or upload order.
-7. Preserve important concrete names, decisions, constraints, APIs, dates, numbers, and definitions when supported.
+You MUST build a strict two-level table of contents using tools, not Markdown output:
+1. Call set_knowledge_tree when you are ready to replace the whole TOC. Level 1 = groups, Level 2 = leaves. Every node needs id, name, summary.
+2. Then call set_knowledge_node_content for every second-level leaf that needs full content.
+3. Use search_knowledge repeatedly to inspect current raw documents before and while filling nodes.
+4. Current uploaded documents are the only factual source of truth.
+5. Previous organization, if supplied, is structure continuity only, never factual evidence. Drop anything no longer supported by current files.
+6. Organize by concepts, never by filenames or upload order.
+7. Keep names and summaries concise; preserve important facts, decisions, APIs, constraints, dates and numbers in node content.
 8. Never invent facts.
-9. Return only concise Markdown organized into a useful 2-3 level hierarchy.
-10. Preferred language: ${String(preferredLanguage || "auto")}.${Number(maxChars) > 0 ? `\n11. FREE PLAN HARD LIMIT: the FINAL organized knowledge MUST be no more than ${Number(maxChars)} characters total. Prioritize the most important supported facts, compress aggressively, and stop before this limit.` : ""}`;
-
+9. Preferred language: ${String(preferredLanguage || "auto")}.
+${Number(maxChars) > 0 ? `10. FREE PLAN HARD LIMIT: total organized summaries plus node contents MUST stay within ${Number(maxChars)} characters. Prioritize and compress aggressively.` : ""}
+When the structure and node contents are complete, return a short confirmation only.`;
     const user = previous
-        ? `Reorganize the current knowledge library now. Here is the PREVIOUS organized knowledge for structural continuity only:\n\n<previous-organized-knowledge>\n${previous}\n</previous-organized-knowledge>`
-        : "Organize the current knowledge library now into a concise 2-3 level knowledge structure.";
+        ? `Organize the current knowledge now. Previous organization for structural continuity only:\n\n${previous}`
+        : "Organize the current knowledge now.";
     return [{ role: "system", content: system }, { role: "user", content: user }];
 }
 
@@ -481,6 +481,51 @@ export function rankTranscriptSources(transcripts = [], query = "", answer = "",
     scored.sort((a, b) => (b.score - a.score) || (b.ts - a.ts));
     return scored.slice(0, Math.max(0, Number(limit) || 0)).map(({ ts, ...item }) => item);
 }
+
+export function normalizeKnowledgeTree(raw = []) {
+    const ids = new Set();
+    const uniqueId = (value, fallback) => {
+        let base = String(value || fallback || "").trim().replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || fallback;
+        let id = base, n = 2;
+        while (ids.has(id)) id = `${base}-${n++}`;
+        ids.add(id);
+        return id;
+    };
+    const tree = [];
+    for (const [i, group] of (Array.isArray(raw) ? raw : []).entries()) {
+        if (!group || typeof group !== "object") continue;
+        const name = String(group.name || "").trim();
+        if (!name) continue;
+        const id = uniqueId(group.id, `group-${i + 1}`);
+        const children = [];
+        for (const [j, child] of (Array.isArray(group.children) ? group.children : []).entries()) {
+            if (!child || typeof child !== "object") continue;
+            const childName = String(child.name || "").trim();
+            if (!childName) continue;
+            children.push({ id: uniqueId(child.id, `${id}-${j + 1}`), name: childName, summary: String(child.summary || "").trim() });
+        }
+        tree.push({ id, name, summary: String(group.summary || "").trim(), children });
+    }
+    return tree;
+}
+
+export function buildStructuredKnowledgeCatalog(tree = []) {
+    const lines = [];
+    for (const group of normalizeKnowledgeTree(tree)) {
+        lines.push(`- ${group.name}${group.summary ? ` — ${group.summary}` : ""}`);
+        for (const child of group.children) lines.push(`  - ${child.name}${child.summary ? ` — ${child.summary}` : ""}`);
+    }
+    return lines.length ? lines.join("\n") : "(no organized knowledge configured)";
+}
+
+export function organizedKnowledgeCharCount(tree = [], nodeContents = {}) {
+    let total = buildStructuredKnowledgeCatalog(tree).length;
+    for (const value of Object.values(nodeContents || {})) total += String(value || "").length;
+    return total;
+}
+
+export const SET_KNOWLEDGE_TREE_TOOL = { type: "function", function: { name: "set_knowledge_tree", description: "Replace the whole organized knowledge table of contents with a strict two-level tree. Level 1 groups contain level 2 leaves. Do not include full leaf content.", parameters: { type: "object", properties: { tree: { type: "array", items: { type: "object", properties: { id: {type:"string"}, name: {type:"string"}, summary: {type:"string"}, children: { type:"array", items: { type:"object", properties: { id:{type:"string"}, name:{type:"string"}, summary:{type:"string"} }, required:["id","name","summary"], additionalProperties:false } } }, required:["id","name","summary","children"], additionalProperties:false } } }, required:["tree"], additionalProperties:false } } };
+export const SET_KNOWLEDGE_NODE_CONTENT_TOOL = { type: "function", function: { name: "set_knowledge_node_content", description: "Write or replace the full organized content for one existing second-level node.", parameters: { type: "object", properties: { node_id:{type:"string"}, content:{type:"string"} }, required:["node_id","content"], additionalProperties:false } } };
 
 export const KNOWLEDGE_SEARCH_TOOL = {
     type: "function",

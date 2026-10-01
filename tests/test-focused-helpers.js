@@ -28,6 +28,11 @@ import {
     formatAnswerHtml,
     appendAnswerChunk,
     parseOrganizedKnowledgeTree,
+    normalizeKnowledgeTree,
+    buildStructuredKnowledgeCatalog,
+    organizedKnowledgeCharCount,
+    SET_KNOWLEDGE_TREE_TOOL,
+    SET_KNOWLEDGE_NODE_CONTENT_TOOL,
 } from "../src/focused.js"
 
 let passed = 0
@@ -155,6 +160,30 @@ test("parseOrganizedKnowledgeTree: headings become branches and bullets become c
     const knowledge = tree.children[0].children.find(x => x.type === "branch" && x.title === "Knowledge")
     assert.ok(knowledge)
     assert.equal(knowledge.children.length, 2)
+})
+
+test("normalizeKnowledgeTree: enforces a strict two-level TOC", () => {
+    const tree = normalizeKnowledgeTree([{ id: "product", name: "Product", summary: "Core product", children: [
+        { id: "auth", name: "Authentication", summary: "SSO and roles", children: [{ id: "ignored", name: "Too deep" }] },
+        { id: "auth", name: "Billing", summary: "Plans" },
+    ] }])
+    assert.equal(tree.length, 1)
+    assert.equal(tree[0].children.length, 2)
+    assert.equal(tree[0].children[0].children, undefined)
+    assert.notEqual(tree[0].children[0].id, tree[0].children[1].id)
+})
+
+test("structured knowledge catalog is compact and node contents stay separate", () => {
+    const tree = normalizeKnowledgeTree([{ id: "g", name: "Architecture", summary: "System overview", children: [
+        { id: "api", name: "API", summary: "OAuth 2.1" },
+    ] }])
+    const catalog = buildStructuredKnowledgeCatalog(tree)
+    assert.ok(catalog.includes("Architecture"))
+    assert.ok(catalog.includes("API"))
+    assert.ok(!catalog.includes("full secret detail"))
+    assert.equal(organizedKnowledgeCharCount(tree, { api: "full secret detail" }), catalog.length + "full secret detail".length)
+    assert.equal(SET_KNOWLEDGE_TREE_TOOL.function.name, "set_knowledge_tree")
+    assert.equal(SET_KNOWLEDGE_NODE_CONTENT_TOOL.function.name, "set_knowledge_node_content")
 })
 
 test("buildKnowledgeQATestMessages: user input tests current knowledge without meeting context", () => {

@@ -29,6 +29,11 @@ import {
     buildKnowledgeWiki,
     rankTranscriptSources,
     parseOrganizedKnowledgeTree,
+    normalizeKnowledgeTree,
+    buildStructuredKnowledgeCatalog,
+    organizedKnowledgeCharCount,
+    SET_KNOWLEDGE_TREE_TOOL,
+    SET_KNOWLEDGE_NODE_CONTENT_TOOL,
 } from "./focused";
 
 export * from "./shared";
@@ -50,6 +55,11 @@ export {
     buildKnowledgeWiki,
     rankTranscriptSources,
     parseOrganizedKnowledgeTree,
+    normalizeKnowledgeTree,
+    buildStructuredKnowledgeCatalog,
+    organizedKnowledgeCharCount,
+    SET_KNOWLEDGE_TREE_TOOL,
+    SET_KNOWLEDGE_NODE_CONTENT_TOOL,
 } from "./focused";
 
 export const isV2 = location.pathname.startsWith("/v2") || location.hostname === "teams.cloud.microsoft";
@@ -217,22 +227,86 @@ async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, {
     return { response, knowledgeHits };
 }
 
+function capStructuredOrganization(tree, nodeContents, maxChars = 0) {
+    const cleanTree = normalizeKnowledgeTree(tree);
+    const cleanContents = {};
+    const leafIds = cleanTree.flatMap(group => group.children.map(child => child.id));
+    for (const id of leafIds) cleanContents[id] = String(nodeContents?.[id] || "").trim();
+    const limit = Number(maxChars) || 0;
+    if (limit <= 0) return { tree: cleanTree, nodeContents: cleanContents };
+    let remaining = Math.max(0, limit - buildStructuredKnowledgeCatalog(cleanTree).length);
+    const capped = {};
+    for (const id of leafIds) {
+        const text = cleanContents[id] || "";
+        capped[id] = text.slice(0, remaining).trimEnd();
+        remaining = Math.max(0, remaining - capped[id].length);
+    }
+    return { tree: cleanTree, nodeContents: capped };
+}
+
+async function completeStructuredKnowledgeOrganizer(messages, signal, maxChars = 0) {
+    const tools = [KNOWLEDGE_SEARCH_TOOL, SET_KNOWLEDGE_TREE_TOOL, SET_KNOWLEDGE_NODE_CONTENT_TOOL];
+    let working = messages.slice();
+    let tree = [];
+    let nodeContents = {};
+    let response = await chatCompletion({ messages: working, tools, tool_choice: "auto", signal });
+    let searches = 0;
+
+    for (let round = 0; round < 24; round++) {
+        const assistant = response?.choices?.[0]?.message || {};
+        const calls = Array.isArray(assistant.tool_calls) ? assistant.tool_calls : [];
+        if (!calls.length) break;
+        working.push({ role: "assistant", content: assistant.content ?? null, tool_calls: calls });
+
+        for (const call of calls) {
+            const name = call?.function?.name || "";
+            const args = parseToolArguments(call?.function?.arguments);
+            let result;
+            if (name === "search_knowledge") {
+                if (searches >= 12) result = { error: "Knowledge search limit reached." };
+                else {
+                    searches++;
+                    const query = String(args?.query || "").trim();
+                    const hits = query ? await searchKnowledge(query, args?.limit) : [];
+                    result = query ? JSON.parse(formatKnowledgeToolResult(query, hits)) : { error: "search_knowledge requires query." };
+                }
+            } else if (name === "set_knowledge_tree") {
+                tree = normalizeKnowledgeTree(args?.tree || []);
+                const validLeafIds = new Set(tree.flatMap(group => group.children.map(child => child.id)));
+                nodeContents = Object.fromEntries(Object.entries(nodeContents).filter(([id]) => validLeafIds.has(id)));
+                result = { ok: true, groups: tree.length, leaves: validLeafIds.size };
+            } else if (name === "set_knowledge_node_content") {
+                const nodeId = String(args?.node_id || "").trim();
+                const validLeafIds = new Set(tree.flatMap(group => group.children.map(child => child.id)));
+                if (!nodeId || !validLeafIds.has(nodeId)) result = { error: "node_id must reference an existing second-level leaf." };
+                else {
+                    nodeContents[nodeId] = String(args?.content || "").trim();
+                    const capped = capStructuredOrganization(tree, nodeContents, maxChars);
+                    tree = capped.tree;
+                    nodeContents = capped.nodeContents;
+                    result = { ok: true, node_id: nodeId, chars: nodeContents[nodeId].length, total_chars: organizedKnowledgeCharCount(tree, nodeContents) };
+                }
+            } else result = { error: `Unknown tool: ${name || "(missing)"}` };
+            working.push({ role: "tool", tool_call_id: call?.id || `organize-${round}-${name}`, content: JSON.stringify(result) });
+        }
+        response = await chatCompletion({ messages: working, tools, tool_choice: "auto", signal });
+    }
+
+    return capStructuredOrganization(tree, nodeContents, maxChars);
+}
+
 export async function reorganizeKnowledge({ signal, maxChars = 0 } = {}) {
     const conf = (await getConf()) || {};
     const state = await getKnowledgeState();
     const docs = Array.isArray(state.docs) ? state.docs : [];
-    if (!docs.length) return "";
-
+    if (!docs.length) return { tree: [], nodeContents: {} };
+    const previous = state.tree?.length ? buildStructuredKnowledgeCatalog(state.tree) : "";
     const messages = buildKnowledgeReorganizeMessages({
-        previousKnowledge: state.organized || "",
+        previousKnowledge: previous,
         preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
         maxChars,
     });
-    const { response } = await completeWithKnowledgeTool(messages, signal, true, {
-        maxSearches: 10,
-        maxRounds: 10,
-    });
-    return capOrganizedKnowledge(response?.choices?.[0]?.message?.content || "", maxChars);
+    return completeStructuredKnowledgeOrganizer(messages, signal, maxChars);
 }
 
 export async function testKnowledgeQnA(question, { signal } = {}) {
@@ -242,7 +316,7 @@ export async function testKnowledgeQnA(question, { signal } = {}) {
     const state = await getKnowledgeState();
     const docs = Array.isArray(state.docs) ? state.docs : [];
     if (!docs.length) throw new Error("Upload at least one knowledge document first.");
-    const organized = state.organizedStatus === "ready" ? String(state.organized || "").trim() : "";
+    const organized = state.organizedStatus === "ready" ? buildStructuredKnowledgeCatalog(state.tree || []) : "";
     const messages = buildKnowledgeQATestMessages({
         question: q,
         knowledgeWiki: organized || buildKnowledgeWiki(docs),
@@ -292,7 +366,7 @@ export async function askDetailed({ question, transcripts = [], conversation = [
     const knowledgeState = await getKnowledgeState();
     const knowledgeDocs = Array.isArray(knowledgeState.docs) ? knowledgeState.docs : [];
     const organizedKnowledge = knowledgeState.organizedStatus === "ready"
-        ? String(knowledgeState.organized || "").trim()
+        ? buildStructuredKnowledgeCatalog(knowledgeState.tree || [])
         : "";
     const knowledgeWiki = organizedKnowledge || buildKnowledgeWiki(knowledgeDocs);
 
