@@ -382,12 +382,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Knowledge (uploaded reference docs) -------------------------------
     // Storage: chrome.storage.local under 'knowledge' = { docs: [{id, name, size, addedAt, content}] }
-    const KNOWLEDGE_MAX_BYTES = 5 * 1024 * 1024 // ~5MB
     async function getKnowledge() {
         return new Promise(r => chrome.storage.local.get('knowledge', x => r(x.knowledge || { docs: [] })))
     }
     async function setKnowledge(k) {
-        return new Promise(r => chrome.storage.local.set({ knowledge: k }, r))
+        return new Promise((resolve, reject) => {
+            chrome.storage.local.set({ knowledge: k }, () => {
+                const err = chrome.runtime.lastError
+                if (err) return reject(new Error(err.message || 'Local storage capacity exceeded'))
+                resolve()
+            })
+        })
     }
     function bytesOf(s) { return new Blob([s || '']).size }
     function totalBytes(k) { return (k.docs || []).reduce((n, d) => n + bytesOf(d.content), 0) }
@@ -443,7 +448,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const id = btn.getAttribute('data-knowledge-delete')
                 const cur = await getKnowledge()
                 cur.docs = (cur.docs || []).filter(d => d.id !== id)
-                await setKnowledge(cur)
+                try {
+                    await setKnowledge(cur)
+                } catch (err) {
+                    alert(`Could not update knowledge library — browser storage is full or unavailable: ${err.message || err}`)
+                }
                 refreshKnowledge()
             })
         })
@@ -463,10 +472,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     const content = await readFileAsText(f)
                     if (!content.trim()) { alert(`Skipping ${f.name} \u2014 empty`); continue }
-                    if (totalBytes(cur) + bytesOf(content) > KNOWLEDGE_MAX_BYTES) {
-                        alert(`Skipping ${f.name} \u2014 would exceed 5 MB total cap`)
-                        continue
-                    }
                     const doc = {
                         id: `k-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                         name: f.name,
@@ -480,7 +485,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     alert(`Failed to read ${f.name}: ${err.message || err}`)
                 }
             }
-            await setKnowledge(cur)
+            try {
+                await setKnowledge(cur)
+            } catch (err) {
+                alert(`Could not save knowledge library — browser storage is full or unavailable: ${err.message || err}`)
+            }
             knowledgeUpload.value = ''
             refreshKnowledge()
         })
