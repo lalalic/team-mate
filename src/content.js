@@ -17,7 +17,7 @@ const { getPremiumStatus } = require("./premium")
 async function init() {
     const transcripts = []
     const conversation = []
-    const observer = new MutationObserver(checkStatus)
+    const observer = new MutationObserver(() => checkStatus())
     let observed = null, enabled = false, startTime = null, containerObserver = null, meetingName = ""
     let _ui = null
     let _confHandler = null
@@ -121,6 +121,7 @@ async function init() {
     // ── Meeting lifecycle ─────────────────────────────────────────────────
     let observerOnIframe = false
     let _endPollTimer = null
+    let _lifecyclePollTimer = null
 
     function checkStatus() {
         const liveCaptionOnId = '#captions-settings-menu-trigger-button, #captions-settings-menu-trigger-button-non-overflow'
@@ -433,6 +434,13 @@ async function init() {
     }).observe(document.body, { attributes: true, attributeFilter: ['data-inject-caption'] })
 
     observer.observe(observed = document, { childList: true, subtree: true })
+
+    // Teams can transition into an active call without producing a childList
+    // mutation that reaches this observer (and the extension can be reloaded
+    // while a call is already active). Probe once immediately, then keep a
+    // cheap lifecycle fallback so the rail does not depend on Teams DOM churn.
+    checkStatus()
+    _lifecyclePollTimer = setInterval(checkStatus, 1000)
 }
 
 // Guard: content_scripts run in all_frames, but sandboxed/cross-origin child
