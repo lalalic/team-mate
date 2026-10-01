@@ -73,6 +73,64 @@ The package is not submitted. A prepared build is not release evidence.
 No review state is claimed. No draft submission is claimed. Public availability
 of exact version `4.4.9` remains **not verified**.
 
+## Attempt v3 — current-head release preflight (2026-10-01)
+
+**Task:** `public-release-4-4-9-v3`
+**Candidate head:** `autonomous/market-revenue-v2` @
+`9da69fc10c9f52294d16f9821dea35d526478193`
+**Candidate version:** `4.5.6` (resolved from both `package.json` and
+`extension/manifest.json` at the current head)
+**Release state:** `blocked_before_submission`
+
+### Candidate and package evidence
+
+- `npm test` passed: 32 focused assertions, 4 configuration checks, and the
+  feedback, Premium, and meeting-file checks.
+- `npm run build` passed after installing the lockfile dependencies.
+- `npm run verify:release` passed for the safe unconfigured path; the bundle
+  contains no Stripe secret material.
+- `team-mate.zip` passed ZIP integrity validation, contains manifest version
+  `4.5.6`, and has SHA-256
+  `15dc1e0980afa14ee58696de303943f48be86294674fe7a447cb7309c9ffa0aa`.
+- The approved Market Package and two approved screenshots are present, but
+  they are explicitly versioned and reviewed as `4.4.9`; no approved
+  `4.5.6` Market Package was supplied. The Release Agent does not rewrite or
+  re-approve Market content.
+
+### Fresh external observations
+
+- `https://github.com/lalalic/team-mate` returned HTTP 200.
+- The repository privacy and support destinations returned HTTP 200:
+  `https://github.com/lalalic/team-mate/blob/main/www/privacy.html` and
+  `https://github.com/lalalic/team-mate/blob/main/www/support.html`.
+- The public Chrome Web Store item
+  `https://chromewebstore.google.com/detail/immkojolaicdjhkbbhkldmndhfjbehmf`
+  returned HTTP 200 but resolved to the legacy listing title and embedded
+  version `4.2.0`, not the current candidate `4.5.6`.
+- The publisher dashboard redirected to Google account confirmation for
+  `lalalic@gmail.com` and displayed “Verify it’s you”. No authenticated
+  publisher session was available. No upload, listing update, draft save, or
+  review submission was attempted.
+
+### Stripe evidence boundary
+
+The durable Job/PR planning record states that production one-time and weekly
+Payment Links, the `team-mate` entitlement binding, and the worknode `4.5.6`
+setup were completed upstream. This worker did not receive the Payment Link
+variables, so it built only the safe unconfigured artifact and does not claim
+that this local ZIP is the configured production payment build. The current
+source binds entitlement checks to `https://stripe.qili2.com` with product
+`team-mate`; no secret or Payment Link value is recorded here.
+
+### Terminal result
+
+No publication, approval, review state, public exact-version availability, or
+revenue is claimed. The release remains blocked by owner-controlled Google
+publisher verification/MFA and by the absence of an approved market package
+matching the current `4.5.6` candidate. The previously approved `4.4.9`
+screenshots remain available as Market evidence but are not represented as
+`4.5.6` publication evidence.
+
 ## Attempt v2 — current-head preflight (2026-09-30)
 
 **Task:** `public-release-4-4-9-v2`
