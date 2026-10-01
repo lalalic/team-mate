@@ -1,6 +1,6 @@
 # MeetMate Market Package — candidate 4.5.6
 
-**Package status:** refreshed evidence-backed content package for release review. This package is grounded in PR #6 head `521218e6d09137b0e0ae3ecdb7909ca81ccc6332` and the files present in that exact checkout. It does not claim public availability, store approval, installs, users, revenue, or successful payment conversion.
+**Package status:** refreshed evidence-backed content package for release review. This package is grounded in PR #6 head `098054ee5ac8de9c6ef60b9066a1e4a381ef853f` and the files present in that exact checkout. It does not claim public availability, store approval, installs, users, revenue, or successful payment conversion.
 
 **Product:** MeetMate Chrome extension for Microsoft Teams
 **Audience:** Teams participants who need a concise, private answer while a meeting is still happening.
@@ -106,7 +106,7 @@ These should use synthetic names and text only. They are listing media, not proo
 | Two Premium purchase paths and product-bound entitlement exist | PR #6 commits `9142fe7`, `57db8e5`, `c65af6e`; `README.md:56-61,134-142,232-234`; `src/background.js`; `src/premium-state.js`. No secret is claimed or included. |
 | Transcript export is VTT on Leave | `README.md:54-55,118-122`; `src/background.js`; `src/meeting-files.js` in the feature history. |
 | Homepage, privacy, and support destinations | `www/index.html`; `www/privacy.html`; `www/support.html`; current repository URL above. |
-| Candidate version and package identity | `package.json:3`; `extension/manifest.json:2`; PR #6 head `521218e6d09137b0e0ae3ecdb7909ca81ccc6332`. |
+| Candidate version and package identity | `package.json:3`; `extension/manifest.json:2`; PR #6 head `098054ee5ac8de9c6ef60b9066a1e4a381ef853f`. |
 
 Rejected or deliberately omitted claims: public availability, store review/approval, install/user/revenue numbers, successful payment conversion, testimonials, meeting audio recording, bot participation, automatic summaries, server-side payment verification, and any exact feature claim that fails the candidate-integrity gate.
 
@@ -117,7 +117,7 @@ Rejected or deliberately omitted claims: public availability, store review/appro
 - [x] Multi-file Knowledge Chat, approximately 5 MB storage cap, and expanded-view messaging included with evidence boundaries.
 - [x] Homepage, privacy, and support destinations recorded as canonical repository destinations.
 - [x] Stale 4.4.9 media explicitly rejected for 4.5.6.
-- [x] Candidate-integrity gate: claims are limited to behavior observed in the exact `521218e6…` checkout; unmerged storage-cap-removal and same-name-replacement changes are not claimed.
+- [x] Candidate-integrity gate: claims are limited to behavior observed in the exact `098054e…` checkout; unmerged storage-cap-removal and same-name-replacement changes are not claimed.
 - [ ] Fresh 4.5.6 screenshots produced and visually approved.
 - [ ] Fresh 4.5.6 demo video produced and approved.
 - [ ] Configured dual-Link production build and successful checkout redirects verified by Release Agent.
@@ -137,4 +137,11 @@ Rejected or deliberately omitted claims: public availability, store review/appro
 
 ## Exact handoff to Release Agent
 
-Use the copy and claim map above for the exact `521218e6…` release candidate. Before submission, validate the configured dual-Link build, verify the no-secret bundle, use fresh 4.5.6 media, and independently verify the store listing and public version. The package does not establish public availability, revenue, or payment conversion. If the intended product includes browser-capacity storage or same-name replacement, those changes must land and be re-reviewed before publishing those claims.
+Use the copy and claim map above for the exact `098054e…` release candidate. Before submission, validate the configured dual-Link build, verify the no-secret bundle, use fresh 4.5.6 media, and independently verify the store listing and public version. The package does not establish public availability, revenue, or payment conversion. If the intended product includes browser-capacity storage or same-name replacement, those changes must land and be re-reviewed before publishing those claims.
+
+## Current verification record
+
+- Repository checkout verified at `098054ee5ac8de9c6ef60b9066a1e4a381ef853f`; package and extension manifest both report `4.5.6`.
+- `npm test` passed: 32 focused-helper checks, 4 configuration checks, feedback-entry checks, Premium-state checks, and meeting-file checks.
+- The source still contains `KNOWLEDGE_MAX_BYTES = 5 * 1024 * 1024` and rejects uploads over the total cap (`src/setup.js:389,459-460`). The requested removal of that artificial cap is therefore a release blocker/evidence gap, not an approved 4.5.6 claim.
+- Stripe paths are represented by the two build-time variables `STRIPE_ONE_TIME_PAYMENT_LINK` and `STRIPE_WEEKLY_PAYMENT_LINK`; this checkout contains no payment secrets. Link configuration and successful checkout/entitlement redirects remain Release Agent verification items.
