@@ -78,8 +78,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ? `Premium active${premiumState.preview ? ' · local preview' : premiumState.purchaseMode === 'weekly' ? ' · 1.99$/week' : premiumState.purchaseMode === 'one_time' ? ' · 1.99$ one time' : ''}`
                 : (premiumState.configured ? 'Free plan · up to 3 shown shortcuts' : 'Payment not configured in this build · Free plan')
         }
-        if (premiumOneTime) premiumOneTime.style.display = (!paid && premiumState.configuredModes?.includes('one_time')) ? '' : 'none'
-        if (premiumWeekly) premiumWeekly.style.display = (!paid && premiumState.configuredModes?.includes('weekly')) ? '' : 'none'
+        if (premiumOneTime) {
+            premiumOneTime.style.display = paid ? 'none' : ''
+            premiumOneTime.disabled = !premiumState.configuredModes?.includes('one_time')
+            premiumOneTime.title = premiumOneTime.disabled ? 'Unavailable in this build.' : ''
+        }
+        if (premiumWeekly) {
+            premiumWeekly.style.display = paid ? 'none' : ''
+            premiumWeekly.disabled = !premiumState.configuredModes?.includes('weekly')
+            premiumWeekly.title = premiumWeekly.disabled ? 'Unavailable in this build.' : ''
+        }
         if (premiumStructuredReport) premiumStructuredReport.disabled = !paid
         if (premiumLogin) premiumLogin.style.display = (!paid && premiumState.configured) ? '' : 'none'
         if (premiumPreview) {
