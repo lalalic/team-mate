@@ -127,22 +127,31 @@ export function createUIController({ onAsk, onDelete, shortcuts = [] } = {}) {
         const entry = document.createElement("div");
         entry.id = id;
         entry.className = "mm-r-log-entry mm-r-kind-userask mm-r-clickable";
+        entry.tabIndex = 0;
+        entry.setAttribute("role", "button");
+        entry.setAttribute("aria-label", "Open this question and answer in a larger window");
         entry.dataset.kind = "USERASK";
         entry.innerHTML = `
             <div class="mm-r-log-row">
                 <span class="mm-r-log-icon" title="You asked">👤</span>
                 <span class="mm-r-log-text">${escapeHtml(q)}</span>
                 <span class="mm-r-entry-actions">
-                    <button class="mm-r-entry-button mm-r-expand" type="button" title="Expand answer" aria-label="Expand answer">⛶</button>
+                    <button class="mm-r-entry-button mm-r-expand" type="button" title="Open larger view" aria-label="Open larger view">⛶</button>
                     <button class="mm-r-entry-button mm-r-delete" type="button" title="Delete" aria-label="Delete this question and answer">×</button>
                 </span>
             </div>
             <div class="mm-r-log-detail"><em class="mm-r-loading">Thinking…</em></div>
         `;
-        const detailEl = entry.querySelector(".mm-r-log-detail");
-        entry.addEventListener("click", (ev) => {
-            ev.stopPropagation();
-            detailEl.style.display = detailEl.style.display === "none" ? "block" : "none";
+        const openExpanded = (event) => {
+            if (event.target.closest("button, details, summary")) return;
+            event.stopPropagation();
+            expandEntry(id, q);
+        };
+        entry.addEventListener("click", openExpanded);
+        entry.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            expandEntry(id, q);
         });
         entry.querySelector(".mm-r-expand").addEventListener("click", (event) => {
             event.stopPropagation();
