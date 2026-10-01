@@ -1,0 +1,26 @@
+{
+  "product": "MeetMate",
+  "source": {
+    "repository": "lalalic/team-mate",
+    "release": "v4.5.6",
+    "artifact": "https://github.com/lalalic/team-mate/releases/download/v4.5.6/team-mate.zip",
+    "artifact_sha256": "475927addb9a90cac300d9334ecbb6e80b0a301ee8f02225d78480df5f813e56",
+    "package_version": "4.5.6"
+  },
+  "target": {
+    "platform": "Chrome Web Store",
+    "publisher": "ai.qili2",
+    "requested_item": "MeetMate"
+  },
+  "observed": {
+    "state": "blocked",
+    "dashboard_url": "https://chrome.google.com/webstore/devconsole/",
+    "redirect_url": "https://accounts.google.com/v3/signin/confirmidentifier?authuser=0&continue=https://chrome.google.com/webstore/devconsole/",
+    "evidence": "Google displays 'Verify it’s you' for lalalic@gmail.com and requires signing in again before Chrome Web Store access. No upload or submission was performed.",
+    "exact_version_public_verification": false
+  },
+  "blocker": {
+    "type": "owner_authentication",
+    "required_action": "Owner must complete Google re-authentication/MFA in the existing browser session."
+  }
+}
