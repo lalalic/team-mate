@@ -14,9 +14,12 @@
   },
   "observed": {
     "state": "blocked",
-    "dashboard_url": "https://chrome.google.com/webstore/devconsole/",
-    "redirect_url": "https://accounts.google.com/v3/signin/confirmidentifier?authuser=0&continue=https://chrome.google.com/webstore/devconsole/",
-    "evidence": "Google displays 'Verify it’s you' for lalalic@gmail.com and requires signing in again before Chrome Web Store access. No upload or submission was performed.",
+    "dashboard_url": "https://chrome.google.com/webstore/devconsole/b6ef2f52-fb3e-4af5-bbbf-ad73d2b79348",
+    "redirect_url": "https://accounts.google.com/v3/signin/identifier?continue=https://chrome.google.com/webstore/devconsole/b6ef2f52-fb3e-4af5-bbbf-ad73d2b79348",
+    "public_url": "https://chromewebstore.google.com/detail/meetmate-%E2%80%94-live-facts-kno/immkojolaicdjhkbbhkldmndhfjbehmf",
+    "public_version": "4.2.0",
+    "public_users": 75,
+    "evidence": "Fresh browser evidence shows the publisher dashboard redirects to Google sign-in; the public MeetMate listing is reachable and reports version 4.2.0 with 75 users. No upload or submission was performed.",
     "exact_version_public_verification": false
   },
   "blocker": {
