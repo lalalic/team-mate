@@ -283,6 +283,37 @@ export function knowledgeChunk(text, size = 600, overlap = 100) {
  * Rank knowledge chunks against a query. Returns top-K hits as
  * `{ doc, chunk, score, snippet }`.
  */
+export function mergeKnowledgeDocs(existing = [], incoming = []) {
+    const byName = new Map();
+    for (const doc of Array.isArray(existing) ? existing : []) {
+        const name = String(doc?.name || "").trim();
+        if (name) byName.set(name.toLowerCase(), doc);
+    }
+    for (const doc of Array.isArray(incoming) ? incoming : []) {
+        const name = String(doc?.name || "").trim();
+        if (name) byName.set(name.toLowerCase(), doc);
+    }
+    return Array.from(byName.values());
+}
+
+export function buildKnowledgeAskMessages({ question, knowledgeWiki = "", preferredLanguage = "auto", customInstructions = "" } = {}) {
+    const q = String(question || "").trim();
+    const system = `You are MeetMate Knowledge, a private-document research assistant.
+
+KNOWLEDGE CATALOG (orientation only; not evidence):
+${String(knowledgeWiki || "(empty)")}
+
+RULES:
+1. The user's uploaded documents are the only knowledge source for document-specific facts.
+2. Use search_knowledge repeatedly with focused queries whenever needed. Broad synthesis requests usually require multiple searches.
+3. Search results are evidence. The catalog and filenames are not evidence and must not determine the semantic hierarchy of the answer.
+4. Organize the final answer by content and concepts, not by source filenames.
+5. Never invent unsupported facts. Say what could not be established when evidence is insufficient.
+6. Preferred language: ${String(preferredLanguage || "auto")}.
+${customInstructions ? `7. User instructions: ${String(customInstructions)}` : ""}`;
+    return [{ role: "system", content: system }, { role: "user", content: q }];
+}
+
 export function knowledgeSearch(docs, query, k = 5) {
     const qTokens = knowledgeTokenize(query);
     if (!qTokens.length) return [];

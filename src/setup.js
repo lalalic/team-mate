@@ -1,4 +1,4 @@
-const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels } = require("./util")
+const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, askKnowledge, mergeKnowledgeDocs } = require("./util")
 const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
 const { extractStripeSessionId } = require("./premium-state")
 
@@ -72,6 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     premiumRefresh?.addEventListener('click', async () => {
         premiumRefresh.disabled = true
         await refreshPremium({ force: true })
+        refreshKnowledge().catch(() => {})
         premiumRefresh.disabled = false
         renderShortcuts(normalizeShortcuts((await new Promise(r => chrome.storage.local.get('conf', x => r((x.conf || {}).shortcuts)) )) || null))
     })
@@ -79,6 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             premiumState = await setPremiumPreview(!(premiumState?.preview === true))
             renderPremiumState()
+            refreshKnowledge().catch(() => {})
             renderShortcuts(normalizeShortcuts((await new Promise(r => chrome.storage.local.get('conf', x => r((x.conf || {}).shortcuts)) )) || null))
         } catch (e) { alert(e?.message || String(e)) }
     })
@@ -399,11 +401,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const knowledgeList = document.querySelector('#knowledgeList')
     const knowledgeUpload = document.querySelector('#knowledgeUpload')
+    const knowledgeQuestion = document.querySelector('#knowledgeQuestion')
+    const knowledgeAsk = document.querySelector('#knowledgeAsk')
+    const knowledgeAnswer = document.querySelector('#knowledgeAnswer')
+    const knowledgePremiumNote = document.querySelector('#knowledgePremiumNote')
 
     // Uploads are local-only: the raw text is stored and TF-IDF retrieval runs
     // at ask time. No model call happens on upload.
     async function refreshKnowledge() {
         if (!knowledgeList) return
+        const paid = premiumState?.paid === true
+        if (knowledgeUpload) knowledgeUpload.disabled = !paid
+        if (knowledgeQuestion) knowledgeQuestion.disabled = !paid
+        if (knowledgeAsk) knowledgeAsk.disabled = !paid
+        if (knowledgePremiumNote) knowledgePremiumNote.style.display = paid ? 'none' : ''
         const k = await getKnowledge()
         const total = totalBytes(k)
         const totalKb = (total / 1024).toFixed(1)
@@ -420,7 +431,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div style="display:flex; align-items:center; gap:8px">
                     <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${esc(d.name)}</span>
                     <span style="font-size:11px; color:var(--muted)">${kb} KB</span>
-                    <button class="subtle" data-knowledge-delete="${esc(d.id)}">Remove</button>
+                    <button class="subtle" data-knowledge-delete="${esc(d.id)}" ${paid ? '' : 'disabled'}>Remove</button>
                 </div>
             </li>`)
         }
@@ -428,6 +439,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         knowledgeList.innerHTML = parts.join('')
         knowledgeList.querySelectorAll('[data-knowledge-delete]').forEach(btn => {
             btn.addEventListener('click', async () => {
+                if (premiumState?.paid !== true) return
                 const id = btn.getAttribute('data-knowledge-delete')
                 const cur = await getKnowledge()
                 cur.docs = (cur.docs || []).filter(d => d.id !== id)
@@ -438,6 +450,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (knowledgeUpload) {
         knowledgeUpload.addEventListener('change', async (e) => {
+            if (premiumState?.paid !== true) { alert('Knowledge Library is a Premium feature.'); knowledgeUpload.value = ''; return }
             const files = Array.from(e.target.files || [])
             if (!files.length) return
             const cur = await getKnowledge()
@@ -461,7 +474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         addedAt: Date.now(),
                         content,
                     }
-                    cur.docs.push(doc)
+                    cur.docs = mergeKnowledgeDocs(cur.docs, [doc])
                 } catch (err) {
                     console.warn('knowledge upload failed', f.name, err)
                     alert(`Failed to read ${f.name}: ${err.message || err}`)
@@ -470,6 +483,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             await setKnowledge(cur)
             knowledgeUpload.value = ''
             refreshKnowledge()
+        })
+    }
+    if (knowledgeAsk) {
+        knowledgeAsk.addEventListener('click', async () => {
+            if (premiumState?.paid !== true) { alert('Knowledge Chat is a Premium feature.'); return }
+            const q = String(knowledgeQuestion?.value || '').trim()
+            if (!q) return
+            knowledgeAsk.disabled = true
+            if (knowledgeAnswer) knowledgeAnswer.textContent = 'Searching knowledge…'
+            try {
+                const answer = await askKnowledge(q)
+                if (knowledgeAnswer) knowledgeAnswer.textContent = answer || '(no answer)'
+            } catch (err) {
+                if (knowledgeAnswer) knowledgeAnswer.textContent = err?.message || String(err)
+            } finally {
+                knowledgeAsk.disabled = premiumState?.paid !== true
+            }
         })
     }
     refreshKnowledge()

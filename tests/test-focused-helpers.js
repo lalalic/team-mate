@@ -16,6 +16,8 @@ import {
     formatTranscript,
     buildMeetingContextMessages,
     knowledgeSearch,
+    mergeKnowledgeDocs,
+    buildKnowledgeAskMessages,
     buildKnowledgeWiki,
     KNOWLEDGE_SEARCH_TOOL,
     formatKnowledgeToolResult,
@@ -93,6 +95,29 @@ test("normalizeShortcuts: unlimited by default, supports an explicit free-tier l
     assert.equal(normalizeShortcuts(many, { limit: 3 }).length, 3)
     const long = normalizeShortcuts([{ label: "x".repeat(60), prompt: "p" }])
     assert.equal(long[0].label.length, 24)
+})
+
+test("mergeKnowledgeDocs: same-name upload replaces stale content case-insensitively", () => {
+    const oldDoc = { id: "old", name: "Extreme.md", content: "old" }
+    const other = { id: "other", name: "Other.md", content: "keep" }
+    const fresh = { id: "new", name: "extreme.md", content: "fresh" }
+    const out = mergeKnowledgeDocs([oldDoc, other], [fresh])
+    assert.equal(out.length, 2)
+    assert.equal(out.find(d => d.name.toLowerCase() === "extreme.md").content, "fresh")
+    assert.equal(out.find(d => d.name === "Other.md").content, "keep")
+})
+
+test("buildKnowledgeAskMessages: knowledge-only prompt is independent of meeting context and filenames are not hierarchy", () => {
+    const messages = buildKnowledgeAskMessages({
+        question: "Create a three-level structure",
+        knowledgeWiki: "- Extreme-auth.md — topics: Auth",
+        preferredLanguage: "English",
+    })
+    assert.equal(messages.length, 2)
+    assert.equal(messages[1].content, "Create a three-level structure")
+    assert.ok(messages[0].content.includes("Use search_knowledge repeatedly"))
+    assert.ok(messages[0].content.includes("filenames are not evidence"))
+    assert.ok(!messages[0].content.includes("MEETING TRANSCRIPT"))
 })
 
 // ── formatTranscript ─────────────────────────────────────────────────────
