@@ -1,34 +1,19 @@
-# MeetMate Market Package v1
+# MeetMate Market Package — candidate 4.5.6
 
-**Package status:** approved market package for release review; fresh 4.4.9 store captures are included, while publication and Stripe configuration remain release-owned verification gaps.
+**Package status:** approved content package for release review, with a mandatory candidate-integrity gate. This package is grounded in PR #6 head `813b0a44562f197b4619956044d179be9c0e8790` and the current durable `main` feature evidence. It does not claim public availability, store approval, installs, users, revenue, or successful payment conversion.
 
 **Product:** MeetMate Chrome extension for Microsoft Teams
-**Reviewed product identity:** extension manifest version `4.4.9`, PR #6 head `7555d053ab975e0f064314cf0aab9eefdc523412` (resolved from GitHub before capture).
+**Audience:** Teams participants who need a concise, private answer while a meeting is still happening.
+**Candidate version:** `4.5.6` (`package.json`, `extension/manifest.json`)
 **Package owner:** Market Agent
-**Audience:** people who need a concise, private answer while a Teams meeting is still happening.
 
 ## Positioning
 
 ### One-line value statement
 
-MeetMate lets you ask a Microsoft Teams meeting what matters now and get a concise answer grounded in the live captions and reference material you chose to keep in your browser.
+MeetMate lets you ask a Microsoft Teams meeting what matters now and get a concise answer grounded in live captions and private reference material kept in your browser.
 
-### JTBD framing
-
-- **Who:** Individual meeting participants using Teams in Chrome who need to follow a fast discussion, respond clearly, or check a private brief without inviting a meeting bot.
-- **Why:** They need useful context in the moment, but do not want automatic AI interruptions, post-meeting-only notes, or a second person/bot in the call.
-- **Before:** They rely on memory, manual note-taking, a separate chat window, or a generic meeting recorder/summarizer; each adds context switching or answers after the moment has passed.
-- **How:** MeetMate captures Teams captions locally, lets the participant type an Ask or tap a configurable shortcut, and sends context only for that explicit request. Uploaded text/Markdown/JSON/CSV/HTML knowledge remains local until it is needed for an Ask.
-- **After:** The participant can get a short, meeting-readable answer, a suggested reply or question, and (when enabled) source/provenance context without changing the meeting flow.
-- **Alternatives:** Teams/Copilot or other tenant tools, meeting bots and note-takers, a second AI tab, or manual notes. MeetMate’s evidence-backed distinction is in-tab, ask-first Q&A with no bot joining the meeting; do not claim it replaces those products or has broader transcription coverage.
-
-### Positioning statement
-
-For Teams participants who need to think and respond in real time, MeetMate is an ask-first meeting copilot that turns the current caption stream and selected private reference material into concise, grounded answers. Unlike meeting bots and post-call summarizers, it runs in the participant’s Teams tab and does not call the model merely because a caption arrived.
-
-## Chrome Web Store copy
-
-### Title
+### Store title
 
 `MeetMate — Ask Your Meeting Anything`
 
@@ -38,122 +23,118 @@ For Teams participants who need to think and respond in real time, MeetMate is a
 
 ### Long description
 
-MeetMate is a grounded Q&A assistant for Microsoft Teams meetings. It runs in your Teams tab and helps you ask a question while the discussion is still happening.
+MeetMate is an ask-first Q&A assistant for Microsoft Teams meetings. It runs in your Teams tab so you can ask while the discussion is still happening.
 
 **ASK FIRST, STAY IN THE MEETING**
 
-MeetMate captures Teams live captions into a local transcript. Caption arrival does not call an AI model, generate suggestions, or start an autonomous loop. The model runs when you type an Ask or tap a shortcut.
+MeetMate captures Teams live captions into a local transcript. Caption arrival does not call an AI model or start an autonomous loop. The model runs when you type an Ask or tap a shortcut.
 
-**ANSWERS GROUNDED IN THE CONTEXT YOU CHOOSE**
+**GROUNDED ANSWERS**
 
-Each Ask can use the current meeting transcript and relevant material from your local Knowledge library. MeetMate keeps meeting speech and reference material distinct, is instructed not to invent unsupported facts, and can say when the available context does not support an answer.
+Each Ask can use the current transcript and relevant material from your private Knowledge library. The assistant keeps meeting speech and reference material distinct, avoids unsupported facts, and can say when the available context is insufficient.
 
-**A SMALL RAIL FOR LIVE QUESTIONS**
+**PRIVATE KNOWLEDGE CHAT**
 
-The default visible shortcuts are Reply, Current topic, and Question. Facts, Challenge, Decisions, Actions, My commitments, and Minutes are available in the shortcut library and can be shown or rewritten in Setup. Free users can show up to three shortcuts; Premium removes that shown-shortcut limit.
+Premium Knowledge Chat lets you ask questions across the documents you have imported. You can add multiple supported text/Markdown/JSON/CSV/HTML files, remove them, and replace a document by uploading a newer file with the same name. The library stays in browser storage and its capacity follows the browser instead of an artificial 5 MB product cap. Importing files does not itself make a model request.
 
-**BRING YOUR OWN KNOWLEDGE**
+**A SMALL RAIL, WITH A LARGER VIEW**
 
-Upload `.txt`, `.md`, `.json`, `.csv`, or `.html` reference files in Setup. Uploading stores the text locally and does not make a model request. When a question needs it, MeetMate can search the local library and use relevant passages.
+Use configurable shortcuts or type a free-form question. When an answer needs more room, open the question in MeetMate’s expanded view. Free users can show up to three shortcuts; Premium removes that shown-shortcut limit.
 
 **OPTIONAL PREMIUM**
 
-Premium is activated through the configured Stripe Payment Link. The implemented Premium boundary provides answer provenance, a structured end-of-meeting report, and unlimited shown shortcuts. MeetMate stores a successful Stripe Checkout session as a local entitlement; no Stripe secret is shipped in the extension. Pricing is intentionally omitted here until an owner-approved price is supplied.
+Production builds expose two Stripe-hosted choices: US$1.99 for a one-time 7-day pass or US$1.99/week recurring. Premium provides answer provenance, Knowledge Chat, a structured end-of-meeting report, and unlimited shown shortcuts. Checkout activation stores a local entitlement; no Stripe secret is shipped in the extension. Payment and entitlement status remain release-time verification items.
 
 **MEETING-READY DETAILS**
 
 - Works with Teams live captions; no meeting bot or audio recording is claimed.
 - Answers are designed to be short enough to read while someone else is talking.
 - The transcript can be exported as a `.vtt` file when the meeting ends.
-- Support and privacy links are supplied in the package manifest below.
+- Privacy and support destinations are the canonical repository pages listed below.
 
-MeetMate does not claim to summarize every meeting automatically, remember past meetings, or answer beyond the transcript and reference evidence available to the current Ask.
+MeetMate does not claim automatic summaries, cross-meeting memory, or answers beyond the transcript and reference evidence available to the current Ask.
 
 ## Target users and use cases
 
-1. **Participant preparing a response:** tap Reply to draft concise wording from the current discussion.
-2. **Participant orienting themselves:** ask what the current topic is or use Current topic to catch up.
-3. **Participant deciding what to ask next:** use Question to formulate a focused follow-up.
-4. **Participant checking a brief or spec:** upload local reference material and ask about it when relevant.
-5. **Participant needing a durable record:** export the captured caption transcript as VTT at Leave.
+1. **Preparing a response:** tap Reply to draft concise wording from the current discussion.
+2. **Getting oriented:** ask about the current topic or expand an answer for easier reading.
+3. **Checking a brief or spec:** import several local reference files and use Premium Knowledge Chat to query them together.
+4. **Managing changing docs:** replace or remove a local document without reconfiguring the meeting.
+5. **Keeping a record:** export the captured caption transcript as VTT when leaving.
 
 ## Release notes for users
 
-MeetMate 4.4.9 focuses the product on ask-first, grounded Q&A:
+MeetMate 4.5.6 adds a clearer Premium knowledge workflow and a more usable answer surface:
 
-- Capture Teams captions locally without triggering model calls on caption arrival.
-- Ask from the meeting rail or use configurable shortcuts.
-- Ground answers in the current transcript and optional local Knowledge.
-- Export the meeting transcript as VTT when you leave.
-- Use the Stripe-only Premium flow for provenance, structured reports, and unlimited shown shortcuts when configured.
+- Ask questions across a mutable, multi-file local Knowledge library.
+- Add, replace, and remove supported text-based reference files; storage follows browser capacity.
+- Open meeting answers in an expanded view when the in-meeting rail is too small.
+- Keep the ask-first boundary: captions alone never trigger a model call.
+- Use either the US$1.99 one-time 7-day pass or US$1.99/week recurring Premium path when configured.
 
 ## Screenshot and media plan
 
-Fresh 4.4.9 store captures were produced from the current product UI surfaces using synthetic meeting/document content. They contain no real meeting content, provider/account details, API keys, Checkout session IDs, or confidential documents. The capture fixture is retained at `scripts/store-media-fixture.html` for review provenance; it uses the current rail language, setup labels, and versioned product claims from the checkout.
+The existing `4.4.9` captures and fixture are historical evidence only and must not be submitted as 4.5.6 media. A fresh capture set is required after the candidate-integrity gate is cleared.
 
-Approved captures:
+Required 1280×800 synthetic captures:
 
-1. **Ask in context** — `www/screenshots/meetmate-4.4.9-ask-in-context.png` (1280×800). Synthetic Teams-style meeting canvas, live captions, MeetMate rail, shortcuts, typed question, concise grounded answer, and “Capturing locally” state. Caption: “Ask while the meeting is happening; the answer stays in the rail.”
-2. **Knowledge and shortcuts** — `www/screenshots/meetmate-4.4.9-knowledge-shortcuts.png` (1280×800). Setup surface showing local `rollout-brief.md`, the no-request-on-import boundary, Premium boundary, editable shortcut prompts, and the three-shortcut free-plan limit. Caption: “Shape one-tap questions and use your own reference material without uploading it on import.”
+1. **Ask and expanded answer** — Teams-style meeting canvas with local-capture status, a concise answer in the rail, and the expanded-answer view open. Caption: “Ask in the meeting, then open the answer when you need more room.”
+2. **Knowledge Chat and mutable library** — Setup showing multiple local documents, replace/remove controls, the browser-capacity wording, Knowledge Chat, and Premium state. Caption: “Query the private library you manage in your browser.”
+3. **Premium choices** — Setup showing the one-time 7-day and weekly recurring choices, with no secret, session ID, or claim of completed payment. Caption: “Choose the Premium path that fits this meeting workflow.”
 
-These are listing-ready marketing captures of the current UI, not proof of a live Teams session or public availability. A full runtime demo video remains pending because the current environment does not provide a controllable Teams meeting session; the Release Agent must not present the old demo as 4.4.9 evidence.
-
-### Demo brief
-
-Create a new demo video for 4.4.9. Required flow: install/setup → turn on Teams captions → show no request on caption arrival → type Ask → show grounded answer → open Knowledge/Shortcuts → optionally show Premium controls. Do not reuse the old demo as release evidence. New screenshot and video approval is **pending**.
+These should use synthetic names and text only. They are listing media, not proof of a live Teams session, publication, or revenue. A runtime demo video remains pending because no controllable Teams meeting session is available; do not reuse the old video as 4.5.6 evidence.
 
 ## CTA and destinations
 
 - **Primary CTA:** `Install MeetMate free for Chrome`.
 - **Secondary CTA:** `Ask your first meeting question`.
-- **Homepage / public product destination:** `https://github.com/lalalic/team-mate`.
-- **Chrome Web Store destination configured in source:** `https://chromewebstore.google.com/detail/immkojolaicdjhkbbhkldmndhfjbehmf` (listing/version not verified here).
-- **Privacy destination:** `https://github.com/lalalic/team-mate` (repository page is the canonical public destination for this release).
-- **Support destination:** `https://github.com/lalalic/team-mate` (repository page is the canonical public destination for this release).
-- **Payment destination:** configured at build time through `STRIPE_PAYMENT_LINK`; do not publish a placeholder or claim that checkout is live until the release agent verifies the configured production build.
+- **Homepage/public product destination:** `https://github.com/lalalic/team-mate` (repository page; reachability observed, publication status not inferred).
+- **Chrome Web Store destination:** `https://chromewebstore.google.com/detail/immkojolaicdjhkbbhkldmndhfjbehmf` (listing/version not verified in this task).
+- **Privacy destination:** `https://github.com/lalalic/team-mate`.
+- **Support destination:** `https://github.com/lalalic/team-mate`.
+- **Payment destinations:** configured at release build time through `STRIPE_ONE_TIME_PAYMENT_LINK` and `STRIPE_WEEKLY_PAYMENT_LINK`; never publish placeholders or claim checkout is live without release verification.
 
 ## Claim-to-evidence map
 
-| Material claim | Evidence in reviewed checkout |
+| Material claim | Evidence and boundary |
 | --- | --- |
-| Teams captions are captured locally and caption arrival does not call the model | `README.md:11-21,35-53`; `src/util.js:1-4`; focused tests cover zero-call caption behavior in `README.md:204-210` |
-| Ask and shortcut actions produce grounded answers from meeting context | `README.md:23-33,40-47`; `src/focused.js:191-242,389-447`; `src/util.js:233-283` |
-| Knowledge imports are local and supported file types are bounded | `README.md:50-53`; `extension/setup.html:263-285`; `src/setup.js:382-471` |
-| Default visible shortcuts and free/Premium limit | `src/focused.js:16-65`; `extension/setup.html:252-258`; `docs/premium-publishing-plan.md:63-79` |
-| Transcript export is VTT on Leave | `README.md:54-55,118-122`; `src/background.js:96-117` |
-| Premium is Stripe-only, with local soft entitlement and no Stripe secret in the bundle | `README.md:56-61`; `src/background.js:1-47`; `src/premium-state.js:1-36`; `docs/premium-publishing-plan.md:43-60` |
-| Privacy/support wording and configured destinations | `www/index.html:105-110,211-218`; `www/privacy.html:35-45`; `www/support.html:24-39` |
-| Reviewed release identity | `extension/manifest.json:1-5`; GitHub PR #6 head `7555d053ab975e0f064314cf0aab9eefdc523412` |
-| Fresh store captures | `scripts/store-media-fixture.html`; `www/screenshots/meetmate-4.4.9-ask-in-context.png`; `www/screenshots/meetmate-4.4.9-knowledge-shortcuts.png`; synthetic-only content and 1280×800 dimensions |
+| Captions are captured locally and do not trigger model calls | `README.md:11-21,35-53`; `src/content.js`; `src/util.js`; focused tests. |
+| Ask and shortcut actions produce grounded answers | `README.md:23-47`; `src/focused.js`; `src/util.js`. |
+| Premium Knowledge Chat supports multiple mutable local files | Current durable `main` feature commits `0033334`/`e4b8d71`; `src/setup.js` on `origin/main` lines 410-514; candidate-integrity gate below. |
+| The artificial 5 MB cap is removed and storage follows browser capacity | Current durable `main` commits `dd233a8`/`a8a0317`; `src/setup.js` on `origin/main` lines 388-489; candidate-integrity gate below. |
+| Answers can open in a larger view | Current durable `main` commits `b7b415e`/`3cbfa95`; `src/ui-controller.js` on `origin/main` lines 132-205; candidate-integrity gate below. |
+| Two Premium purchase paths and product-bound entitlement exist | PR #6 commits `9142fe7`, `57db8e5`, `c65af6e`; `README.md:56-61,134-142,232-234`; `src/background.js`; `src/premium-state.js`. No secret is claimed or included. |
+| Transcript export is VTT on Leave | `README.md:54-55,118-122`; `src/background.js`; `src/meeting-files.js` in the feature history. |
+| Homepage, privacy, and support destinations | `www/index.html`; `www/privacy.html`; `www/support.html`; current repository URL above. |
+| Candidate version | `package.json:3`; `extension/manifest.json:2`; PR #6 head `813b0a44562f197b4619956044d179be9c0e8790`. |
 
-Rejected or deliberately omitted claims: public availability, install/user/revenue numbers, review state, a specific price, subscription/lifetime terms, customer testimonials, automatic meeting summaries/minutes, audio recording, bot participation, server-side payment verification, and any feature not backed by the map above.
+Rejected or deliberately omitted claims: public availability, store review/approval, install/user/revenue numbers, successful payment conversion, testimonials, meeting audio recording, bot participation, automatic summaries, server-side payment verification, and any exact feature claim that fails the candidate-integrity gate.
 
 ## Completeness and handoff checklist
 
-- [x] Product title, subtitle/short description, long description, positioning, users, use cases, CTA, release notes.
-- [x] Current shortcut defaults and Premium boundary reconciled against implementation.
-- [x] Claim-to-evidence map and rejected-claim list included.
-- [x] Homepage, privacy, and support use the canonical GitHub repository page.
-- [x] Screenshot narrative and safe capture instructions prepared.
-- [x] New 4.4.9 product UI captures produced and visually reviewed; synthetic-content limitation recorded.
-- [ ] New 4.4.9 demo video produced and visually approved.
-- [x] Canonical GitHub repository page reachability verified; Chrome Web Store listing exact-version verification remains required.
-- [ ] Configured Stripe production build and successful checkout redirect verified.
-- [ ] Exact public extension version 4.4.9 verified after publication.
-- [x] `package.json`, `package-lock.json`, and the extension manifest all report release version 4.4.9.
+- [x] Title, short/long description, positioning, users, use cases, CTA, and release notes.
+- [x] Current candidate version and dual Stripe pricing language reconciled without exposing secrets.
+- [x] Premium Knowledge Chat, mutable multi-file library, browser-capacity storage, and expanded-view messaging included with evidence boundaries.
+- [x] Homepage, privacy, and support destinations recorded as canonical repository destinations.
+- [x] Stale 4.4.9 media explicitly rejected for 4.5.6.
+- [ ] Candidate-integrity gate: merge or otherwise verify feature commits `0033334`, `dd233a8`, and `b7b415e` are present in the exact release candidate before using those claims in store copy.
+- [ ] Fresh 4.5.6 screenshots produced and visually approved.
+- [ ] Fresh 4.5.6 demo video produced and approved.
+- [ ] Configured dual-Link production build and successful checkout redirects verified by Release Agent.
+- [ ] Exact public extension version and listing state verified after publication.
 
 ## Package manifest
 
 | Artifact | Status | Downstream use |
 | --- | --- | --- |
-| `.specs/market-package-v1.md` | **Approved content package** | Release listing copy, claim review, launch preparation |
-| `package.json`, `package-lock.json`, and `extension/manifest.json` version 4.4.9 | **Reviewed source fact** | Release version identity; verify exact published version |
-| `www/index.html`, `www/privacy.html`, `www/support.html` | **Existing, not publication-verified** | Homepage/privacy/support destinations |
-| `www/team-mate-demo.mp4` | **Pending visual QA; not approved as 4.4.9 evidence** | Optional demo asset only |
-| `www/screenshots/logo-128.png` | **Existing logo, not feature screenshot** | Site poster/icon only; not a store screenshot |
-| `www/screenshots/meetmate-4.4.9-ask-in-context.png` | **Approved market capture; synthetic content** | Chrome Web Store screenshot 1 |
-| `www/screenshots/meetmate-4.4.9-knowledge-shortcuts.png` | **Approved market capture; synthetic content** | Chrome Web Store screenshot 2 |
+| `.specs/market-package-v1.md` | **Updated content package** | Release listing copy, claim review, and handoff gates |
+| `package.json`, `package-lock.json`, `extension/manifest.json` | **Candidate version 4.5.6; source fact** | Release version identity |
+| `www/index.html`, `www/privacy.html`, `www/support.html` | **Existing; public publication not verified** | Homepage/privacy/support destinations |
+| `www/screenshots/meetmate-4.4.9-ask-in-context.png` | **Historical; not approved for 4.5.6** | Do not submit |
+| `www/screenshots/meetmate-4.4.9-knowledge-shortcuts.png` | **Historical; not approved for 4.5.6** | Do not submit |
+| `scripts/store-media-fixture.html` | **Historical 4.4.9 fixture; refresh required** | Source for fresh synthetic captures only |
+| `www/team-mate-demo.mp4` | **Pending; not approved as 4.5.6 evidence** | Optional demo asset only |
 
 ## Exact handoff to Release Agent
 
-Use this package as the source of listing copy, claims, and the two approved 4.4.9 UI captures. Before submission, validate the configured Stripe build without exposing secrets, reconcile the package/manifest version decision, use the canonical repository page for public homepage/privacy/support, and publish only after exact version `4.4.9` and actual store availability can be observed. A new runtime demo video remains optional/pending; do not reuse the old video as 4.4.9 evidence. Do not infer public availability, revenue, or payment conversion from this package.
+Use the copy and claim map above only after the candidate-integrity gate is resolved. First verify that the feature commits represented in the package are included in the exact 4.5.6 release candidate; if not, remove those claims or update the candidate. Then validate the configured dual-Link build, verify the no-secret bundle, use fresh 4.5.6 media, and independently verify the store listing and public version. The package does not establish public availability, revenue, or payment conversion.
