@@ -18,6 +18,7 @@ import {
     knowledgeSearch,
     mergeKnowledgeDocs,
     buildKnowledgeReorganizeMessages,
+    buildKnowledgeQATestMessages,
     buildKnowledgeWiki,
     KNOWLEDGE_SEARCH_TOOL,
     formatKnowledgeToolResult,
@@ -131,6 +132,19 @@ test("buildKnowledgeReorganizeMessages: fixed prompt rebuilds current user knowl
     assert.ok(messages[1].content.includes("Passkeys are mandatory"));
     assert.ok(messages[1].content.includes("structural continuity only"));
     assert.ok(!messages[0].content.includes("extreme-auth.md"));
+})
+
+test("buildKnowledgeQATestMessages: user input tests current knowledge without meeting context", () => {
+    const messages = buildKnowledgeQATestMessages({
+        question: "What authentication method does Extreme use?",
+        knowledgeWiki: "## Authentication\n- SSO is supported.",
+        preferredLanguage: "English",
+    })
+    assert.equal(messages.length, 2)
+    assert.equal(messages[1].content, "What authentication method does Extreme use?")
+    assert.ok(messages[0].content.includes("Use search_knowledge"))
+    assert.ok(messages[0].content.includes("current uploaded knowledge library"))
+    assert.ok(!messages[0].content.includes("MEETING TRANSCRIPT"))
 })
 
 // ── formatTranscript ─────────────────────────────────────────────────────

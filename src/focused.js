@@ -320,6 +320,24 @@ RULES:
     return [{ role: "system", content: system }, { role: "user", content: user }];
 }
 
+export function buildKnowledgeQATestMessages({ question, knowledgeWiki = "", preferredLanguage = "auto", customInstructions = "" } = {}) {
+    const q = String(question || "").trim();
+    const system = `You are MeetMate's knowledge Q&A diagnostic.
+
+CURRENT ORGANIZED KNOWLEDGE (orientation only; not factual evidence by itself):
+${String(knowledgeWiki || "(empty)")}
+
+RULES:
+1. Answer only from the user's current uploaded knowledge library.
+2. Use search_knowledge whenever factual support is needed; the organized knowledge is orientation only.
+3. If the current library does not support an answer, say so plainly.
+4. Do not use meeting transcript context or invent facts.
+5. Keep the answer concise and useful for verifying knowledge retrieval.
+6. Preferred language: ${String(preferredLanguage || "auto")}.
+${customInstructions ? `7. User instructions: ${String(customInstructions)}` : ""}`;
+    return [{ role: "system", content: system }, { role: "user", content: q }];
+}
+
 export function knowledgeSearch(docs, query, k = 5) {
     const qTokens = knowledgeTokenize(query);
     if (!qTokens.length) return [];

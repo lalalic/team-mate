@@ -18,6 +18,7 @@ import {
     knowledgeSearch,
     mergeKnowledgeDocs,
     buildKnowledgeReorganizeMessages,
+    buildKnowledgeQATestMessages,
     formatTranscript,
     formatMeetingTimeline,
     buildAskMessages,
@@ -37,6 +38,7 @@ export {
     knowledgeSearch,
     mergeKnowledgeDocs,
     buildKnowledgeReorganizeMessages,
+    buildKnowledgeQATestMessages,
     formatTranscript,
     formatMeetingTimeline,
     buildAskMessages,
@@ -225,6 +227,24 @@ export async function reorganizeKnowledge({ signal } = {}) {
         maxSearches: 10,
         maxRounds: 10,
     });
+    return String(response?.choices?.[0]?.message?.content || "").trim();
+}
+
+export async function testKnowledgeQnA(question, { signal } = {}) {
+    const q = String(question || "").trim();
+    if (!q) return "";
+    const conf = (await getConf()) || {};
+    const state = await getKnowledgeState();
+    const docs = Array.isArray(state.docs) ? state.docs : [];
+    if (!docs.length) throw new Error("Upload at least one knowledge document first.");
+    const organized = state.organizedStatus === "ready" ? String(state.organized || "").trim() : "";
+    const messages = buildKnowledgeQATestMessages({
+        question: q,
+        knowledgeWiki: organized || buildKnowledgeWiki(docs),
+        preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
+        customInstructions: conf.customInstructions || "",
+    });
+    const { response } = await completeWithKnowledgeTool(messages, signal, true, { maxSearches: 4, maxRounds: 5 });
     return String(response?.choices?.[0]?.message?.content || "").trim();
 }
 
