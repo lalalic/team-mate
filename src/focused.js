@@ -296,22 +296,28 @@ export function mergeKnowledgeDocs(existing = [], incoming = []) {
     return Array.from(byName.values());
 }
 
-export function buildKnowledgeAskMessages({ question, knowledgeWiki = "", preferredLanguage = "auto", customInstructions = "" } = {}) {
-    const q = String(question || "").trim();
-    const system = `You are MeetMate Knowledge, a private-document research assistant.
+export function buildKnowledgeReorganizeMessages({ previousKnowledge = "", preferredLanguage = "auto" } = {}) {
+    const previous = String(previousKnowledge || "").trim();
+    const system = `You are MeetMate's knowledge organizer.
 
-KNOWLEDGE CATALOG (orientation only; not evidence):
-${String(knowledgeWiki || "(empty)")}
+Rebuild the user's organized knowledge from the COMPLETE CURRENT uploaded knowledge library.
 
 RULES:
-1. The user's uploaded documents are the only knowledge source for document-specific facts.
-2. Use search_knowledge repeatedly with focused queries whenever needed. Broad synthesis requests usually require multiple searches.
-3. Search results are evidence. The catalog and filenames are not evidence and must not determine the semantic hierarchy of the answer.
-4. Organize the final answer by content and concepts, not by source filenames.
-5. Never invent unsupported facts. Say what could not be established when evidence is insufficient.
-6. Preferred language: ${String(preferredLanguage || "auto")}.
-${customInstructions ? `7. User instructions: ${String(customInstructions)}` : ""}`;
-    return [{ role: "system", content: system }, { role: "user", content: q }];
+1. Current uploaded documents are the only factual source of truth.
+2. Use search_knowledge repeatedly with focused queries until you have enough coverage to rebuild the knowledge.
+3. Previous organized knowledge, when supplied, is only a structure/continuity hint. It is NOT factual evidence.
+4. Drop anything from previous organized knowledge that is no longer supported by the current uploaded documents.
+5. Merge duplicates and reconcile overlapping material.
+6. Organize by concepts and content, never by filenames or upload order.
+7. Preserve important concrete names, decisions, constraints, APIs, dates, numbers, and definitions when supported.
+8. Never invent facts.
+9. Return only concise Markdown organized into a useful 2-3 level hierarchy.
+10. Preferred language: ${String(preferredLanguage || "auto")}.`;
+
+    const user = previous
+        ? `Reorganize the current knowledge library now. Here is the PREVIOUS organized knowledge for structural continuity only:\n\n<previous-organized-knowledge>\n${previous}\n</previous-organized-knowledge>`
+        : "Organize the current knowledge library now into a concise 2-3 level knowledge structure.";
+    return [{ role: "system", content: system }, { role: "user", content: user }];
 }
 
 export function knowledgeSearch(docs, query, k = 5) {

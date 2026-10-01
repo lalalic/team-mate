@@ -17,7 +17,7 @@ import {
     getShownShortcuts,
     knowledgeSearch,
     mergeKnowledgeDocs,
-    buildKnowledgeAskMessages,
+    buildKnowledgeReorganizeMessages,
     formatTranscript,
     formatMeetingTimeline,
     buildAskMessages,
@@ -36,7 +36,7 @@ export {
     getShownShortcuts,
     knowledgeSearch,
     mergeKnowledgeDocs,
-    buildKnowledgeAskMessages,
+    buildKnowledgeReorganizeMessages,
     formatTranscript,
     formatMeetingTimeline,
     buildAskMessages,
@@ -105,10 +105,14 @@ export async function getShortcuts() {
 // ── Knowledge ─────────────────────────────────────────────────────────────
 
 /** All uploaded knowledge docs: `{ docs: [{id, name, content, ...}] }`. */
-export async function getKnowledgeDocs() {
+export async function getKnowledgeState() {
     return new Promise((resolve) =>
-        chrome.storage.local.get("knowledge", (x) => resolve((x.knowledge && x.knowledge.docs) || []))
+        chrome.storage.local.get("knowledge", (x) => resolve(x.knowledge || { docs: [] }))
     );
+}
+
+export async function getKnowledgeDocs() {
+    return (await getKnowledgeState()).docs || [];
 }
 
 // Cache the ask system prompt (loaded from extension/agent-prompt.md) so the
@@ -207,19 +211,20 @@ async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, {
     return { response, knowledgeHits };
 }
 
-export async function askKnowledge(question, { signal } = {}) {
-    const q = String(question || "").trim();
-    if (!q) return "";
+export async function reorganizeKnowledge({ signal } = {}) {
     const conf = (await getConf()) || {};
-    const docs = await getKnowledgeDocs();
-    if (!docs.length) throw new Error("Upload at least one knowledge document first.");
-    const messages = buildKnowledgeAskMessages({
-        question: q,
-        knowledgeWiki: buildKnowledgeWiki(docs),
+    const state = await getKnowledgeState();
+    const docs = Array.isArray(state.docs) ? state.docs : [];
+    if (!docs.length) return "";
+
+    const messages = buildKnowledgeReorganizeMessages({
+        previousKnowledge: state.organized || "",
         preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
-        customInstructions: conf.customInstructions || "",
     });
-    const { response } = await completeWithKnowledgeTool(messages, signal, true, { maxSearches: 8, maxRounds: 8 });
+    const { response } = await completeWithKnowledgeTool(messages, signal, true, {
+        maxSearches: 10,
+        maxRounds: 10,
+    });
     return String(response?.choices?.[0]?.message?.content || "").trim();
 }
 
@@ -259,8 +264,12 @@ export async function askDetailed({ question, transcripts = [], conversation = [
     if (responseMode === "report") {
         systemPrompt += `\n\nREPORT MODE: Override the short live-answer style. Produce a concise but complete Markdown meeting report with these sections: Summary, Decisions, Actions, My commitments, Open questions, Risks. Use bullets. Include owner and due date only when stated. Do not invent missing items.`;
     }
-    const knowledgeDocs = await getKnowledgeDocs();
-    const knowledgeWiki = buildKnowledgeWiki(knowledgeDocs);
+    const knowledgeState = await getKnowledgeState();
+    const knowledgeDocs = Array.isArray(knowledgeState.docs) ? knowledgeState.docs : [];
+    const organizedKnowledge = knowledgeState.organizedStatus === "ready"
+        ? String(knowledgeState.organized || "").trim()
+        : "";
+    const knowledgeWiki = organizedKnowledge || buildKnowledgeWiki(knowledgeDocs);
 
     const { messages } = buildAskMessages({
         question: q,

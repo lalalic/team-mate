@@ -17,7 +17,7 @@ import {
     buildMeetingContextMessages,
     knowledgeSearch,
     mergeKnowledgeDocs,
-    buildKnowledgeAskMessages,
+    buildKnowledgeReorganizeMessages,
     buildKnowledgeWiki,
     KNOWLEDGE_SEARCH_TOOL,
     formatKnowledgeToolResult,
@@ -107,17 +107,30 @@ test("mergeKnowledgeDocs: same-name upload replaces stale content case-insensiti
     assert.equal(out.find(d => d.name === "Other.md").content, "keep")
 })
 
-test("buildKnowledgeAskMessages: knowledge-only prompt is independent of meeting context and filenames are not hierarchy", () => {
-    const messages = buildKnowledgeAskMessages({
-        question: "Create a three-level structure",
-        knowledgeWiki: "- Extreme-auth.md — topics: Auth",
+test("buildKnowledgeReorganizeMessages: fixed prompt rebuilds current user knowledge and drops unsupported stale facts", () => {
+    const uploaded = [
+        { id: "a1", name: "extreme-auth.md", content: "Users authenticate with passkeys. Admin access requires an organization role." },
+        { id: "b1", name: "extreme-api.md", content: "The public API uses OAuth 2.1 and rate limits requests per workspace." },
+    ];
+    const replaced = mergeKnowledgeDocs(uploaded, [
+        { id: "a2", name: "EXTREME-AUTH.md", content: "Users authenticate with SSO. Admin access requires an organization role." },
+    ]);
+    assert.equal(replaced.length, 2);
+    assert.equal(replaced.find(d => d.name.toLowerCase() === "extreme-auth.md").content.includes("SSO"), true);
+    assert.equal(replaced.some(d => d.content.includes("passkeys")), false);
+
+    const messages = buildKnowledgeReorganizeMessages({
+        previousKnowledge: "## Authentication\n- Passkeys are mandatory.\n## API\n- OAuth 2.1.",
         preferredLanguage: "English",
-    })
-    assert.equal(messages.length, 2)
-    assert.equal(messages[1].content, "Create a three-level structure")
-    assert.ok(messages[0].content.includes("Use search_knowledge repeatedly"))
-    assert.ok(messages[0].content.includes("filenames are not evidence"))
-    assert.ok(!messages[0].content.includes("MEETING TRANSCRIPT"))
+    });
+    assert.equal(messages.length, 2);
+    assert.ok(messages[0].content.includes("Current uploaded documents are the only factual source of truth"));
+    assert.ok(messages[0].content.includes("Use search_knowledge repeatedly"));
+    assert.ok(messages[0].content.includes("never by filenames"));
+    assert.ok(messages[0].content.includes("Drop anything"));
+    assert.ok(messages[1].content.includes("Passkeys are mandatory"));
+    assert.ok(messages[1].content.includes("structural continuity only"));
+    assert.ok(!messages[0].content.includes("extreme-auth.md"));
 })
 
 // ── formatTranscript ─────────────────────────────────────────────────────

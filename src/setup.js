@@ -1,4 +1,4 @@
-const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, askKnowledge, mergeKnowledgeDocs } = require("./util")
+const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, mergeKnowledgeDocs } = require("./util")
 const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
 const { extractStripeSessionId, extractStripePurchaseMode } = require("./premium-state")
 
@@ -412,19 +412,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const knowledgeList = document.querySelector('#knowledgeList')
     const knowledgeUpload = document.querySelector('#knowledgeUpload')
-    const knowledgeQuestion = document.querySelector('#knowledgeQuestion')
-    const knowledgeAsk = document.querySelector('#knowledgeAsk')
-    const knowledgeAnswer = document.querySelector('#knowledgeAnswer')
+    const knowledgeStatus = document.querySelector('#knowledgeStatus')
     const knowledgePremiumNote = document.querySelector('#knowledgePremiumNote')
 
-    // Uploads are local-only: the raw text is stored and TF-IDF retrieval runs
-    // at ask time. No model call happens on upload.
+    async function reorganizeCurrentKnowledge() {
+        const cur = await getKnowledge()
+        if (!(cur.docs || []).length) {
+            cur.organized = ''
+            cur.organizedStatus = 'empty'
+            delete cur.organizedError
+            cur.organizedAt = Date.now()
+            await setKnowledge(cur)
+            if (knowledgeStatus) knowledgeStatus.textContent = 'No organized knowledge yet.'
+            return
+        }
+        if (knowledgeStatus) knowledgeStatus.textContent = 'Reorganizing current knowledge…'
+        cur.organizedStatus = 'organizing'
+        await setKnowledge(cur)
+        try {
+            const organized = await reorganizeKnowledge()
+            const latest = await getKnowledge()
+            latest.organized = organized
+            latest.organizedStatus = 'ready'
+            delete latest.organizedError
+            latest.organizedAt = Date.now()
+            await setKnowledge(latest)
+            if (knowledgeStatus) knowledgeStatus.textContent = 'Knowledge organized from current files.'
+        } catch (err) {
+            const latest = await getKnowledge()
+            latest.organizedStatus = 'failed'
+            latest.organizedError = err?.message || String(err)
+            await setKnowledge(latest)
+            if (knowledgeStatus) knowledgeStatus.textContent = `Knowledge changed, but reorganization failed: ${latest.organizedError}`
+        }
+    }
+
+    // Raw files remain local. A model call happens only after the user explicitly
+    // changes the library, to rebuild the organized knowledge from current files.
     async function refreshKnowledge() {
         if (!knowledgeList) return
         const paid = premiumState?.paid === true
         if (knowledgeUpload) knowledgeUpload.disabled = !paid
-        if (knowledgeQuestion) knowledgeQuestion.disabled = !paid
-        if (knowledgeAsk) knowledgeAsk.disabled = !paid
         if (knowledgePremiumNote) knowledgePremiumNote.style.display = paid ? 'none' : ''
         const k = await getKnowledge()
         const total = totalBytes(k)
@@ -432,6 +460,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
         if (!k.docs.length) {
             knowledgeList.innerHTML = '<em style="color:var(--muted)">(no docs yet)</em>'
+            if (knowledgeStatus) knowledgeStatus.textContent = 'No organized knowledge yet.'
             return
         }
         const parts = [`<div style="font-size:12px; color:var(--muted); margin-bottom:6px">${k.docs.length} doc(s), ${totalKb} KB</div>`]
@@ -448,6 +477,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         parts.push('</ul>')
         knowledgeList.innerHTML = parts.join('')
+        if (knowledgeStatus) {
+            knowledgeStatus.textContent = k.organizedStatus === 'organizing'
+                ? 'Reorganizing current knowledge…'
+                : k.organizedStatus === 'failed'
+                    ? `Knowledge changed, but reorganization failed: ${k.organizedError || 'unknown error'}`
+                    : k.organized
+                        ? 'Knowledge organized from current files.'
+                        : 'Knowledge has not been organized yet.'
+        }
         knowledgeList.querySelectorAll('[data-knowledge-delete]').forEach(btn => {
             btn.addEventListener('click', async () => {
                 if (premiumState?.paid !== true) return
@@ -456,6 +494,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 cur.docs = (cur.docs || []).filter(d => d.id !== id)
                 try {
                     await setKnowledge(cur)
+                    await reorganizeCurrentKnowledge()
                 } catch (err) {
                     alert(`Could not update knowledge library — browser storage is full or unavailable: ${err.message || err}`)
                 }
@@ -493,28 +532,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             try {
                 await setKnowledge(cur)
+                await reorganizeCurrentKnowledge()
             } catch (err) {
                 alert(`Could not save knowledge library — browser storage is full or unavailable: ${err.message || err}`)
             }
             knowledgeUpload.value = ''
             refreshKnowledge()
-        })
-    }
-    if (knowledgeAsk) {
-        knowledgeAsk.addEventListener('click', async () => {
-            if (premiumState?.paid !== true) { alert('Knowledge Chat is a Premium feature.'); return }
-            const q = String(knowledgeQuestion?.value || '').trim()
-            if (!q) return
-            knowledgeAsk.disabled = true
-            if (knowledgeAnswer) knowledgeAnswer.textContent = 'Searching knowledge…'
-            try {
-                const answer = await askKnowledge(q)
-                if (knowledgeAnswer) knowledgeAnswer.textContent = answer || '(no answer)'
-            } catch (err) {
-                if (knowledgeAnswer) knowledgeAnswer.textContent = err?.message || String(err)
-            } finally {
-                knowledgeAsk.disabled = premiumState?.paid !== true
-            }
         })
     }
     refreshKnowledge()
