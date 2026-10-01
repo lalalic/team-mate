@@ -1,10 +1,42 @@
-const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, mergeKnowledgeDocs } = require("./util")
+const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, testKnowledgeQnA, mergeKnowledgeDocs } = require("./util")
 const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
 const { extractStripeSessionId, extractStripePurchaseMode } = require("./premium-state")
 
 document.addEventListener('DOMContentLoaded', async () => {
     const conf = await initSetupPage()
     const feedbackLink = document.querySelector('#feedbackLink')
+
+    const settingsTabs = Array.from(document.querySelectorAll('[data-settings-tab]'))
+    const settingsPanels = Array.from(document.querySelectorAll('[data-settings-panel]'))
+    function selectSettingsTab(name, { persist = true } = {}) {
+        const target = settingsTabs.some(tab => tab.dataset.settingsTab === name) ? name : 'general'
+        settingsTabs.forEach(tab => {
+            const active = tab.dataset.settingsTab === target
+            tab.classList.toggle('active', active)
+            tab.setAttribute('aria-selected', active ? 'true' : 'false')
+            tab.tabIndex = active ? 0 : -1
+        })
+        settingsPanels.forEach(panel => {
+            panel.hidden = panel.dataset.settingsPanel !== target
+        })
+        if (persist) chrome.storage.local.set({ settingsTab: target })
+    }
+    settingsTabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => selectSettingsTab(tab.dataset.settingsTab))
+        tab.addEventListener('keydown', (event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+            event.preventDefault()
+            let next = index
+            if (event.key === 'ArrowLeft') next = (index - 1 + settingsTabs.length) % settingsTabs.length
+            if (event.key === 'ArrowRight') next = (index + 1) % settingsTabs.length
+            if (event.key === 'Home') next = 0
+            if (event.key === 'End') next = settingsTabs.length - 1
+            const nextTab = settingsTabs[next]
+            selectSettingsTab(nextTab.dataset.settingsTab)
+            nextTab.focus()
+        })
+    })
+    chrome.storage.local.get('settingsTab', x => selectSettingsTab(x.settingsTab || 'general', { persist: false }))
     if (feedbackLink) {
         feedbackLink.href = 'https://github.com/lalalic/team-mate'
     }
@@ -413,6 +445,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const knowledgeList = document.querySelector('#knowledgeList')
     const knowledgeUpload = document.querySelector('#knowledgeUpload')
     const knowledgeStatus = document.querySelector('#knowledgeStatus')
+    const knowledgeTestQuestion = document.querySelector('#knowledgeTestQuestion')
+    const knowledgeTestBtn = document.querySelector('#knowledgeTestBtn')
+    const knowledgeTestAnswer = document.querySelector('#knowledgeTestAnswer')
     const knowledgePremiumNote = document.querySelector('#knowledgePremiumNote')
 
     async function reorganizeCurrentKnowledge() {
@@ -453,6 +488,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!knowledgeList) return
         const paid = premiumState?.paid === true
         if (knowledgeUpload) knowledgeUpload.disabled = !paid
+        if (knowledgeTestQuestion) knowledgeTestQuestion.disabled = !paid
+        if (knowledgeTestBtn) knowledgeTestBtn.disabled = !paid
         if (knowledgePremiumNote) knowledgePremiumNote.style.display = paid ? 'none' : ''
         const k = await getKnowledge()
         const total = totalBytes(k)
@@ -540,5 +577,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             refreshKnowledge()
         })
     }
+    if (knowledgeTestBtn) {
+        knowledgeTestBtn.addEventListener('click', async () => {
+            if (premiumState?.paid !== true) {
+                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = 'Premium required.'
+                return
+            }
+            const q = String(knowledgeTestQuestion?.value || '').trim()
+            if (!q) {
+                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = 'Enter a question to test.'
+                return
+            }
+            const cur = await getKnowledge()
+            if (!(cur.docs || []).length) {
+                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = 'Upload at least one knowledge document first.'
+                return
+            }
+            knowledgeTestBtn.disabled = true
+            if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = 'Testing Q&A…'
+            try {
+                const answer = await testKnowledgeQnA(q)
+                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = answer || '(no answer)'
+            } catch (err) {
+                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = err?.message || String(err)
+            } finally {
+                knowledgeTestBtn.disabled = premiumState?.paid !== true
+            }
+        })
+    }
+
     refreshKnowledge()
 })
