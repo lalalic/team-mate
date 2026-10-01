@@ -556,10 +556,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             cur.docs = cur.docs || []
             for (const f of files) {
                 try {
-                    if (/\.pdf$/i.test(f.name) || f.type === 'application/pdf') {
-                        alert(`Skipping ${f.name} \u2014 PDF text extraction not yet supported. Convert to .txt or .md first (try convertio.co).`)
-                        continue
-                    }
                     const content = await readFileAsText(f)
                     if (!content.trim()) { alert(`Skipping ${f.name} \u2014 empty`); continue }
                     const doc = {

@@ -291,15 +291,9 @@
                 <div class="row">
                     <label>Documents</label>
                     <div>
-                        <input type="file" id="knowledgeUpload"
-                            multiple
-                            accept=".txt,.md,.markdown,.json,.html,.csv,text/*"
-                        />
+                        <input type="file" id="knowledgeUpload" multiple />
                         <div class="hint" style="grid-column:auto">
-                            Plain text / markdown only (<code>.txt</code>, <code>.md</code>, <code>.json</code>, <code>.csv</code>, <code>.html</code>).
-                            For PDF / DOCX / PPT, convert first at
-                            <a href="https://convertio.co/" target="_blank" rel="noopener">convertio.co</a>
-                            (e.g. pdf&nbsp;→&nbsp;txt).
+                            Choose any file type. How well its content can be understood depends on the configured provider/model.
                             Stored locally in <code>chrome.storage.local</code>; capacity follows the browser's available extension storage.
                         </div>
                     </div>
