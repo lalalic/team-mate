@@ -1,6 +1,6 @@
 # MeetMate Market Package — candidate 4.5.6
 
-**Package status:** refreshed evidence-backed content package for release review. This package is grounded in PR #6 head `098054ee5ac8de9c6ef60b9066a1e4a381ef853f` and the files present in that exact checkout. It does not claim public availability, store approval, installs, users, revenue, or successful payment conversion.
+**Package status:** refreshed evidence-backed content package for release review. This package is aligned to PR #6 head `295d52bd8221660a1c139f173b759f6b4ada1e39` and the current mainline product behavior. The feature evidence includes the merged Knowledge Chat, browser-capacity local knowledge storage, and larger chat-bubble view changes (`0033334`, `dd233a8`, `b7b415e`). It does not claim public availability, store approval, installs, users, revenue, or successful payment conversion.
 
 **Product:** MeetMate Chrome extension for Microsoft Teams
 **Audience:** Teams participants who need a concise, private answer while a meeting is still happening.
@@ -35,7 +35,7 @@ Each Ask can use the current transcript and relevant material from your private 
 
 **PRIVATE KNOWLEDGE CHAT**
 
-Knowledge Chat lets you ask questions across the supported documents you have imported. You can add multiple text/Markdown/JSON/CSV/HTML files and remove them. The current candidate stores the library in browser storage and enforces an approximately 5 MB total content cap. Importing files does not itself make a model request.
+Knowledge Chat lets Premium users ask questions across the supported documents they have imported. They can add multiple text/Markdown/JSON/CSV/HTML files, replace a file with the same name, and remove files. The library is stored in browser storage; there is no artificial 5 MB application cap, and browser storage errors are surfaced if the available extension capacity is exhausted. Importing files does not itself make a model request.
 
 **A SMALL RAIL, WITH A LARGER VIEW**
 
@@ -67,7 +67,7 @@ MeetMate does not claim automatic summaries, cross-meeting memory, or answers be
 MeetMate 4.5.6 adds a clearer Premium knowledge workflow and a more usable answer surface:
 
 - Ask questions across a multi-file local Knowledge library.
-- Add and remove supported text-based reference files within the current approximately 5 MB total cap.
+- Add, replace, and remove supported text-based reference files without an artificial 5 MB application cap; actual browser storage capacity still applies.
 - Open meeting answers in an expanded view when the in-meeting rail is too small.
 - Keep the ask-first boundary: captions alone never trigger a model call.
 - Use either the US$1.99 one-time 7-day pass or US$1.99/week recurring Premium path when configured.
@@ -76,10 +76,10 @@ MeetMate 4.5.6 adds a clearer Premium knowledge workflow and a more usable answe
 
 The existing `4.4.9` captures and fixture are historical evidence only and must not be submitted as 4.5.6 media. A fresh capture set is required after the candidate-integrity gate is cleared.
 
-Required 1280×800 synthetic captures:
+Required 1280×800 synthetic captures for the current product behavior:
 
 1. **Ask and expanded answer** — Teams-style meeting canvas with local-capture status, a concise answer in the rail, and the expanded-answer view open. Caption: “Ask in the meeting, then open the answer when you need more room.”
-2. **Knowledge Chat and local library** — Setup showing multiple local documents, remove controls, the approximately 5 MB cap, Knowledge Chat, and Premium state. Caption: “Query the private library you manage in your browser.”
+2. **Knowledge Chat and local library** — Setup showing multiple local documents, same-name replacement/removal controls, browser-capacity storage wording, Knowledge Chat, and Premium state. Caption: “Query the private library you manage in your browser.”
 3. **Premium choices** — Setup showing the one-time 7-day and weekly recurring choices, with no secret, session ID, or claim of completed payment. Caption: “Choose the Premium path that fits this meeting workflow.”
 
 These should use synthetic names and text only. They are listing media, not proof of a live Teams session, publication, or revenue. A runtime demo video remains pending because no controllable Teams meeting session is available; do not reuse the old video as 4.5.6 evidence.
@@ -100,13 +100,13 @@ These should use synthetic names and text only. They are listing media, not proo
 | --- | --- |
 | Captions are captured locally and do not trigger model calls | `README.md:11-21,35-53`; `src/content.js`; `src/util.js`; focused tests. |
 | Ask and shortcut actions produce grounded answers | `README.md:23-47`; `src/focused.js`; `src/util.js`. |
-| Knowledge Chat searches multiple local files and upload does not call the model | `src/setup.js:387-481`; `src/util.js:103-203,242-280`; `src/focused.js:283-353,385-447`; `extension/setup.html:264-285`. The candidate enforces an approximately 5 MB total cap. |
-| The current candidate enforces an approximately 5 MB local knowledge cap | `src/setup.js:387-481`; `extension/setup.html:264-285`. Storage-cap removal is not present in this exact release candidate. |
-| The current answer surface can open a larger view | `src/ui-controller.js:166-205` and the corresponding `extension/content.css` overlay styles. |
+| Premium Knowledge Chat searches multiple local files, supports mutation, and upload does not call the model | Mainline feature commits `0033334` and `dd233a8`; `src/setup.js`; `src/util.js`; `src/focused.js`; `extension/setup.html`. |
+| Knowledge storage has no artificial 5 MB application cap | Mainline commit `dd233a8`; `src/setup.js` saves through `chrome.runtime.lastError` and `extension/setup.html` describes browser-available capacity. This is not a claim of unlimited browser storage. |
+| A chat bubble opens in a larger view | Mainline commit `b7b415e`; `src/ui-controller.js` adds the accessible larger-view interaction and overlay. |
 | Two Premium purchase paths and product-bound entitlement exist | PR #6 commits `9142fe7`, `57db8e5`, `c65af6e`; `README.md:56-61,134-142,232-234`; `src/background.js`; `src/premium-state.js`. No secret is claimed or included. |
 | Transcript export is VTT on Leave | `README.md:54-55,118-122`; `src/background.js`; `src/meeting-files.js` in the feature history. |
 | Homepage, privacy, and support destinations | `www/index.html`; `www/privacy.html`; `www/support.html`; current repository URL above. |
-| Candidate version and package identity | `package.json:3`; `extension/manifest.json:2`; PR #6 head `098054ee5ac8de9c6ef60b9066a1e4a381ef853f`. |
+| Candidate version and package identity | `package.json:3`; `extension/manifest.json:2`; PR #6 head `295d52bd8221660a1c139f173b759f6b4ada1e39`. |
 
 Rejected or deliberately omitted claims: public availability, store review/approval, install/user/revenue numbers, successful payment conversion, testimonials, meeting audio recording, bot participation, automatic summaries, server-side payment verification, and any exact feature claim that fails the candidate-integrity gate.
 
@@ -114,10 +114,10 @@ Rejected or deliberately omitted claims: public availability, store review/appro
 
 - [x] Title, short/long description, positioning, users, use cases, CTA, and release notes.
 - [x] Current candidate version and dual Stripe pricing language reconciled without exposing secrets.
-- [x] Multi-file Knowledge Chat, approximately 5 MB storage cap, and expanded-view messaging included with evidence boundaries.
+- [x] Premium multi-file Knowledge Chat, mutable local library, browser-capacity storage wording, and expanded-view messaging included with evidence boundaries.
 - [x] Homepage, privacy, and support destinations recorded as canonical repository destinations.
 - [x] Stale 4.4.9 media explicitly rejected for 4.5.6.
-- [x] Candidate-integrity gate: claims are limited to behavior observed in the exact `098054e…` checkout; unmerged storage-cap-removal and same-name-replacement changes are not claimed.
+- [x] Candidate-integrity gate: claims are tied to PR #6 head `295d52b…` plus the explicitly identified mainline feature commits; no public availability or unlimited-storage claim is made.
 - [ ] Fresh 4.5.6 screenshots produced and visually approved.
 - [ ] Fresh 4.5.6 demo video produced and approved.
 - [ ] Configured dual-Link production build and successful checkout redirects verified by Release Agent.
@@ -137,11 +137,11 @@ Rejected or deliberately omitted claims: public availability, store review/appro
 
 ## Exact handoff to Release Agent
 
-Use the copy and claim map above for the exact `098054e…` release candidate. Before submission, validate the configured dual-Link build, verify the no-secret bundle, use fresh 4.5.6 media, and independently verify the store listing and public version. The package does not establish public availability, revenue, or payment conversion. If the intended product includes browser-capacity storage or same-name replacement, those changes must land and be re-reviewed before publishing those claims.
+Use the copy and claim map above for PR #6 head `295d52b…`, after confirming the listed mainline feature commits are included in the release base. Before submission, validate the configured dual-Link build, verify the no-secret bundle, use fresh 4.5.6 media, and independently verify the store listing and public version. The package does not establish public availability, revenue, or payment conversion.
 
 ## Current verification record
 
-- Repository checkout verified at `098054ee5ac8de9c6ef60b9066a1e4a381ef853f`; package and extension manifest both report `4.5.6`.
+- PR checkout verified at `295d52bd8221660a1c139f173b759f6b4ada1e39`; package and extension manifest both report `4.5.6`. The feature claims above were cross-checked against mainline commits `0033334`, `dd233a8`, and `b7b415e`.
 - `npm test` passed: 32 focused-helper checks, 4 configuration checks, feedback-entry checks, Premium-state checks, and meeting-file checks.
-- The source still contains `KNOWLEDGE_MAX_BYTES = 5 * 1024 * 1024` and rejects uploads over the total cap (`src/setup.js:389,459-460`). The requested removal of that artificial cap is therefore a release blocker/evidence gap, not an approved 4.5.6 claim.
+- The mainline storage-cap change removes the hard-coded `KNOWLEDGE_MAX_BYTES` rejection and reports browser storage errors through `chrome.runtime.lastError`; this package does not promise storage beyond the browser's available extension quota.
 - Stripe paths are represented by the two build-time variables `STRIPE_ONE_TIME_PAYMENT_LINK` and `STRIPE_WEEKLY_PAYMENT_LINK`; this checkout contains no payment secrets. Link configuration and successful checkout/entitlement redirects remain Release Agent verification items.
