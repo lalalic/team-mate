@@ -265,10 +265,10 @@
             <div class="card">
                 <h3>Knowledge</h3>
                 <p class="desc">
-                    Drop in design docs, briefs, or notes. MeetMate gives the assistant
-                    only a small high-level catalog of what knowledge exists. The assistant
-                    can call <code>search_knowledge</code> when it needs details. Nothing is sent
-                    to the model on upload.
+                    Drop in design docs, briefs, or notes. After every upload, replacement, or removal,
+                    MeetMate automatically rebuilds one organized knowledge structure from the current files.
+                    During meetings, the assistant uses that structure for orientation and can call
+                    <code>search_knowledge</code> for supporting detail.
                 </p>
                 <div class="row">
                     <label>Documents</label>
@@ -288,14 +288,7 @@
                 </div>
                 <div id="knowledgePremiumNote" class="hint" style="margin:8px 0; color:var(--muted)">Premium feature — upgrade to upload and use a private knowledge library.</div>
                 <div id="knowledgeList" style="margin-top:10px"></div>
-                <div class="row" style="margin-top:14px">
-                    <label for="knowledgeQuestion">Ask knowledge</label>
-                    <div>
-                        <textarea id="knowledgeQuestion" placeholder="Example: Organize all uploaded Extreme design knowledge into a three-level structure."></textarea>
-                        <button id="knowledgeAsk" class="primary" type="button" style="margin-top:8px">Ask Knowledge</button>
-                        <pre id="knowledgeAnswer" style="white-space:pre-wrap; margin-top:10px; font:inherit"></pre>
-                    </div>
-                </div>
+                <div id="knowledgeStatus" class="hint" style="margin-top:10px">No organized knowledge yet.</div>
             </div>
 
             <div class="card">
