@@ -1,13 +1,12 @@
 const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, askKnowledge, mergeKnowledgeDocs } = require("./util")
 const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
-const { extractStripeSessionId } = require("./premium-state")
+const { extractStripeSessionId, extractStripePurchaseMode } = require("./premium-state")
 
 document.addEventListener('DOMContentLoaded', async () => {
     const conf = await initSetupPage()
     const feedbackLink = document.querySelector('#feedbackLink')
     if (feedbackLink) {
-        const manifest = chrome.runtime.getManifest()
-        feedbackLink.href = `https://ai.qili2.com/support.html?version=${encodeURIComponent(manifest.version)}&extensionId=${encodeURIComponent(chrome.runtime.id)}`
+        feedbackLink.href = 'https://github.com/lalalic/team-mate'
     }
 
     const uiLanguage = chrome.i18n.getUILanguage?.() || navigator.language || 'en'
@@ -20,7 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Premium --------------------------------------------------------------
     let premiumState = { paid: false, configured: false, preview: false }
     const premiumStatusText = document.querySelector('#premiumStatusText')
-    const premiumUpgrade = document.querySelector('#premiumUpgrade')
+    const premiumOneTime = document.querySelector('#premiumOneTime')
+    const premiumWeekly = document.querySelector('#premiumWeekly')
     const premiumLogin = document.querySelector('#premiumLogin')
     const premiumRefresh = document.querySelector('#premiumRefresh')
     const premiumPreview = document.querySelector('#premiumPreview')
@@ -28,9 +28,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const shortcutsList = document.querySelector('#shortcutsList')
     const shortcutLimitStatus = document.querySelector('#shortcutLimitStatus')
     const stripeSessionId = extractStripeSessionId(window.location)
+    const stripePurchaseMode = extractStripePurchaseMode(window.location)
     if (stripeSessionId) {
         try {
-            await activateStripeSession(stripeSessionId)
+            await activateStripeSession(stripeSessionId, stripePurchaseMode)
             window.history.replaceState({}, document.title, window.location.pathname)
         } catch (e) { console.warn('[meetmate] Stripe activation failed', e) }
     }
@@ -42,10 +43,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (premiumStatusText) {
             premiumStatusText.classList.toggle('active', paid)
             premiumStatusText.textContent = paid
-                ? `Premium active${premiumState.preview ? ' · local preview' : ''}`
+                ? `Premium active${premiumState.preview ? ' · local preview' : premiumState.purchaseMode === 'weekly' ? ' · 1.99$/week' : premiumState.purchaseMode === 'one_time' ? ' · 1.99$ one time' : ''}`
                 : (premiumState.configured ? 'Free plan · up to 3 shown shortcuts' : 'Payment not configured in this build · Free plan')
         }
-        if (premiumUpgrade) premiumUpgrade.style.display = (!paid && premiumState.configured) ? '' : 'none'
+        if (premiumOneTime) premiumOneTime.style.display = (!paid && premiumState.configuredModes?.includes('one_time')) ? '' : 'none'
+        if (premiumWeekly) premiumWeekly.style.display = (!paid && premiumState.configuredModes?.includes('weekly')) ? '' : 'none'
         if (premiumStructuredReport) premiumStructuredReport.disabled = !paid
         if (premiumLogin) premiumLogin.style.display = (!paid && premiumState.configured) ? '' : 'none'
         if (premiumPreview) {
@@ -61,8 +63,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         return premiumState
     }
 
-    premiumUpgrade?.addEventListener('click', async () => {
-        try { await openPremiumUpgrade() }
+    premiumOneTime?.addEventListener('click', async () => {
+        try { await openPremiumUpgrade('one_time') }
+        catch (e) { alert(e?.message || String(e)) }
+    })
+    premiumWeekly?.addEventListener('click', async () => {
+        try { await openPremiumUpgrade('weekly') }
         catch (e) { alert(e?.message || String(e)) }
     })
     premiumLogin?.addEventListener('click', async () => {

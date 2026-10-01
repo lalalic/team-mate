@@ -235,14 +235,15 @@
             <!-- Premium: Stripe Payment Link + local soft entitlement -->
             <div class="card" id="premiumCard">
                 <h3>MeetMate Premium</h3>
-                <p class="desc">Unlock answer provenance, structured meeting reports, and unlimited shown shortcuts.</p>
+                <p class="desc">Unlock answer provenance, structured meeting reports, and unlimited shown shortcuts. Choose a one-time 7-day pass or an auto-renewing weekly subscription.</p>
                 <div id="premiumStatusText" class="premium-status">Checking…</div>
                 <label style="display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:13px">
                     <input id="premiumStructuredReport" type="checkbox" style="width:auto; margin:0" />
                     Generate a structured meeting report at meeting end
                 </label>
                 <div class="premium-actions">
-                    <button id="premiumUpgrade" class="primary" type="button">Upgrade</button>
+                    <button id="premiumOneTime" class="primary" type="button" style="display:none">1.99$ one time</button>
+                    <button id="premiumWeekly" class="primary" type="button" style="display:none">1.99$/week</button>
                     <button id="premiumLogin" class="subtle" type="button">How to activate</button>
                     <button id="premiumRefresh" class="subtle" type="button">Refresh status</button>
                     <button id="premiumPreview" class="subtle" type="button" style="display:none">Enable Premium Preview</button>
@@ -300,7 +301,7 @@
             <div class="card">
                 <h3>Help improve MeetMate</h3>
                 <p class="desc">Report a problem or share an idea. You can attach a screenshot without sending your meeting transcript.</p>
-                <a id="feedbackLink" class="button secondary" href="https://ai.qili2.com/support.html" target="_blank" rel="noopener">Send feedback</a>
+                <a id="feedbackLink" class="button secondary" href="https://github.com/lalalic/team-mate" target="_blank" rel="noopener">Send feedback</a>
             </div>
 
         </div>

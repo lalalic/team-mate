@@ -7,9 +7,14 @@
 
 const { initConf, getConf } = require("./util");
 const { DEFAULT_SHORTCUTS } = require("./focused");
-const { createStripeEntitlement, premiumState, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
+const { createStripeEntitlement, premiumState, shouldRefreshWeeklyEntitlement, applyWeeklyEntitlementStatus, buildEntitlementStatusUrl, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
+const { sanitizeMeetingFileName, buildMeetingDownloadPaths } = require("./meeting-files");
 
-const STRIPE_PAYMENT_LINK = typeof __STRIPE_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_PAYMENT_LINK__ || "").trim() : "";
+const STRIPE_ONE_TIME_PAYMENT_LINK = typeof __STRIPE_ONE_TIME_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_ONE_TIME_PAYMENT_LINK__ || "").trim() : "";
+const STRIPE_WEEKLY_PAYMENT_LINK = typeof __STRIPE_WEEKLY_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_WEEKLY_PAYMENT_LINK__ || "").trim() : "";
+const STRIPE_PAYMENT_LINKS = { one_time: STRIPE_ONE_TIME_PAYMENT_LINK, weekly: STRIPE_WEEKLY_PAYMENT_LINK };
+const STRIPE_ENTITLEMENT_ENDPOINT = typeof __STRIPE_ENTITLEMENT_ENDPOINT__ !== "undefined" ? String(__STRIPE_ENTITLEMENT_ENDPOINT__ || "").replace(/\/$/, "") : "";
+const STRIPE_ENTITLEMENT_PRODUCT = "team-mate";
 
 function getLocal(keys) {
     return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
@@ -20,15 +25,38 @@ function setLocal(value) {
 }
 
 async function premiumStatus({ force = false } = {}) {
-    void force;
     const stored = await getLocal([PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY]);
-    return premiumState({ entitlement: stored[PREMIUM_ENTITLEMENT_KEY], preview: stored[PREMIUM_PREVIEW_KEY] === true, paymentLink: STRIPE_PAYMENT_LINK });
+    let entitlement = stored[PREMIUM_ENTITLEMENT_KEY];
+    if (shouldRefreshWeeklyEntitlement(entitlement, { force })) {
+        if (!STRIPE_ENTITLEMENT_ENDPOINT) {
+            if (!force && premiumState({ entitlement, paymentLinks: STRIPE_PAYMENT_LINKS }).paid) return premiumState({ entitlement, preview: stored[PREMIUM_PREVIEW_KEY] === true, paymentLinks: STRIPE_PAYMENT_LINKS });
+            entitlement = { ...entitlement, paid: false, stripeStatus: "endpoint_unconfigured" };
+            await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement });
+        } else {
+            try {
+                const entitlementUrl = buildEntitlementStatusUrl(STRIPE_ENTITLEMENT_ENDPOINT, entitlement.sessionId, STRIPE_ENTITLEMENT_PRODUCT);
+                const response = await fetch(entitlementUrl, { cache: "no-store" });
+                if (!response.ok) throw new Error(`Entitlement service returned ${response.status}`);
+                const remote = await response.json();
+                entitlement = applyWeeklyEntitlementStatus(entitlement, remote);
+                await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement });
+            } catch (error) {
+                if (!premiumState({ entitlement, paymentLinks: STRIPE_PAYMENT_LINKS }).paid) {
+                    entitlement = { ...entitlement, paid: false, stripeStatus: "check_failed", lastCheckError: error?.message || String(error) };
+                    await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement });
+                }
+            }
+        }
+    }
+    return premiumState({ entitlement, preview: stored[PREMIUM_PREVIEW_KEY] === true, paymentLinks: STRIPE_PAYMENT_LINKS });
 }
 
-async function openPremiumPayment() {
-    if (!STRIPE_PAYMENT_LINK) throw new Error("Stripe Payment Link is not configured in this build. Enable Premium Preview in Settings for local testing.");
-    await chrome.tabs.create({ url: STRIPE_PAYMENT_LINK });
-    return { opened: true, provider: "stripe" };
+async function openPremiumPayment(purchaseMode = "one_time") {
+    const mode = purchaseMode === "weekly" ? "weekly" : "one_time";
+    const paymentLink = STRIPE_PAYMENT_LINKS[mode];
+    if (!paymentLink) throw new Error(`Stripe ${mode === "weekly" ? "weekly" : "one-time"} Payment Link is not configured in this build.`);
+    await chrome.tabs.create({ url: paymentLink });
+    return { opened: true, provider: "stripe", purchaseMode: mode };
 }
 
 async function openPremiumLogin() {
@@ -37,14 +65,14 @@ async function openPremiumLogin() {
 
 async function setPremiumPreview(enabled) {
     await setLocal({ [PREMIUM_PREVIEW_KEY]: enabled === true });
-    return premiumState({ preview: enabled === true, paymentLink: STRIPE_PAYMENT_LINK });
+    return premiumState({ preview: enabled === true, paymentLinks: STRIPE_PAYMENT_LINKS });
 }
 
-async function activateStripeSession(sessionId) {
-    const entitlement = createStripeEntitlement(sessionId);
+async function activateStripeSession(sessionId, purchaseMode = "one_time") {
+    const entitlement = createStripeEntitlement(sessionId, Date.now(), purchaseMode);
     if (!entitlement) throw new Error("Invalid Stripe Checkout session id.");
     await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement, [PREMIUM_PREVIEW_KEY]: false });
-    return premiumState({ entitlement, paymentLink: STRIPE_PAYMENT_LINK });
+    return premiumState({ entitlement, paymentLinks: STRIPE_PAYMENT_LINKS });
 }
 
 initConf({
@@ -86,17 +114,9 @@ initConf({
     if (changed) chrome.storage.local.set({ conf: next })
 })
 
-function sanitizeFileName(name) {
-    const invalidChars = /[\/\\:*?"<>|]/g;
-    name = name.replace(invalidChars, '_');
-    if (name.length > 255) name = name.substring(0, 255);
-    return name;
-}
-
 function save({ transcripts, premiumReport = "", name }) {
-    const safeName = sanitizeFileName(name || "Meeting")
-    const stamp = new Date().toISOString().split("T")[0].replace(/-/g, "")
-    const base = `meeting join/${safeName}/${stamp}`
+    const safeName = sanitizeMeetingFileName(name || "Meeting")
+    const paths = buildMeetingDownloadPaths(safeName)
 
     if (transcripts?.length) {
         const parts = []
@@ -108,7 +128,7 @@ function save({ transcripts, premiumReport = "", name }) {
         const content = `WEBVTT\n\n` + parts.join('\n')
         chrome.downloads.download({
             url: "data:text/vtt;charset=utf-8," + encodeURIComponent(content),
-            filename: `${base}.vtt`,
+            filename: paths.transcript,
         })
     }
 
@@ -117,7 +137,7 @@ function save({ transcripts, premiumReport = "", name }) {
         const markdown = `# ${safeName} · MeetMate Report\n\n${report}\n`
         chrome.downloads.download({
             url: "data:text/markdown;charset=utf-8," + encodeURIComponent(markdown),
-            filename: `${base}-report.md`,
+            filename: paths.report,
         })
     }
 }
@@ -281,7 +301,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true
         case 'premium_upgrade':
-            openPremiumPayment()
+            openPremiumPayment(request.purchaseMode)
                 .then(data => sendResponse({ ok: true, data }))
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true
@@ -291,7 +311,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true
         case 'premium_activate':
-            activateStripeSession(request.sessionId)
+            activateStripeSession(request.sessionId, request.purchaseMode)
                 .then(data => sendResponse({ ok: true, data }))
                 .catch(err => sendResponse({ ok: false, error: err?.message || String(err) }))
             return true

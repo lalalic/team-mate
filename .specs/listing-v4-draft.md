@@ -63,14 +63,21 @@ while somebody else is still talking.
 BRING YOUR OWN KNOWLEDGE
 Drop in design docs, briefs, specs, or notes (.txt, .md, .json, .csv, .html).
 They stay in your browser's local storage and are only used to answer your
-questions.
+questions. Premium Knowledge Chat can search across multiple imported files;
+you can replace or remove files, and MeetMate does not impose an artificial
+5 MB application cap (the browser's available extension storage still
+applies).
+
+OPEN ANSWERS IN A LARGER VIEW
+Click a question or its larger-view control to read the answer in an
+accessible expanded window without losing the meeting context.
 
 MEETING-READY DETAILS
   • Works with Teams' own live captions — no bot invited, no recording
   • Transcript export to .vtt when the meeting ends
   • Configurable shortcuts and model
-  • Pay-as-you-go credits — no subscription
-  • Everything (transcript, knowledge, settings) stays in chrome.storage.local
+  • Optional Premium upgrade via Stripe Payment Link; no subscription required
+  • Everything (transcript, knowledge, settings, and local Premium entitlement) stays in chrome.storage.local
 
 A NOTE ON SCOPE
 MeetMate does not summarise your meeting, take minutes, or remember past

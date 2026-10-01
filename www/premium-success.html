@@ -11,11 +11,12 @@
 <script>
   const params = new URLSearchParams(location.search)
   const session = params.get('session_id') || ''
+  const purchase = params.get('purchase') === 'weekly' ? 'weekly' : 'one_time'
   const state = document.querySelector('#state')
   const link = document.querySelector('#activate')
   if (/^cs_(test|live)_[A-Za-z0-9_-]+$/.test(session)) {
-    state.textContent = 'Checkout session: ' + session
-    link.href = 'chrome-extension://immkojolaicdjhkbbhkldmndhfjbehmf/setup.html?session_id=' + encodeURIComponent(session)
+    state.textContent = purchase === 'weekly' ? '1.99$/week subscription activated.' : '1.99$ one-time 7-day pass activated.'
+    link.href = 'chrome-extension://immkojolaicdjhkbbhkldmndhfjbehmf/setup.html?session_id=' + encodeURIComponent(session) + '&purchase=' + encodeURIComponent(purchase)
   } else {
     state.textContent = 'The payment session is missing or invalid. Reopen the success link from Stripe.'
     link.remove()
