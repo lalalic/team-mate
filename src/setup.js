@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const knowledgeTestQuestion = document.querySelector('#knowledgeTestQuestion')
     const knowledgeTestBtn = document.querySelector('#knowledgeTestBtn')
     const knowledgeTestAnswer = document.querySelector('#knowledgeTestAnswer')
-    const knowledgePremiumNote = document.querySelector('#knowledgePremiumNote')
+    const knowledgePlanNote = document.querySelector('#knowledgePlanNote')
 
     async function reorganizeCurrentKnowledge() {
         const cur = await getKnowledge()
@@ -473,7 +473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         cur.organizedStatus = 'organizing'
         await setKnowledge(cur)
         try {
-            const organized = await reorganizeKnowledge()
+            const organized = await reorganizeKnowledge({ maxChars: premiumState?.paid === true ? 0 : 5000 })
             const latest = await getKnowledge()
             latest.organized = organized
             latest.organizedStatus = 'ready'
@@ -495,10 +495,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function refreshKnowledge() {
         if (!knowledgeList) return
         const paid = premiumState?.paid === true
-        if (knowledgeUpload) knowledgeUpload.disabled = !paid
-        if (knowledgeTestQuestion) knowledgeTestQuestion.disabled = !paid
-        if (knowledgeTestBtn) knowledgeTestBtn.disabled = !paid
-        if (knowledgePremiumNote) knowledgePremiumNote.style.display = paid ? 'none' : ''
+        if (knowledgeUpload) knowledgeUpload.disabled = false
+        if (knowledgeTestQuestion) knowledgeTestQuestion.disabled = false
+        if (knowledgeTestBtn) knowledgeTestBtn.disabled = false
+        if (knowledgePlanNote) knowledgePlanNote.textContent = paid
+            ? 'Premium · organized knowledge has no artificial character limit.'
+            : 'Free · final organized knowledge is limited to 5,000 characters. Premium removes this limit.'
         const k = await getKnowledge()
         const total = totalBytes(k)
         const totalKb = (total / 1024).toFixed(1)
@@ -516,7 +518,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div style="display:flex; align-items:center; gap:8px">
                     <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${esc(d.name)}</span>
                     <span style="font-size:11px; color:var(--muted)">${kb} KB</span>
-                    <button class="subtle" data-knowledge-delete="${esc(d.id)}" ${paid ? '' : 'disabled'}>Remove</button>
+                    <button class="subtle" data-knowledge-delete="${esc(d.id)}">Remove</button>
                 </div>
             </li>`)
         }
@@ -533,7 +535,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         knowledgeList.querySelectorAll('[data-knowledge-delete]').forEach(btn => {
             btn.addEventListener('click', async () => {
-                if (premiumState?.paid !== true) return
                 const id = btn.getAttribute('data-knowledge-delete')
                 const cur = await getKnowledge()
                 cur.docs = (cur.docs || []).filter(d => d.id !== id)
@@ -549,7 +550,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (knowledgeUpload) {
         knowledgeUpload.addEventListener('change', async (e) => {
-            if (premiumState?.paid !== true) { alert('Knowledge Library is a Premium feature.'); knowledgeUpload.value = ''; return }
             const files = Array.from(e.target.files || [])
             if (!files.length) return
             const cur = await getKnowledge()
@@ -587,10 +587,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (knowledgeTestBtn) {
         knowledgeTestBtn.addEventListener('click', async () => {
-            if (premiumState?.paid !== true) {
-                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = 'Premium required.'
-                return
-            }
             const q = String(knowledgeTestQuestion?.value || '').trim()
             if (!q) {
                 if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = 'Enter a question to test.'
@@ -609,7 +605,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (err) {
                 if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = err?.message || String(err)
             } finally {
-                knowledgeTestBtn.disabled = premiumState?.paid !== true
+                knowledgeTestBtn.disabled = false
             }
         })
     }
