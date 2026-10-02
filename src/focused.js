@@ -296,30 +296,47 @@ export function mergeKnowledgeDocs(existing = [], incoming = []) {
     return Array.from(byName.values());
 }
 
-export function buildKnowledgeReorganizeMessages({ previousKnowledge = "", preferredLanguage = "auto" } = {}) {
-    const previous = String(previousKnowledge || "").trim();
+export function buildKnowledgeReorganizeMessages({ documents = [], currentTree = null, preferredLanguage = "auto" } = {}) {
+    const docs = Array.isArray(documents) ? documents : [];
+    const tree = currentTree?.roots ? currentTree : null;
     const system = `You are MeetMate's knowledge organizer.
 
-Rebuild the user's organized knowledge from the COMPLETE CURRENT uploaded knowledge library.
+Rebuild the user's organized knowledge from the COMPLETE CURRENT uploaded file library attached to the user message.
 
 RULES:
-1. Current uploaded documents are the only factual source of truth.
-2. Use search_knowledge repeatedly with focused queries until you have enough coverage to rebuild the knowledge.
-3. Previous organized knowledge, when supplied, is only a structure/continuity hint. It is NOT factual evidence.
-4. Drop anything from previous organized knowledge that is no longer supported by the current uploaded documents.
-5. Merge duplicates and reconcile overlapping material.
-6. Organize by concepts and content, never by filenames or upload order.
-7. Preserve important concrete names, decisions, constraints, APIs, dates, numbers, and definitions when supported.
-8. Never invent facts.
-9. Build the organized knowledge only through the provided write tools: call set_knowledge_tree to establish the complete hierarchy, then set_knowledge_node_content for factual node content. Do not return the knowledge tree as Markdown or prose.
-10. Use stable, descriptive node IDs. Keep the hierarchy to 2-3 levels, with concise titles and summaries.
-11. After setting the tree, populate every leaf node with set_knowledge_node_content.
-12. Preferred language: ${String(preferredLanguage || "auto")}.`;
+1. The attached current files are the only factual source of truth. Read the files directly with the model/provider's native file-reading capability. Do not use search/retrieval tools.
+2. The supplied CURRENT TREE is only a structure/continuity hint. It is NOT factual evidence. If you need old node content for continuity, call get_knowledge_node_content(node_id).
+3. Drop anything from the old tree/content that is no longer supported by the current uploaded files.
+4. Merge duplicates and reconcile overlapping material.
+5. Organize by concepts and content, never by filenames or upload order.
+6. Preserve important concrete names, decisions, constraints, APIs, dates, numbers, and definitions when supported by the files.
+7. Never invent facts.
+8. Call set_knowledge_tree to establish the complete 2-3 level hierarchy, then call set_knowledge_node_content for every leaf node.
+9. Use stable, descriptive node IDs where the concept still exists; create new IDs for genuinely new concepts.
+10. Do not return the knowledge tree as Markdown or prose. Finish only after all leaf content has been written through tools.
+11. Preferred language: ${String(preferredLanguage || "auto")}.`;
 
-    const user = previous
-        ? `Reorganize the current knowledge library now. Here is the PREVIOUS organized knowledge for structural continuity only:\n\n<previous-organized-knowledge>\n${previous}\n</previous-organized-knowledge>`
-        : "Organize the current knowledge library now into a concise 2-3 level knowledge structure using the provided tools.";
-    return [{ role: "system", content: system }, { role: "user", content: user }];
+    const currentTreeText = tree ? JSON.stringify(tree, null, 2) : "(no current tree)";
+    const legacyTextDocs = docs
+        .filter(doc => !doc?.fileData && String(doc?.content || "").trim())
+        .map(doc => `\n<legacy-text-file name=${JSON.stringify(String(doc?.name || "untitled"))}>\n${String(doc.content)}\n</legacy-text-file>`)
+        .join("\n");
+    const content = [{
+        type: "text",
+        text: `Organize the complete attached file library.\n\nCURRENT TREE (structure only):\n${currentTreeText}${legacyTextDocs}`,
+    }];
+    for (const doc of docs) {
+        const fileData = String(doc?.fileData || "").trim();
+        if (!fileData) continue;
+        content.push({
+            type: "file",
+            file: {
+                filename: String(doc?.name || "document"),
+                file_data: fileData,
+            },
+        });
+    }
+    return [{ role: "system", content: system }, { role: "user", content }];
 }
 
 export function parseKnowledgeTree(markdown = "") {
@@ -495,6 +512,38 @@ function knowledgeTreeNodeSchema(depth = 1) {
 }
 
 const KNOWLEDGE_TREE_NODE_SCHEMA = knowledgeTreeNodeSchema();
+
+export const KNOWLEDGE_GET_NODE_CONTENT_TOOL = {
+    type: "function",
+    function: {
+        name: "get_knowledge_node_content",
+        description: "Read the previous organized content for one node from the current tree. Use only for continuity; attached current files remain the factual source of truth.",
+        parameters: {
+            type: "object",
+            properties: {
+                node_id: { type: "string", minLength: 1 },
+            },
+            required: ["node_id"],
+            additionalProperties: false
+        }
+    }
+};
+
+export function knowledgeTreeStructure(tree) {
+    const clean = (nodes) => (Array.isArray(nodes) ? nodes : []).map(node => ({
+        id: String(node?.id || ""),
+        title: String(node?.title || ""),
+        summary: String(node?.summary || ""),
+        children: clean(node?.children),
+    }));
+    return tree?.roots ? { version: Number(tree.version) || 1, roots: clean(tree.roots) } : null;
+}
+
+export function getKnowledgeNodeContent(tree, nodeId) {
+    const node = findKnowledgeNode(tree, nodeId);
+    if (!node) throw new Error(`Unknown knowledge node id: ${String(nodeId || "")}`);
+    return Array.isArray(node.content) ? node.content.join("\n") : String(node.content || "");
+}
 
 export const KNOWLEDGE_SET_TREE_TOOL = {
     type: "function",

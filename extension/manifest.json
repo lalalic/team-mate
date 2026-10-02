@@ -8,7 +8,8 @@
     "storage",
     "activeTab",
     "tabs",
-    "downloads"
+    "downloads",
+    "unlimitedStorage"
   ],
   "icons": {
     "16": "icon.png",

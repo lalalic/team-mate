@@ -21,9 +21,12 @@ import {
     buildKnowledgeWiki,
     parseKnowledgeTree,
     KNOWLEDGE_SEARCH_TOOL,
+    KNOWLEDGE_GET_NODE_CONTENT_TOOL,
     KNOWLEDGE_SET_TREE_TOOL,
     KNOWLEDGE_SET_NODE_CONTENT_TOOL,
     normalizeKnowledgeTree,
+    knowledgeTreeStructure,
+    getKnowledgeNodeContent,
     findKnowledgeNode,
     setKnowledgeNodeContent,
     missingKnowledgeLeafContent,
@@ -115,9 +118,11 @@ test("mergeKnowledgeDocs: same-name upload replaces stale content case-insensiti
     assert.equal(out.find(d => d.name === "Other.md").content, "keep")
 })
 
-test("structured knowledge tools: expose set-tree and set-node-content contracts", () => {
+test("structured knowledge organizer exposes get-current-content plus two write tools", () => {
+    assert.equal(KNOWLEDGE_GET_NODE_CONTENT_TOOL.function.name, "get_knowledge_node_content")
     assert.equal(KNOWLEDGE_SET_TREE_TOOL.function.name, "set_knowledge_tree")
     assert.equal(KNOWLEDGE_SET_NODE_CONTENT_TOOL.function.name, "set_knowledge_node_content")
+    assert.deepEqual(KNOWLEDGE_GET_NODE_CONTENT_TOOL.function.parameters.required, ["node_id"])
     assert.deepEqual(KNOWLEDGE_SET_NODE_CONTENT_TOOL.function.parameters.required, ["node_id", "content"])
 })
 
@@ -155,33 +160,41 @@ test("normalizeKnowledgeTree: rejects duplicate ids, excessive depth, and unknow
     assert.throws(() => setKnowledgeNodeContent(tree, "missing", "x"), /Unknown knowledge node id/)
 })
 
-test("buildKnowledgeReorganizeMessages: fixed prompt rebuilds current user knowledge and drops unsupported stale facts", () => {
-    const uploaded = [
-        { id: "a1", name: "extreme-auth.md", content: "Users authenticate with passkeys. Admin access requires an organization role." },
-        { id: "b1", name: "extreme-api.md", content: "The public API uses OAuth 2.1 and rate limits requests per workspace." },
-    ];
-    const replaced = mergeKnowledgeDocs(uploaded, [
-        { id: "a2", name: "EXTREME-AUTH.md", content: "Users authenticate with SSO. Admin access requires an organization role." },
-    ]);
-    assert.equal(replaced.length, 2);
-    assert.equal(replaced.find(d => d.name.toLowerCase() === "extreme-auth.md").content.includes("SSO"), true);
-    assert.equal(replaced.some(d => d.content.includes("passkeys")), false);
-
+test("buildKnowledgeReorganizeMessages: attaches original files, current tree structure, and no search instruction", () => {
+    const current = normalizeKnowledgeTree([{
+        id: "auth", title: "Authentication", summary: "How users authenticate", children: [{
+            id: "auth-sso", title: "SSO", summary: "SSO rules", children: []
+        }]
+    }])
+    setKnowledgeNodeContent(current, "auth-sso", "Old SSO content that should not be embedded in the prompt")
     const messages = buildKnowledgeReorganizeMessages({
-        previousKnowledge: "## Authentication\n- Passkeys are mandatory.\n## API\n- OAuth 2.1.",
+        documents: [
+            { name: "guide.pdf", fileData: "data:application/pdf;base64,JVBERi0xLjQ=" },
+            { name: "notes.txt", fileData: "data:text/plain;base64,SGVsbG8=", content: "Hello" },
+        ],
+        currentTree: knowledgeTreeStructure(current),
         preferredLanguage: "English",
-    });
-    assert.equal(messages.length, 2);
-    assert.ok(messages[0].content.includes("Current uploaded documents are the only factual source of truth"));
-    assert.ok(messages[0].content.includes("Use search_knowledge repeatedly"));
-    assert.ok(messages[0].content.includes("never by filenames"));
-    assert.ok(messages[0].content.includes("Drop anything"));
-    assert.ok(messages[0].content.includes("set_knowledge_tree"));
-    assert.ok(messages[0].content.includes("set_knowledge_node_content"));
-    assert.ok(messages[0].content.includes("Do not return the knowledge tree as Markdown"));
-    assert.ok(messages[1].content.includes("Passkeys are mandatory"));
-    assert.ok(messages[1].content.includes("structural continuity only"));
-    assert.ok(!messages[0].content.includes("extreme-auth.md"));
+    })
+    assert.equal(messages.length, 2)
+    assert.ok(messages[0].content.includes("attached current files are the only factual source of truth"))
+    assert.ok(messages[0].content.includes("get_knowledge_node_content"))
+    assert.ok(messages[0].content.includes("set_knowledge_tree"))
+    assert.ok(messages[0].content.includes("set_knowledge_node_content"))
+    assert.ok(messages[0].content.includes("Do not use search/retrieval tools"))
+    assert.equal(Array.isArray(messages[1].content), true)
+    assert.equal(messages[1].content.filter(part => part.type === "file").length, 2)
+    assert.equal(messages[1].content[1].file.filename, "guide.pdf")
+    assert.equal(messages[1].content[1].file.file_data, "data:application/pdf;base64,JVBERi0xLjQ=")
+    assert.ok(messages[1].content[0].text.includes('"id": "auth-sso"'))
+    assert.ok(!messages[1].content[0].text.includes("Old SSO content"))
+})
+
+test("knowledgeTreeStructure and getKnowledgeNodeContent separate structure from old node body", () => {
+    const tree = normalizeKnowledgeTree([{ id: "root", title: "Root", summary: "Root summary", children: [{ id: "leaf", title: "Leaf", summary: "Leaf summary", children: [] }] }])
+    setKnowledgeNodeContent(tree, "leaf", "line one\nline two")
+    const structure = knowledgeTreeStructure(tree)
+    assert.deepEqual(structure.roots[0].children[0], { id: "leaf", title: "Leaf", summary: "Leaf summary", children: [] })
+    assert.equal(getKnowledgeNodeContent(tree, "leaf"), "line one\nline two")
 })
 
 // ── formatTranscript ─────────────────────────────────────────────────────

@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderShortcuts(normalizeShortcuts((conf && conf.shortcuts) || null))
 
     // --- Knowledge (uploaded reference docs) -------------------------------
-    // Storage: chrome.storage.local under 'knowledge' = { docs: [{id, name, size, addedAt, content}] }
+    // Storage: chrome.storage.local under 'knowledge' = { docs: [{id, name, size, mimeType, addedAt, fileData, content?}] }
     async function getKnowledge() {
         return new Promise(r => chrome.storage.local.get('knowledge', x => r(x.knowledge || { docs: [] })))
     }
@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
     }
     function bytesOf(s) { return new Blob([s || '']).size }
-    function totalBytes(k) { return (k.docs || []).reduce((n, d) => n + bytesOf(d.content), 0) }
+    function totalBytes(k) { return (k.docs || []).reduce((n, d) => n + (Number(d.size) || bytesOf(d.fileData || d.content)), 0) }
     function readFileAsText(f) {
         return new Promise((resolve, reject) => {
             const r = new FileReader()
@@ -409,6 +409,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             r.onload = () => resolve(String(r.result || ''))
             r.readAsText(f)
         })
+    }
+
+    function readFileAsDataURL(f) {
+        return new Promise((resolve, reject) => {
+            const r = new FileReader()
+            r.onerror = () => reject(r.error)
+            r.onload = () => resolve(String(r.result || ''))
+            r.readAsDataURL(f)
+        })
+    }
+    function isTextLikeFile(f) {
+        return /^text\//i.test(String(f.type || '')) || /\.(?:txt|md|markdown|json|html?|csv|xml|ya?ml|log|js|jsx|ts|tsx|css|py|java|c|cc|cpp|h|hpp|go|rs|sh|sql)$/i.test(String(f.name || ''))
     }
     const knowledgeList = document.querySelector('#knowledgeList')
     const knowledgeTree = document.querySelector('#knowledgeTree')
@@ -523,17 +535,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             cur.docs = cur.docs || []
             for (const f of files) {
                 try {
-                    if (/\.pdf$/i.test(f.name) || f.type === 'application/pdf') {
-                        alert(`Skipping ${f.name} \u2014 PDF text extraction not yet supported. Convert to .txt or .md first (try convertio.co).`)
-                        continue
-                    }
-                    const content = await readFileAsText(f)
-                    if (!content.trim()) { alert(`Skipping ${f.name} \u2014 empty`); continue }
+                    const fileData = await readFileAsDataURL(f)
+                    if (!fileData) { alert(`Skipping ${f.name} \u2014 empty`); continue }
+                    const content = isTextLikeFile(f) ? await readFileAsText(f) : ''
                     const doc = {
                         id: `k-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                         name: f.name,
-                        size: bytesOf(content),
+                        size: Number(f.size) || bytesOf(fileData),
+                        mimeType: f.type || 'application/octet-stream',
                         addedAt: Date.now(),
+                        fileData,
                         content,
                     }
                     cur.docs = mergeKnowledgeDocs(cur.docs, [doc])

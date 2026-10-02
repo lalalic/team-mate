@@ -24,9 +24,12 @@ import {
     buildAskMessages,
     DEFAULT_ASK_SYSTEM_PROMPT,
     KNOWLEDGE_SEARCH_TOOL,
+    KNOWLEDGE_GET_NODE_CONTENT_TOOL,
     KNOWLEDGE_SET_TREE_TOOL,
     KNOWLEDGE_SET_NODE_CONTENT_TOOL,
     normalizeKnowledgeTree,
+    knowledgeTreeStructure,
+    getKnowledgeNodeContent,
     setKnowledgeNodeContent,
     missingKnowledgeLeafContent,
     knowledgeTreeToMarkdown,
@@ -49,9 +52,12 @@ export {
     formatMeetingTimeline,
     buildAskMessages,
     KNOWLEDGE_SEARCH_TOOL,
+    KNOWLEDGE_GET_NODE_CONTENT_TOOL,
     KNOWLEDGE_SET_TREE_TOOL,
     KNOWLEDGE_SET_NODE_CONTENT_TOOL,
     normalizeKnowledgeTree,
+    knowledgeTreeStructure,
+    getKnowledgeNodeContent,
     setKnowledgeNodeContent,
     missingKnowledgeLeafContent,
     knowledgeTreeToMarkdown,
@@ -231,14 +237,14 @@ export async function reorganizeKnowledge({ signal } = {}) {
     const docs = Array.isArray(state.docs) ? state.docs : [];
     if (!docs.length) return { tree: null, markdown: "" };
 
-    const previousKnowledge = knowledgeTreeToMarkdown(state.organizedTree) || String(state.organized || "");
+    const previousTree = state.organizedTree?.roots ? state.organizedTree : null;
     const messages = buildKnowledgeReorganizeMessages({
-        previousKnowledge,
+        documents: docs,
+        currentTree: knowledgeTreeStructure(previousTree),
         preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
     });
-    const tools = [KNOWLEDGE_SEARCH_TOOL, KNOWLEDGE_SET_TREE_TOOL, KNOWLEDGE_SET_NODE_CONTENT_TOOL];
+    const tools = [KNOWLEDGE_GET_NODE_CONTENT_TOOL, KNOWLEDGE_SET_TREE_TOOL, KNOWLEDGE_SET_NODE_CONTENT_TOOL];
     let working = messages.slice();
-    let searches = 0;
     let tree = null;
 
     for (let round = 0; round < 30; round++) {
@@ -250,8 +256,8 @@ export async function reorganizeKnowledge({ signal } = {}) {
             if (tree && !missing.length) return { tree, markdown: knowledgeTreeToMarkdown(tree) };
             working.push({ role: "assistant", content: assistant.content ?? null });
             working.push({ role: "user", content: tree
-                ? `Continue using the tools. Populate these leaf node IDs with set_knowledge_node_content: ${missing.join(", ")}.`
-                : "Continue using the tools. You must call set_knowledge_tree before finishing." });
+                ? `Continue using the write tools. Populate these leaf node IDs with set_knowledge_node_content: ${missing.join(", ")}.`
+                : "Continue using the write tools. You must call set_knowledge_tree before finishing." });
             continue;
         }
 
@@ -261,12 +267,9 @@ export async function reorganizeKnowledge({ signal } = {}) {
             const args = parseToolArguments(call?.function?.arguments);
             let content;
             try {
-                if (name === "search_knowledge") {
-                    if (searches >= 20) throw new Error("Knowledge search limit reached (20).");
-                    const query = String(args?.query || "").trim();
-                    if (!query) throw new Error("search_knowledge requires a non-empty query.");
-                    searches++;
-                    content = formatKnowledgeToolResult(query, await searchKnowledge(query, args?.limit));
+                if (name === "get_knowledge_node_content") {
+                    if (!previousTree) throw new Error("No previous knowledge tree is available.");
+                    content = JSON.stringify({ node_id: args?.node_id, content: getKnowledgeNodeContent(previousTree, args?.node_id) });
                 } else if (name === "set_knowledge_tree") {
                     tree = normalizeKnowledgeTree(args?.roots);
                     content = JSON.stringify({ ok: true, node_count: (() => { let n = 0; const walk = xs => { for (const x of xs || []) { n++; walk(x.children); } }; walk(tree.roots); return n; })(), leaf_ids: missingKnowledgeLeafContent(tree) });
@@ -275,7 +278,7 @@ export async function reorganizeKnowledge({ signal } = {}) {
                     const node = setKnowledgeNodeContent(tree, args?.node_id, args?.content);
                     content = JSON.stringify({ ok: true, node_id: node.id });
                 } else {
-                    throw new Error(`Unknown tool: ${name || "(missing)"}`);
+                    throw new Error(`Unknown organizer tool: ${name || "(missing)"}`);
                 }
             } catch (error) {
                 content = JSON.stringify({ error: error?.message || String(error) });
