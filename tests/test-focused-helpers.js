@@ -31,6 +31,7 @@ import {
     setKnowledgeNodeContent,
     missingKnowledgeLeafContent,
     knowledgeTreeToMarkdown,
+    knowledgeTreeToSearchDocs,
     formatKnowledgeToolResult,
     rankTranscriptSources,
     buildAskMessages,
@@ -195,6 +196,20 @@ test("knowledgeTreeStructure and getKnowledgeNodeContent separate structure from
     const structure = knowledgeTreeStructure(tree)
     assert.deepEqual(structure.roots[0].children[0], { id: "leaf", title: "Leaf", summary: "Leaf summary", children: [] })
     assert.equal(getKnowledgeNodeContent(tree, "leaf"), "line one\nline two")
+})
+
+test("knowledgeTreeToSearchDocs indexes organized leaf content instead of raw file text", () => {
+    const tree = normalizeKnowledgeTree([{ id: "project", title: "Project Orion", summary: "Release project", children: [
+        { id: "release", title: "Release", summary: "Schedule and owner", children: [] },
+        { id: "risk", title: "Risk", summary: "Known risks", children: [] },
+    ] }])
+    setKnowledgeNodeContent(tree, "release", "Release date: December 5\nOwner: Dana")
+    setKnowledgeNodeContent(tree, "risk", "Vendor certificate renewal")
+    const docs = knowledgeTreeToSearchDocs(tree)
+    assert.equal(docs.length, 3)
+    const hit = knowledgeSearch(docs, "Dana December 5", 3)
+    assert.equal(hit[0].doc, "Project Orion > Release")
+    assert.ok(hit[0].snippet.includes("Dana"))
 })
 
 // ── formatTranscript ─────────────────────────────────────────────────────

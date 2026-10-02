@@ -33,6 +33,7 @@ import {
     setKnowledgeNodeContent,
     missingKnowledgeLeafContent,
     knowledgeTreeToMarkdown,
+    knowledgeTreeToSearchDocs,
     formatKnowledgeToolResult,
     buildKnowledgeWiki,
     rankTranscriptSources,
@@ -61,6 +62,7 @@ export {
     setKnowledgeNodeContent,
     missingKnowledgeLeafContent,
     knowledgeTreeToMarkdown,
+    knowledgeTreeToSearchDocs,
     formatKnowledgeToolResult,
     buildKnowledgeWiki,
     rankTranscriptSources,
@@ -157,10 +159,17 @@ async function loadAskSystemPrompt() {
 
 /** Execute the model's local knowledge-search tool. No document content
  * leaves the browser unless the model explicitly requests a search. */
+export async function getKnowledgeSearchDocs() {
+    const state = await getKnowledgeState();
+    const organized = state?.organizedStatus === "ready" ? knowledgeTreeToSearchDocs(state.organizedTree) : [];
+    if (organized.length) return organized;
+    return (Array.isArray(state?.docs) ? state.docs : []).filter(doc => String(doc?.content || "").trim());
+}
+
 export async function searchKnowledge(query, limit = 3) {
     const q = String(query || "").trim();
     if (!q) return [];
-    const docs = await getKnowledgeDocs();
+    const docs = await getKnowledgeSearchDocs();
     if (!docs.length) return [];
     const k = Math.max(1, Math.min(6, Number(limit) || 3));
     return knowledgeSearch(docs, q, k);
@@ -349,7 +358,8 @@ export async function askDetailed({ question, transcripts = [], conversation = [
         maxTranscriptChars: maxTranscriptChars || 6000,
     });
 
-    const { response, knowledgeHits } = await completeWithKnowledgeTool(messages, signal, knowledgeDocs.length > 0, {
+    const searchDocs = await getKnowledgeSearchDocs();
+    const { response, knowledgeHits } = await completeWithKnowledgeTool(messages, signal, searchDocs.length > 0, {
         stream,
         streamId,
     });

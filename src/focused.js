@@ -633,6 +633,27 @@ export function missingKnowledgeLeafContent(tree) {
     return missing;
 }
 
+export function knowledgeTreeToSearchDocs(tree) {
+    const docs = [];
+    const walk = (nodes, path = []) => {
+        for (const node of Array.isArray(nodes) ? nodes : []) {
+            const nextPath = [...path, String(node?.title || "").trim()].filter(Boolean);
+            const summary = String(node?.summary || "").trim();
+            const content = Array.isArray(node?.content) ? node.content.join("\n") : String(node?.content || "").trim();
+            if (content || summary) {
+                docs.push({
+                    id: String(node?.id || ""),
+                    name: nextPath.join(" > ") || String(node?.id || "knowledge"),
+                    content: [nextPath.join(" > "), summary, content].filter(Boolean).join("\n"),
+                });
+            }
+            walk(node?.children, nextPath);
+        }
+    };
+    walk(tree?.roots);
+    return docs;
+}
+
 export function knowledgeTreeToMarkdown(tree) {
     const lines = [];
     const walk = (nodes, depth) => {
