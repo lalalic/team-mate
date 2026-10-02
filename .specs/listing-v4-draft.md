@@ -1,93 +1,135 @@
-# Chrome Web Store — MeetMate listing draft
+# Chrome Web Store — MeetMate 4.5.9+ market package
 
-The listing sells one thing: **ask your meeting anything, and get an answer
-grounded in what was actually said plus the docs you uploaded.** No bot joins
-the call, and nothing is sent anywhere until you ask.
+This package is grounded in the 4.5.9 production build, work-node E2E, live Stripe checkout verification, and fresh 1280×800 demo assets captured on 2026-10-02.
 
-## Competitive positioning
+## Positioning
 
-| Competitor (top "similar")        | Stars | Model                                 |
-| --------------------------------- | ----- | ------------------------------------- |
-| Tactiq — AI note taker            | 4.8 ★ | Sends a bot into the call, post-notes |
-| himala — Meeting Assistant        | 5.0 ★ | Prep + post-call notes                |
-| FuseBase PRO — AI note taker      | 4.3 ★ | Recorder + transcriber                |
-| Sharpen AI — meeting summary      | —     | Post-call summary only                |
-| **MeetMate (us)**                 | TBD   | **Ask-anything copilot inside your Teams tab, grounded, no bot** |
+**Primary promise:** Ask your meeting anything.
 
-Our edge: MeetMate runs inside YOUR Teams tab — no meeting-bot permission, no
-admin approval, no enterprise license. It captures the live captions locally
-and answers only when you ask.
+**Proof:** MeetMate answers from the current Microsoft Teams live captions plus the private knowledge you organized in your browser.
 
-## Title (45 char max)
+**Trust boundary:** No meeting bot. No audio recording. Captions alone never trigger a model call.
 
-`MeetMate — Ask Your Meeting Anything` (36)
+## Store title
 
-Alt: `MeetMate: Live Q&A for Microsoft Teams` (39)
+`MeetMate — Ask Your Meeting Anything`
 
-## Summary (132 char max)
+36 characters.
 
-> Ask your Teams meeting anything. Answers grounded in the live transcript and
-> your own docs. No bot, nothing sent until you ask. (122)
+## Store summary
 
-## Detailed description (16k char max — keep it scannable)
+`Ask your Teams meeting anything. Ground answers in live captions + your organized private knowledge. No bot. No audio recording.`
 
-```
-MeetMate is a grounded Q&A assistant for Microsoft Teams meetings. It runs
-inside your Teams tab — not a bot in the call, not a post-meeting summary
-email.
+128 characters.
 
-CAPTIONS STAY LOCAL UNTIL YOU ASK
-MeetMate captures the live captions continuously, in your browser. Nothing is
-sent to an AI model while captions stream — no auto-suggestions, no
-interruptions. The model runs only when you ask a question.
+## Long description
 
-ASK ANYTHING, OR TAP A SHORTCUT
-Type a question in the side rail, or tap a shortcut:
+MeetMate is the in-meeting Q&A copilot for Microsoft Teams. Ask while the conversation is still happening and get a concise answer grounded in two things you control: the live captions in the current meeting and the private knowledge you organized in your browser.
 
-  • Reply      — Give me a concise response I can say now based on the current discussion.
-  • Facts      — Surface the most relevant facts from my knowledge for the current discussion.
-  • Question   — Suggest the best concise question I should ask next.
-  • Challenge  — Identify the strongest assumption, risk, or point I should challenge.
+**ASK WHILE THE MEETING IS HAPPENING**
 
-Shortcuts are yours to edit in Settings: add, rename, rewrite, or remove them.
+Turn on Teams Live Captions, open MeetMate, then type a question or tap one of your shortcuts. MeetMate keeps recent caption context locally and calls your configured model only when you explicitly ask for an answer.
 
-ANSWERS GROUNDED IN TWO SOURCES
-Every answer is built from the current meeting transcript plus the passages
-most relevant to your question, retrieved from the documents you uploaded.
-MeetMate is instructed to keep those sources apart, to never invent facts, and
-to tell you plainly when neither source supports an answer.
+Use it to answer questions like:
+- What are we actually deciding?
+- What blocks us from committing to Friday?
+- What should I say next?
+- Which fact from my brief matters here?
+- What question should I ask before we move on?
 
-Answers are short on purpose — one to four sentences. You are reading them
-while somebody else is still talking.
+**GROUND ANSWERS IN YOUR PRIVATE KNOWLEDGE**
 
-BRING YOUR OWN KNOWLEDGE
-Drop in design docs, briefs, specs, or notes (.txt, .md, .json, .csv, .html).
-They stay in your browser's local storage and are only used to answer your
-questions. Premium Knowledge Chat can search across multiple imported files;
-you can replace or remove files, and MeetMate does not impose an artificial
-5 MB application cap (the browser's available extension storage still
-applies).
+Upload private reference files in Settings, then click **Organize now**. MeetMate uses structured tools to build a two-level Knowledge Tree. Open a leaf to inspect its organized content or use **Test Q&A** before your meeting.
 
-OPEN ANSWERS IN A LARGER VIEW
-Click a question or its larger-view control to read the answer in an
-accessible expanded window without losing the meeting context.
+During a meeting, MeetMate searches the organized leaf content only when private reference material can materially improve the answer. Meeting speech and private reference material stay distinct so the assistant can tell you when the evidence is missing or conflicting.
 
-MEETING-READY DETAILS
-  • Works with Teams' own live captions — no bot invited, no recording
-  • Transcript export to .vtt when the meeting ends
-  • Configurable shortcuts and model
-  • Optional Premium upgrade via Stripe Payment Link; no subscription required
-  • Everything (transcript, knowledge, settings, and local Premium entitlement) stays in chrome.storage.local
+The Knowledge workflow accepts arbitrary uploaded files; what a model can read depends on the configured provider. PDF and DOCX are supported by the current tested workflow.
 
-A NOTE ON SCOPE
-MeetMate does not summarise your meeting, take minutes, or remember past
-meetings. It answers the question you ask, from the context it has, and says
-so when it can't.
-```
+**YOUR SHORTCUTS, YOUR MODEL**
 
-## Permissions rationale (for the review form)
+Create, rename, rewrite, show, or hide meeting shortcuts. Free users can show up to 3 shortcuts in the meeting rail. Premium removes that shown-shortcut limit.
 
-- `storage` — transcript buffer, settings, uploaded knowledge (all local).
-- `activeTab` / `tabs` — open or focus the Teams tab from the popup.
-- `downloads` — save the `.vtt` transcript export.
-- provider network access — used only for explicit Ask requests and `/models` discovery; the default endpoint is OpenRouter and Advanced can point to a custom/local OpenAI-compatible endpoint.
+MeetMate is BYOK: configure a compatible model endpoint and API key, including OpenRouter. The necessary meeting context and selected knowledge are sent to that provider only for explicit AI operations such as Ask, Test Q&A, or Organize now.
+
+**MEETING-READY OUTPUTS**
+
+- Concise answers designed to be read while someone else is still speaking
+- Larger answer view when the meeting rail is too small
+- Local VTT transcript export
+- Optional structured end-of-meeting report with Premium
+
+**FREE CORE, OPTIONAL PREMIUM**
+
+Free remains useful: ask live Teams captions, use private knowledge, and show up to 3 shortcuts.
+
+Premium expands the workflow:
+- no artificial character limit on the final organized knowledge
+- more than 3 shown shortcuts
+- structured end-of-meeting report
+
+Two production Stripe-hosted choices are available:
+- **US$1.99 one-time** — Premium for 7 days, then it expires automatically
+- **US$1.99/week** — recurring Premium until canceled
+
+Premium activation and renewal are verified server-side against Stripe. No Stripe secret is shipped in the extension.
+
+**PRIVATE BY DESIGN**
+
+MeetMate runs in your Chrome browser. It does not join the call as a bot and does not record meeting audio. Captions, settings, uploaded knowledge, organized knowledge, and local Premium entitlement state are stored locally in Chrome unless you explicitly invoke an AI operation that needs to send context to your configured model provider.
+
+## Reviewer test instructions (≤500 chars)
+
+`No MeetMate account is required. In Settings, configure a compatible model endpoint/API key (OpenRouter is supported). In a Microsoft Teams meeting in Chrome, enable Live Captions, open MeetMate, then ask a question or use a shortcut. Knowledge: Settings > Knowledge > upload a file > Organize now > open a tree leaf or use Test Q&A. Premium buttons open live Stripe checkout; purchase is not required to review the free/core workflow.`
+
+## Chrome Web Store field audit
+
+- Distribution: **Public** — correct.
+- Payments: **Contains in-app purchases** — correct.
+- Regions: **All regions** — current configuration.
+- Privacy policy URL: present.
+- `storage`: stores settings, transcript buffer, local knowledge, organized tree, and entitlement state.
+- `activeTab`: allows explicit user-initiated interaction with the current Teams tab.
+- `tabs`: locates/focuses Teams tabs and opens user-requested setup/payment pages.
+- `downloads`: exports the captured transcript as VTT.
+- `unlimitedStorage`: supports user-selected local knowledge files and organized knowledge that can exceed the default extension storage quota; it does not imply unlimited physical browser storage.
+- Host permissions: Teams pages plus user-configured provider endpoints are needed for caption capture and explicit AI/provider calls.
+- Remote code: none.
+- Test instructions: currently blank in the Web Store and locked while 4.5.9 is Pending review. Apply the text above after the review completes; do not cancel/restart the current review just to change it.
+
+## Fresh screenshot set
+
+All three assets are 1280×800 and use synthetic meeting/customer content while depicting only already-validated 4.5.9 behavior.
+
+1. `www/screenshots/4.5.9/01-ask-your-meeting.png`
+   - Caption: **Ask while the meeting is happening — grounded in live captions + your private knowledge.**
+   - Shows Teams-style live-caption context, concise Ask response, knowledge grounding, and no-bot/no-audio boundary.
+2. `www/screenshots/4.5.9/02-knowledge-tree.png`
+   - Caption: **Turn private files into a two-level Knowledge Tree, then test Q&A before the meeting.**
+   - Shows PDF/DOCX files, manual Organize now, two-level tree, leaf content, Test Q&A, and the Free 5,000-character boundary.
+3. `www/screenshots/4.5.9/03-premium-options.png`
+   - Caption: **Choose a 7-day pass or weekly Premium — the useful core stays free.**
+   - Shows the US$1.99 one-time 7-day and US$1.99/week choices plus server-verified entitlement behavior.
+
+## Demo video
+
+`www/media/meetmate-demo-4.5.9.mp4`
+
+- 1280×800 H.264
+- 16 seconds
+- Three-part story:
+  1. Ask your Teams meeting anything.
+  2. Organize private files into a Knowledge Tree.
+  3. Upgrade only when you need more.
+- Uses the same synthetic content and visual claims as the screenshot set.
+
+## Acquisition message hierarchy
+
+1. **Hook:** Ask your meeting anything.
+2. **Differentiator:** Live captions + your organized private knowledge.
+3. **Trust:** No bot. No audio recording. No model call just because captions arrive.
+4. **Depth:** Knowledge Tree, Test Q&A, shortcuts, larger answers, VTT export, structured report, BYOK.
+5. **Monetization:** Free core; US$1.99 7-day or US$1.99/week Premium when the user needs more.
+
+## Current store-state boundary
+
+Chrome Web Store item `immkojolaicdjhkbbhkldmndhfjbehmf` has 4.5.9 submitted and is **Pending review** with automatic publication enabled after approval. Do not cancel/restart that review solely to change marketing metadata. After approval, verify the exact public version, then apply the approved metadata/test instructions and re-check the rendered public listing before acquisition work.

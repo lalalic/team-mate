@@ -3,7 +3,7 @@
     "message": "MeetMate — Ask Your Meeting Anything"
   },
   "appDesc": {
-    "message": "Ask your Teams meeting anything. Grounded answers from live captions and your files. No bot or audio; nothing sent until you ask."
+    "message": "Ask your Teams meeting anything. Ground answers in live captions + your organized private knowledge. No bot. No audio recording."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
