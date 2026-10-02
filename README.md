@@ -59,9 +59,12 @@ flowchart LR
 - **Stripe Premium** — production builds expose two Stripe-hosted purchase paths:
   US$1.99 for a 7-day pass via `STRIPE_ONE_TIME_PAYMENT_LINK`, or US$1.99/week
   recurring via `STRIPE_WEEKLY_PAYMENT_LINK`. The success URL returns the Checkout
-  session plus `purchase=one_time|weekly`; the extension stores that as a local
-  soft entitlement. No Stripe secret is shipped in the extension, and development
-  Preview remains separate from real purchase state. Weekly Premium is cached locally for seven days; only expiry or an explicit Refresh calls the stateless Stripe entitlement Worker.
+  session plus `purchase=one_time|weekly`. Before granting access, the extension
+  verifies with the entitlement service that checkout is active and belongs to
+  Team Mate with the selected mode. No Stripe secret is shipped in the extension,
+  and development Preview remains separate from real purchase state. Successful
+  entitlement is cached locally; weekly Premium is rechecked at cache expiry or
+  explicit refresh, and cancellation revokes access.
 
 ## What was removed (and is not coming back)
 
@@ -130,14 +133,17 @@ What did Bob say about prod?
 # from team-mate/
 npm install
 npm run build           # webpack production + zip → team-mate.zip
-npm test                # focused helper unit tests (node, no network)
+npm test                # focused checks and provider-faithful payment E2E (local node endpoint)
 npm run dev             # webpack --watch (no zip)
 ```
 
 For a production payment build, set `STRIPE_ONE_TIME_PAYMENT_LINK` and/or
 `STRIPE_WEEKLY_PAYMENT_LINK` before building. The one-time link is the US$1.99
 7-day pass; the weekly link is the US$1.99/week recurring subscription. Configure
-their Stripe success URLs with `{CHECKOUT_SESSION_ID}` and a static purchase mode:
+their Stripe success URLs with `{CHECKOUT_SESSION_ID}` and a static purchase mode.
+Activation requires `STRIPE_ENTITLEMENT_ENDPOINT` (default:
+`https://stripe.qili2.com`) to return an active checkout for `product=team-mate`
+and matching `plan=one_time|weekly`:
 
 - one-time: `https://<public-host>/premium-success.html?session_id={CHECKOUT_SESSION_ID}&purchase=one_time`
 - weekly: `https://<public-host>/premium-success.html?session_id={CHECKOUT_SESSION_ID}&purchase=weekly`
@@ -236,4 +242,4 @@ UNLICENSED — proprietary.
 
 ### Stripe entitlement metadata
 
-The weekly Team Mate Payment Link/Subscription must carry Stripe metadata `product=team-mate` and should carry `plan=weekly`. Team Mate sends `product=team-mate` to the shared `https://stripe.qili2.com/v1/entitlement` service, which refuses subscriptions belonging to another product. Other apps/extensions reuse the same service with their own stable lowercase kebab-case product id.
+The Team Mate Payment Links/Checkouts must carry Stripe metadata `product=team-mate` and must identify `plan=one_time` or `plan=weekly`. Team Mate sends `product=team-mate` to the shared `https://stripe.qili2.com/v1/entitlement` service, and the extension rejects responses for another product or purchase mode. Other apps/extensions reuse the same service with their own stable lowercase kebab-case product id.

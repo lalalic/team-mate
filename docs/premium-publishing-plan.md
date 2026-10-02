@@ -1,14 +1,14 @@
 # MeetMate Premium Publishing Plan
 
-This document records the implemented Stripe-only architecture. It is a soft
-client-side entitlement flow: the extension never receives a Stripe secret and
-does not claim server-side payment verification.
+This document records the implemented Stripe-only architecture. Checkout
+entitlement is verified by a stateless Stripe entitlement service; the extension
+never receives a Stripe secret and caches only a verified result locally.
 
 ## Goals
 
 1. Host the MeetMate public site and payment success page with GitHub Pages from this repository.
 2. Use the user's existing Stripe-hosted Payment Link instead of ExtensionPay.
-3. Keep entitlement intentionally lightweight and client-side. Strong anti-tamper protection is not a requirement.
+3. Keep entitlement storage lightweight and client-side. Strong anti-tamper protection is not a requirement, but activation must be server-verified.
 4. Publish the assets needed for the Chrome Web Store and public product page.
 5. Make release/publish steps repeatable and preferably automated.
 
@@ -21,10 +21,11 @@ Stripe Payment Link / hosted checkout
   -> successful payment redirect with {CHECKOUT_SESSION_ID}
 public success page
   -> return to extension setup.html?session_id=cs_...
-chrome.storage.local premium entitlement
+Stripe entitlement service verifies active checkout, product, and mode
+chrome.storage.local verified entitlement cache
 ```
 
-No MeetMate-owned backend is required.
+No MeetMate payment database or secret-bearing extension backend is required.
 
 ## GitHub Pages
 
@@ -43,19 +44,21 @@ The site should explain clearly that meeting transcripts and uploaded knowledge 
 ## Stripe payment
 
 Use two build variables: `STRIPE_ONE_TIME_PAYMENT_LINK` for the US$1.99 7-day pass and `STRIPE_WEEKLY_PAYMENT_LINK` for the US$1.99/week recurring subscription. The extension validates the shape of the returned `cs_test_…` or
-`cs_live_…` identifier and stores it locally; it deliberately ignores arbitrary
-`premium=true`, `credit`, or amount parameters. This is a soft product gate,
-not proof against a determined user or a refund after activation.
+`cs_live_…` identifier, then asks `STRIPE_ENTITLEMENT_ENDPOINT` whether that
+session is active and belongs to `product=team-mate` with the selected purchase
+mode. Arbitrary `premium=true`, `credit`, or amount parameters never grant
+access. The local cache remains a soft runtime gate and is not proof against a
+determined user or a refund after activation.
 
-Commercial model: two purchase choices for the same Premium feature set — US$1.99 for a 7-day one-time pass, or US$1.99/week recurring. The extension records which choice produced the checkout session. Weekly cancellation/payment-failure reconciliation remains outside this soft local gate until a Stripe-backed server/webhook is added.
+Commercial model: two purchase choices for the same Premium feature set — US$1.99 for a 7-day one-time pass, or US$1.99/week recurring. The extension records which verified choice produced the checkout session. One-time access expires deterministically after seven days; weekly access is reconciled at local cache expiry or explicit refresh, including cancellation and payment failure.
 
 Requirements:
 
 - Premium UI exposes both configured purchase choices and opens the corresponding Stripe Payment Link.
 - Stripe redirects successful purchases to the GitHub Pages success page.
 - Success page can activate Premium in the installed extension.
-- Activation uses a Stripe Checkout session id rather than a plain boolean.
-- Successful entitlement is stored locally and survives browser restarts.
+- Activation uses a Stripe Checkout session id and requires active, product- and mode-matching verification before storing entitlement.
+- A verified entitlement is stored locally and survives browser restarts.
 - Keep a development Premium Preview mechanism for local testing, but make it visually distinct from a real purchase.
 - ExtensionPay dependency and runtime code are removed.
 

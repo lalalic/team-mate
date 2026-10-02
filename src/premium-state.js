@@ -13,9 +13,43 @@ export function isStripeCheckoutSessionId(value) {
     return STRIPE_SESSION_RE.test(String(value || "").trim())
 }
 
-export function normalizePurchaseMode(value) {
+export function parsePurchaseMode(value) {
     const mode = String(value || "").trim().toLowerCase()
-    return PURCHASE_MODES.has(mode) ? mode : "one_time"
+    return PURCHASE_MODES.has(mode) ? mode : ""
+}
+
+export function normalizePurchaseMode(value) {
+    return parsePurchaseMode(value) || "one_time"
+}
+
+export function verifyStripeEntitlementSource(remote, purchaseMode, product = "team-mate") {
+    const expectedMode = parsePurchaseMode(purchaseMode)
+    const expectedProduct = String(product || "").trim().toLowerCase()
+    if (!expectedMode || !expectedProduct) throw new Error("Invalid entitlement request.")
+    if (!remote || typeof remote !== "object") throw new Error("Entitlement service returned invalid JSON.")
+    if (String(remote.product || "").trim().toLowerCase() !== expectedProduct) throw new Error("Checkout belongs to a different product.")
+    const remoteMode = parsePurchaseMode(remote.purchaseMode ?? remote.mode ?? remote.plan)
+    if (remoteMode !== expectedMode) throw new Error("Checkout purchase mode does not match the selected plan.")
+    return remoteMode
+}
+
+export function verifyStripeEntitlement(remote, purchaseMode, product = "team-mate") {
+    verifyStripeEntitlementSource(remote, purchaseMode, product)
+    if (remote.active !== true) throw new Error(`Checkout is not active (${remote.status || "inactive"}).`)
+    return parsePurchaseMode(remote.purchaseMode ?? remote.mode ?? remote.plan)
+}
+
+export function createVerifiedStripeEntitlement(sessionId, remote, purchaseMode, activatedAt = Date.now(), product = "team-mate") {
+    const verifiedMode = verifyStripeEntitlement(remote, purchaseMode, product)
+    const entitlement = createStripeEntitlement(sessionId, activatedAt, verifiedMode)
+    if (!entitlement) throw new Error("Invalid Stripe Checkout session id.")
+    if (entitlement.purchaseMode === "weekly") {
+        return {
+            ...applyWeeklyEntitlementStatus(entitlement, remote, activatedAt),
+            checkedAt: activatedAt,
+        }
+    }
+    return { ...entitlement, stripeStatus: String(remote.status || "complete") }
 }
 
 export function createStripeEntitlement(sessionId, activatedAt = Date.now(), purchaseMode = "one_time") {
