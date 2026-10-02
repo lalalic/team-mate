@@ -1,9 +1,9 @@
 {
   "appName": {
-    "message": "MeetMate — Live Meeting Q&A with Your Knowledge for Teams"
+    "message": "MeetMate — Ask Your Meeting Anything"
   },
   "appDesc": {
-    "message": "Live Teams Q&A with your own knowledge, custom shortcuts, end-of-meeting results, and BYOK. No bot or audio."
+    "message": "Ask your Teams meeting anything. Grounded answers from live captions and your files. No bot or audio; nothing sent until you ask."
   },
   "rephrasePrompt": {
     "message": "You are native english teacher to help improve my oral english. Rephrase my message, provide explaination for change."
