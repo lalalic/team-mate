@@ -14,7 +14,8 @@ questions you actually ask, grounded in **this meeting's transcript** plus
 transcript buffer and nothing else: no LLM call, no suggestion, no
 autonomous loop, no heartbeat.
 
-The model runs only when you ask, and every path goes through one function:
+The answer path runs when you ask through one function. Separately, a library
+change triggers Premium Knowledge organization:
 
 ```js
 ask(question)   // src/util.js
@@ -23,7 +24,9 @@ ask(question)   // src/util.js
 ```mermaid
 flowchart LR
     C[Teams captions] -->|append only| T[(Local transcript)]
-    K[(Uploaded knowledge<br/>chrome.storage.local)] --> R[TF-IDF retrieval]
+    K[(Uploaded knowledge<br/>chrome.storage.local)] -->|library change| O[organization request]
+    O --> S[(organized structure)]
+    S --> R[search_knowledge]
     T --> Q[context builder]
     R --> Q
     U[Shortcut tap] --> Q
@@ -41,16 +44,16 @@ flowchart LR
 - **Shortcuts** — configurable `{label, prompt}` buttons. Defaults: Reply,
   Facts, Question, Challenge. Edited in Setup → Shortcuts.
 - **Grounded answers** — the request carries the current transcript (bounded,
-  most recent first) and the top knowledge passages retrieved by TF-IDF over
-  chunked docs. The system prompt requires the model to distinguish
-  transcript from knowledge, to avoid inventing unsupported facts, and to say
-  plainly when the context does not support an answer.
+  most recent first), an organized knowledge catalog, and retrieval results.
+  The system prompt requires the model to distinguish transcript from
+  knowledge, to avoid inventing unsupported facts, and to say plainly when the
+  context does not support an answer.
 - **Concise by design** — answers are 1–4 short sentences: they are read while
   somebody else is still talking.
-- **Knowledge upload** — `.txt` / `.md` / `.json` / `.csv` / `.html` in
-  Setup → Knowledge. Uploads are local-only (no model call): the text is
-  stored as-is and retrieval stays a plain in-browser TF-IDF over chunks
-  (no vector DB, no new dependency).
+- **Premium Knowledge** — `.txt` / `.md` / `.json` / `.csv` / `.html` in
+  Setup → Premium Knowledge. After each upload, replacement, or removal,
+  MeetMate automatically rebuilds a two-level local library structure. During
+  an explicit ask, the model can call `search_knowledge` for supporting detail.
 - **Transcript export** — the meeting transcript is written to a `.vtt` file
   on Leave.
 - **Stripe Premium** — production builds expose two Stripe-hosted purchase paths:
@@ -83,7 +86,7 @@ src/focused.js       pure helpers: shortcut normalization, transcript
                      formatting/bounding, knowledge chunking + TF-IDF search,
                      ask payload construction. No chrome/DOM access.
 src/util.js          focused config/knowledge/ask helpers; `ask()` is the
-                     single LLM entry point
+                     answer entry point and organization has its own path
 src/relay.js         direct OpenAI-compatible client via background service worker
 src/background.js    badge/icon, VTT export, top-up
 src/setup.js         provider / shortcuts / knowledge
@@ -184,7 +187,7 @@ All state lives in `chrome.storage.local`:
 | Key | Shape | Purpose |
 |---|---|---|
 | `conf` | `{author, relayModel, shortcuts: [{label, prompt}], usageWarnThreshold, ...}` | Profile + rail shortcuts + model |
-| `knowledge` | `{docs: [{id, name, size, addedAt, content}]}` | Uploaded reference docs |
+| `knowledge` | `{docs: [{id, name, size, addedAt, content}], organized, organizedStatus}` | Uploaded reference docs and automatically organized structure |
 | `usage` | `{cost, tokens}` | Cumulative LLM spend |
 
 Shortcuts are stored as typed. `normalizeShortcuts()` drops blank rows, caps
@@ -201,6 +204,7 @@ Covers the pure helpers only (no network, no DOM):
 - `normalizeShortcuts` — defaults, trimming, dedupe, caps
 - `formatTranscript` — line format, bounding, truncation marker
 - `knowledgeSearch` — ranking, snippets, no-match behaviour
+- `buildKnowledgeReorganizeMessages` — fixed prompt and library rebuild rules
 - `buildAskMessages` — transcript/knowledge/question blocks, no-knowledge
   note, grounding rules present, bounded payload, custom prompt fill-ins
 
@@ -208,7 +212,8 @@ Covers the pure helpers only (no network, no DOM):
 
 1. Reload the extension at `chrome://extensions/`.
 2. Setup: connect the account, pick a model, confirm the shortcuts list shows
-   Reply / Facts / Question / Challenge, upload a knowledge doc.
+   Reply / Facts / Question / Challenge, upload a knowledge doc, and confirm
+   automatic organization completes.
 3. Join a Teams meeting with live captions on. Confirm captions increment the
    badge and that **no** model call happens (relay logs stay empty).
 4. Ask something in the rail and tap each shortcut. Each tap produces exactly

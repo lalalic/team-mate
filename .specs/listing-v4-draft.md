@@ -2,7 +2,7 @@
 
 The listing sells one thing: **ask your meeting anything, and get an answer
 grounded in what was actually said plus the docs you uploaded.** No bot joins
-the call, and nothing is sent anywhere until you ask.
+the call; model requests organize your library or answer your question.
 
 ## Competitive positioning
 
@@ -27,7 +27,7 @@ Alt: `MeetMate: Live Q&A for Microsoft Teams` (39)
 ## Summary (132 char max)
 
 > Ask your Teams meeting anything. Answers grounded in the live transcript and
-> your own docs. No bot, nothing sent until you ask. (122)
+> your own organized docs. No bot. (110)
 
 ## Detailed description (16k char max — keep it scannable)
 
@@ -60,13 +60,13 @@ to tell you plainly when neither source supports an answer.
 Answers are short on purpose — one to four sentences. You are reading them
 while somebody else is still talking.
 
-BRING YOUR OWN KNOWLEDGE
+PREMIUM KNOWLEDGE, AUTOMATICALLY ORGANIZED
 Drop in design docs, briefs, specs, or notes (.txt, .md, .json, .csv, .html).
-They stay in your browser's local storage and are only used to answer your
-questions. Premium Knowledge Chat can search across multiple imported files;
-you can replace or remove files, and MeetMate does not impose an artificial
-5 MB application cap (the browser's available extension storage still
-applies).
+They stay in your browser's local storage. After every upload, replacement, or
+removal, Premium Knowledge automatically rebuilds one organized structure.
+During meetings, answers retrieve supporting detail from that library.
+MeetMate does not impose an artificial 5 MB application cap (the browser's
+available extension storage still applies).
 
 OPEN ANSWERS IN A LARGER VIEW
 Click a question or its larger-view control to read the answer in an
@@ -90,4 +90,4 @@ so when it can't.
 - `storage` — transcript buffer, settings, uploaded knowledge (all local).
 - `activeTab` / `tabs` — open or focus the Teams tab from the popup.
 - `downloads` — save the `.vtt` transcript export.
-- provider network access — used only for explicit Ask requests and `/models` discovery; the default endpoint is OpenRouter and Advanced can point to a custom/local OpenAI-compatible endpoint.
+- provider network access — used for explicit Ask requests, `/models` discovery, and automatic Premium Knowledge organization after library changes; the default endpoint is OpenRouter and Advanced can point to a custom/local OpenAI-compatible endpoint.

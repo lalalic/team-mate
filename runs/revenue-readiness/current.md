@@ -19,12 +19,12 @@ Current main remains MeetMate’s grounded-Q&A scope: Teams captions append loca
 The implemented Knowledge behavior is:
 
 - Users may upload any file type into local `chrome.storage.local`; storage follows browser capacity.
-- Organization is **manual/on-demand**: the user clicks **Organize now**. Current main explicitly states that file changes never trigger the model automatically.
+- Organization is **automatic after library changes**: every upload, replacement, or removal triggers a rebuild of the organized knowledge structure. Captions still never trigger an autonomous model request.
 - The organized result is a two-level table of contents plus node content. The model receives only the compact catalog during meetings and can call the single `search_knowledge` tool for supporting detail.
 - Free users receive Knowledge/Q&A but the final organized knowledge is limited to **5,000 characters**. Premium removes that cap.
 - Premium also removes the three-shown-shortcut limit and enables answer provenance/sources plus the structured end-of-meeting report.
 
-**Copy constraint:** current main does **not** implement “automatic organization.” Position it as *on-demand model organization plus in-meeting retrieval*. Automatic organization is rejected below as an insufficiently evidenced claim.
+**Copy constraint:** position Premium Knowledge as *automatic organization after library changes plus in-meeting retrieval*. Do not describe caption-triggered autonomy.
 
 Current main has no tracked `Ask Knowledge` string. A comprehensive current-main search for the phrase returned no result. The public surfaces require the separate cleanup because they are not generated from current main.
 
@@ -88,7 +88,7 @@ The current-main public home page must be deployed before a corrected store laun
 
 The following claims are rejected for this release because current evidence is insufficient or contradicts current behavior:
 
-- **“Automatic organization”** — current main requires the user to click **Organize now**.
+- **Caption-triggered autonomous organization** — library changes trigger organization, but captions do not trigger model calls.
 - **“Ask Knowledge”** — absent from current main tracked source; public/stale copy only.
 - **Autonomous suggestions, live minutes, cross-meeting memory, speaking coach, or memory** — removed scope; still visible in stale 4.2.0 CWS copy and stale CDN home copy.
 - **$1/$10/$100 pay-as-you-go top-ups** — replaced by the fixed one-time/weekly Premium model.
@@ -109,7 +109,7 @@ The following claims are rejected for this release because current evidence is i
 
 Ship one corrective Premium release. No pricing change, architecture change, or new feature is required.
 
-1. Merge the separate grounded Premium copy cleanup, ensuring every user-facing/store-facing string uses **Premium Knowledge = on-demand organization + in-meeting retrieval** and omits `Ask Knowledge`.
+1. Merge the separate grounded Premium copy cleanup, ensuring every user-facing/store-facing string uses **Premium Knowledge = automatic organization after library changes + in-meeting retrieval** and omits the removed feature label.
 2. Bump package/manifest together to **4.5.7** because this is a user-visible release after the current-main behavior changes.
 3. Run the existing workflow with both Stripe Payment Link secrets; verify one-time and weekly configured paths, no secrets in the bundle, tests, build, and ZIP integrity.
 4. Deploy the already-current `www/` marketing, privacy, support, and success pages to CDN.
@@ -118,7 +118,7 @@ Ship one corrective Premium release. No pricing change, architecture change, or 
 
 ## Market-safe core positioning
 
-**Positioning:** MeetMate is private, grounded Q&A inside Microsoft Teams. Premium Knowledge adds on-demand organization of your own files and in-meeting retrieval, while Premium removes shortcut limits and adds answer provenance and a structured meeting report.
+**Positioning:** MeetMate is private, grounded Q&A inside Microsoft Teams. Premium Knowledge adds automatic organization of your own files after library changes and in-meeting retrieval, while Premium removes shortcut limits and adds answer provenance and a structured meeting report.
 
 **Primary CTA:** Install free from Chrome Web Store; upgrade to US$1.99 one-time/7-day or US$1.99/week only after the corrected version is publicly verified.
 
