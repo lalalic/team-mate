@@ -47,6 +47,16 @@ The submitted package-owned name is 57 characters and exceeds the 45-character s
 
 This stays within the Chrome extension short-description limit and can be updated in the next package release under the same post-approval gate.
 
+## User release notes
+
+**Use only after the post-approval application gate passes.**
+
+- Ask questions from live Teams captions, with grounded answers and clear limits when context is missing.
+- Organize local reference files into a two-level Knowledge Tree, open each leaf, and run Test Q&A.
+- Export the captured transcript as `.vtt` when you leave.
+- Premium removes the Free 5,000-character organized-knowledge limit and three-shortcut display limit, and adds answer provenance plus the optional structured report.
+- Still no meeting bot, audio recording, or caption-triggered autonomous calls.
+
 ## Long description
 
 ```text
