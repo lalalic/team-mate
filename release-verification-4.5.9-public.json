@@ -1,0 +1,38 @@
+{
+  "task_id": "verify-meetmate-459-public-availability",
+  "product": "MeetMate",
+  "target": "chrome-web-store",
+  "item_id": "immkojolaicdjhkbbhkldmndhfjbehmf",
+  "requested_version": "4.5.9",
+  "verified_at": "2026-10-02T22:18:01Z",
+  "observed_public_state": {
+    "listing_url": "https://chromewebstore.google.com/detail/meetmate-%E2%80%94-live-facts-kno/immkojolaicdjhkbbhkldmndhfjbehmf",
+    "http_status": 200,
+    "title": "MeetMate — Live Facts, Knowledge, Speaking Coach & Memory for Teams - Chrome Web Store",
+    "version": "4.2.0",
+    "updated": "May 19, 2026",
+    "users": 75,
+    "requested_version_public": false,
+    "publication_claimed": false
+  },
+  "observed_dashboard_state": {
+    "state": "unknown",
+    "authenticated_dashboard_verified": false,
+    "review_status": "unknown",
+    "blocker": "The host display was locked, Chrome Apple-event access did not return within the timeout, and Chrome DevTools did not expose the standard /json endpoints. Therefore the current authenticated publisher dashboard state could not be observed without owner interaction."
+  },
+  "root_cause": "Not applicable for the public availability result: the live public listing remains on version 4.2.0 and does not serve the submitted 4.5.9 build. The review status of 4.5.9 is separately unverified because authenticated dashboard access is blocked.",
+  "implementation": "Fetched the exact public Chrome Web Store listing for the declared item ID, parsed the rendered listing metadata and embedded package manifest, and checked for 4.5.9. No store settings were changed and no review was cancelled, restarted, or resubmitted.",
+  "deviations": "Public listing evidence was collected successfully, but authenticated dashboard evidence could not be collected during this execution because of the owner-only display/Chrome automation blocker above.",
+  "validation_evidence": {
+    "public_page_sha256": "8f22a9c8ea0e0b2503a2bbc57a3b6bf026bbcf9dbf18ed2f9fce56f59530c4f2",
+    "public_page_contains_requested_version": false,
+    "exact_version_verified": false,
+    "response_headers": {
+      "content_type": "text/html; charset=utf-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "date": "Fri, 02 Oct 2026 22:18:01 GMT"
+    }
+  },
+  "required_owner_action": "Unlock the host display, allow Chrome automation if prompted, and reopen the authenticated Chrome Web Store dashboard for item immkojolaicdjhkbbhkldmndhfjbehmf so its review status and package version can be captured with fresh screenshots."
+}
