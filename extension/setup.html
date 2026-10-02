@@ -155,14 +155,25 @@
                 transition: opacity 0.3s;
             }
             .save-status.show { opacity: 1; }
+            .settings-tabs { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 14px; }
+            .settings-tab { border:1px solid var(--border); background:#fff; border-radius:8px; padding:8px 12px; cursor:pointer; font:600 13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+            .settings-tab.active { background:#111827; color:#fff; border-color:#111827; }
+            [data-settings-panel][hidden] { display:none !important; }
         </style>
     </head>
     <body style="display: none;">
         <div class="container">
             <h1 class="app-title">MeetMate <span class="badge">Settings</span></h1>
+            <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+                <button class="settings-tab active" type="button" role="tab" aria-selected="true" data-settings-tab="general">General</button>
+                <button class="settings-tab" type="button" role="tab" aria-selected="false" data-settings-tab="premium">Premium</button>
+                <button class="settings-tab" type="button" role="tab" aria-selected="false" data-settings-tab="shortcuts">Shortcuts</button>
+                <button class="settings-tab" type="button" role="tab" aria-selected="false" data-settings-tab="knowledge">Knowledge</button>
+                <button class="settings-tab" type="button" role="tab" aria-selected="false" data-settings-tab="help">Help</button>
+            </div>
 
             <!-- Direct provider / BYOK -->
-            <div class="card">
+            <div class="card" data-settings-panel="general">
                 <h3>AI Provider</h3>
                 <p class="desc">MeetMate calls your OpenAI-compatible provider directly. Your provider key stays in this browser; MeetMate does not proxy model requests.</p>
                 <div class="row">
@@ -202,7 +213,7 @@
             </div>
 
             <!-- Assistant preferences -->
-            <div class="card">
+            <div class="card" data-settings-panel="general">
                 <h3 data-i18n="assistantPreferences">Assistant preferences</h3>
                 <p class="desc" data-i18n="assistantPreferencesDesc">Applied to every typed Ask and shortcut Ask. Grounding rules always take priority.</p>
                 <div class="row">
@@ -233,17 +244,24 @@
             </div>
 
             <!-- Premium: Stripe Payment Link + server-verified local entitlement cache -->
-            <div class="card" id="premiumCard">
+            <div class="card" id="premiumCard" data-settings-panel="premium" hidden>
                 <h3>MeetMate Premium</h3>
-                <p class="desc">Unlock answer provenance, structured meeting reports, and unlimited shown shortcuts. Choose a one-time 7-day pass or an auto-renewing weekly subscription.</p>
+                <p class="desc">Premium unlocks the full meeting assistant and private knowledge workflow.</p>
+                <ul style="margin:0 0 14px; padding-left:20px; line-height:1.55">
+                    <li>Unlimited shown meeting shortcuts <span class="hint">(Free: up to 3)</span></li>
+                    <li>Unlimited organized knowledge catalog <span class="hint">(Free: up to 5,000 characters)</span></li>
+                    <li>Answer provenance and sources</li>
+                    <li>Structured meeting report at meeting end</li>
+                </ul>
+                <div class="hint" style="margin-bottom:12px">Choose the available one-time pass or weekly plan below.</div>
                 <div id="premiumStatusText" class="premium-status">Checking…</div>
                 <label style="display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:13px">
                     <input id="premiumStructuredReport" type="checkbox" style="width:auto; margin:0" />
                     Generate a structured meeting report at meeting end
                 </label>
                 <div class="premium-actions">
-                    <button id="premiumOneTime" class="primary" type="button" style="display:none">1.99$ one time</button>
-                    <button id="premiumWeekly" class="primary" type="button" style="display:none">1.99$/week</button>
+                    <button id="premiumOneTime" class="primary" type="button">1.99$ one time</button>
+                    <button id="premiumWeekly" class="primary" type="button">1.99$/week</button>
                     <button id="premiumLogin" class="subtle" type="button">How to activate</button>
                     <button id="premiumRefresh" class="subtle" type="button">Refresh status</button>
                     <button id="premiumPreview" class="subtle" type="button" style="display:none">Enable Premium Preview</button>
@@ -251,7 +269,7 @@
             </div>
 
             <!-- Shortcuts: the one-tap asks in the in-meeting rail -->
-            <div class="card">
+            <div class="card" data-settings-panel="shortcuts" hidden>
                 <h3>Shortcuts</h3>
                 <p class="desc">
                     Your shortcut library. The checkbox shows/hides a shortcut in the meeting
@@ -262,31 +280,57 @@
             </div>
 
             <!-- Knowledge (uploaded docs the assistant can reference in meetings) -->
-            <div class="card">
-                <h3>Premium Knowledge</h3>
+            <div class="card" data-settings-panel="knowledge" hidden>
+                <h3>Knowledge</h3>
                 <p class="desc">
-                    Drop in design docs, briefs, or notes. Premium Knowledge automatically rebuilds one
-                    organized structure after every upload, replacement, or removal. During meetings, the
-                    assistant uses that structure for orientation and can call <code>search_knowledge</code>
-                    for supporting detail.
+                    Add or update your knowledge files, then click <strong>Organize now</strong> when you want MeetMate to rebuild the organized knowledge tree.
+                    File changes never trigger the model automatically. During meetings, the assistant can call
+                    <code>search_knowledge</code> against the organized tree for supporting detail.
                 </p>
                 <div class="row">
                     <label>Documents</label>
                     <div>
                         <input type="file" id="knowledgeUpload" multiple />
                         <div class="hint" style="grid-column:auto">
-                            Upload the original files directly, including PDF, DOCX, PPTX, spreadsheets, text, and other formats supported by your selected AI model/provider.
-                            Files are stored locally and sent to your configured AI provider only when organizing knowledge.
+                            Upload original files directly, including PDF, DOCX, PPTX, spreadsheets, text, and other formats supported by the configured provider/model.
+                            Files are stored locally and sent to the configured AI provider only when you click <strong>Organize now</strong>.
                         </div>
                     </div>
                 </div>
-                <div id="knowledgePremiumNote" class="hint" style="margin:8px 0; color:var(--muted)">Premium feature — upgrade to automatically organize a private library and retrieve from it in meetings.</div>
+                <div id="knowledgePlanNote" class="hint" style="margin:8px 0; color:var(--muted)">Free · final organized knowledge is limited to 5,000 characters. Premium removes this limit.</div>
                 <div id="knowledgeTree" style="margin-top:10px"></div>
                 <div id="knowledgeList" style="margin-top:10px"></div>
-                <div id="knowledgeStatus" class="hint" style="margin-top:10px">No organized knowledge yet.</div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:10px">
+                    <button id="knowledgeOrganizeBtn" class="primary" type="button">Organize now</button>
+                    <div id="knowledgeStatus" class="hint">No organized knowledge yet.</div>
+                </div>
+                <div class="row" style="margin-top:14px">
+                    <label for="knowledgeTestQuestion">Test Q&A</label>
+                    <div>
+                        <textarea id="knowledgeTestQuestion" placeholder="Ask something that should be answered from your uploaded knowledge."></textarea>
+                        <button id="knowledgeTestBtn" class="primary" type="button" style="margin-top:8px">Test Q&A</button>
+                        <pre id="knowledgeTestAnswer" style="white-space:pre-wrap; margin-top:10px; font:inherit"></pre>
+                    </div>
+                </div>
+                <div style="margin-top:18px">
+                    <div style="font-weight:600; margin-bottom:6px">Organized knowledge</div>
+                    <div id="knowledgeTree" style="border:1px solid var(--border); border-radius:8px; padding:10px; min-height:50px"></div>
+                </div>
+                <div id="knowledgeNodeModal" hidden style="position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.45); padding:7vh 7vw; box-sizing:border-box">
+                    <div style="background:#fff; max-width:900px; max-height:86vh; overflow:auto; margin:0 auto; border-radius:12px; padding:20px; box-shadow:0 18px 60px rgba(0,0,0,.28)">
+                        <div style="display:flex; align-items:flex-start; gap:12px">
+                            <div style="flex:1">
+                                <h3 id="knowledgeNodeModalTitle" style="margin:0 0 4px"></h3>
+                                <div id="knowledgeNodeModalSummary" class="hint"></div>
+                            </div>
+                            <button id="knowledgeNodeModalClose" class="subtle" type="button" aria-label="Close">×</button>
+                        </div>
+                        <pre id="knowledgeNodeModalContent" style="white-space:pre-wrap; margin-top:16px; font:inherit; line-height:1.55"></pre>
+                    </div>
+                </div>
             </div>
 
-            <div class="card">
+            <div class="card" data-settings-panel="help" hidden>
                 <h3>Help improve MeetMate</h3>
                 <p class="desc">Report a problem or share an idea. You can attach a screenshot without sending your meeting transcript.</p>
                 <a id="feedbackLink" class="button secondary" href="https://github.com/lalalic/team-mate" target="_blank" rel="noopener">Send feedback</a>

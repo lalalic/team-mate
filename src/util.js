@@ -18,6 +18,8 @@ import {
     knowledgeSearch,
     mergeKnowledgeDocs,
     buildKnowledgeReorganizeMessages,
+    capOrganizedKnowledge,
+    buildKnowledgeQATestMessages,
     parseKnowledgeTree,
     formatTranscript,
     formatMeetingTimeline,
@@ -48,6 +50,8 @@ export {
     knowledgeSearch,
     mergeKnowledgeDocs,
     buildKnowledgeReorganizeMessages,
+    capOrganizedKnowledge,
+    buildKnowledgeQATestMessages,
     parseKnowledgeTree,
     formatTranscript,
     formatMeetingTimeline,
@@ -300,6 +304,25 @@ export async function reorganizeKnowledge({ signal } = {}) {
         }
     }
     throw new Error("Knowledge organizer did not finish the structured tree within 30 tool rounds.");
+}
+
+export async function testKnowledgeQnA(question, { signal } = {}) {
+    const q = String(question || "").trim();
+    if (!q) return "";
+    const conf = (await getConf()) || {};
+    const state = await getKnowledgeState();
+    const docs = Array.isArray(state.docs) ? state.docs : [];
+    if (!docs.length) throw new Error("Upload at least one knowledge document first.");
+    const organized = state.organizedStatus === "ready" ? knowledgeTreeToMarkdown(state.organizedTree) : "";
+    const messages = buildKnowledgeQATestMessages({
+        question: q,
+        knowledgeWiki: organized || buildKnowledgeWiki(docs),
+        preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
+        customInstructions: conf.customInstructions || "",
+    });
+    const searchDocs = await getKnowledgeSearchDocs();
+    const { response } = await completeWithKnowledgeTool(messages, signal, searchDocs.length > 0, { maxSearches: 4, maxRounds: 5 });
+    return String(response?.choices?.[0]?.message?.content || "").trim();
 }
 
 // ── Explicit ask (the ONLY path that calls the LLM in a meeting) ───────────

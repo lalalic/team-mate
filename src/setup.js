@@ -1,10 +1,42 @@
-const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, mergeKnowledgeDocs, parseKnowledgeTree } = require("./util")
+const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, testKnowledgeQnA, mergeKnowledgeDocs, parseKnowledgeTree } = require("./util")
 const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
 const { extractStripeSessionId, extractStripePurchaseMode } = require("./premium-state")
 
 document.addEventListener('DOMContentLoaded', async () => {
     const conf = await initSetupPage()
     const feedbackLink = document.querySelector('#feedbackLink')
+
+    const settingsTabs = Array.from(document.querySelectorAll('[data-settings-tab]'))
+    const settingsPanels = Array.from(document.querySelectorAll('[data-settings-panel]'))
+    function selectSettingsTab(name, { persist = true } = {}) {
+        const target = settingsTabs.some(tab => tab.dataset.settingsTab === name) ? name : 'general'
+        settingsTabs.forEach(tab => {
+            const active = tab.dataset.settingsTab === target
+            tab.classList.toggle('active', active)
+            tab.setAttribute('aria-selected', active ? 'true' : 'false')
+            tab.tabIndex = active ? 0 : -1
+        })
+        settingsPanels.forEach(panel => {
+            panel.hidden = panel.dataset.settingsPanel !== target
+        })
+        if (persist) chrome.storage.local.set({ settingsTab: target })
+    }
+    settingsTabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => selectSettingsTab(tab.dataset.settingsTab))
+        tab.addEventListener('keydown', (event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+            event.preventDefault()
+            let next = index
+            if (event.key === 'ArrowLeft') next = (index - 1 + settingsTabs.length) % settingsTabs.length
+            if (event.key === 'ArrowRight') next = (index + 1) % settingsTabs.length
+            if (event.key === 'Home') next = 0
+            if (event.key === 'End') next = settingsTabs.length - 1
+            const nextTab = settingsTabs[next]
+            selectSettingsTab(nextTab.dataset.settingsTab)
+            nextTab.focus()
+        })
+    })
+    chrome.storage.local.get('settingsTab', x => selectSettingsTab(x.settingsTab || 'general', { persist: false }))
     if (feedbackLink) {
         feedbackLink.href = 'https://github.com/lalalic/team-mate'
     }
@@ -46,8 +78,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ? `Premium active${premiumState.preview ? ' · local preview' : premiumState.purchaseMode === 'weekly' ? ' · 1.99$/week' : premiumState.purchaseMode === 'one_time' ? ' · 1.99$ one time' : ''}`
                 : (premiumState.configured ? 'Free plan · up to 3 shown shortcuts' : 'Payment not configured in this build · Free plan')
         }
-        if (premiumOneTime) premiumOneTime.style.display = (!paid && premiumState.configuredModes?.includes('one_time')) ? '' : 'none'
-        if (premiumWeekly) premiumWeekly.style.display = (!paid && premiumState.configuredModes?.includes('weekly')) ? '' : 'none'
+        if (premiumOneTime) {
+            premiumOneTime.style.display = paid ? 'none' : ''
+            premiumOneTime.disabled = !premiumState.configuredModes?.includes('one_time')
+            premiumOneTime.title = premiumOneTime.disabled ? 'Unavailable in this build.' : ''
+        }
+        if (premiumWeekly) {
+            premiumWeekly.style.display = paid ? 'none' : ''
+            premiumWeekly.disabled = !premiumState.configuredModes?.includes('weekly')
+            premiumWeekly.title = premiumWeekly.disabled ? 'Unavailable in this build.' : ''
+        }
         if (premiumStructuredReport) premiumStructuredReport.disabled = !paid
         if (premiumLogin) premiumLogin.style.display = (!paid && premiumState.configured) ? '' : 'none'
         if (premiumPreview) {
@@ -426,13 +466,108 @@ document.addEventListener('DOMContentLoaded', async () => {
     const knowledgeTree = document.querySelector('#knowledgeTree')
     const knowledgeUpload = document.querySelector('#knowledgeUpload')
     const knowledgeStatus = document.querySelector('#knowledgeStatus')
-    const knowledgePremiumNote = document.querySelector('#knowledgePremiumNote')
+    const knowledgeTestQuestion = document.querySelector('#knowledgeTestQuestion')
+    const knowledgeTestBtn = document.querySelector('#knowledgeTestBtn')
+    const knowledgeTestAnswer = document.querySelector('#knowledgeTestAnswer')
+    const knowledgeOrganizeBtn = document.querySelector('#knowledgeOrganizeBtn')
+    const knowledgeNodeModal = document.querySelector('#knowledgeNodeModal')
+    const knowledgeNodeModalTitle = document.querySelector('#knowledgeNodeModalTitle')
+    const knowledgeNodeModalSummary = document.querySelector('#knowledgeNodeModalSummary')
+    const knowledgeNodeModalContent = document.querySelector('#knowledgeNodeModalContent')
+    const knowledgeNodeModalClose = document.querySelector('#knowledgeNodeModalClose')
+    const knowledgePlanNote = document.querySelector('#knowledgePlanNote')
+
+    function openKnowledgeNode(node, k) {
+        if (!knowledgeNodeModal || !node) return
+        if (knowledgeNodeModalTitle) knowledgeNodeModalTitle.textContent = node.title || node.name || 'Knowledge'
+        if (knowledgeNodeModalSummary) knowledgeNodeModalSummary.textContent = node.summary || ''
+        if (knowledgeNodeModalContent) knowledgeNodeModalContent.textContent = Array.isArray(node.content) && node.content.length ? node.content.join('\n') : '(no organized content for this node)'
+        knowledgeNodeModal.hidden = false
+    }
+
+    function closeKnowledgeNode() {
+        if (knowledgeNodeModal) knowledgeNodeModal.hidden = true
+    }
+
+    knowledgeNodeModalClose?.addEventListener('click', closeKnowledgeNode)
+    knowledgeNodeModal?.addEventListener('click', (event) => {
+        if (event.target === knowledgeNodeModal) closeKnowledgeNode()
+    })
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && knowledgeNodeModal && !knowledgeNodeModal.hidden) closeKnowledgeNode()
+    })
+
+    function renderOrganizedKnowledge(k) {
+        if (!knowledgeTree) return
+        knowledgeTree.innerHTML = ''
+        const tree = Array.isArray(k?.organizedTree?.roots) ? k.organizedTree.roots : []
+        if (!tree.length) {
+            knowledgeTree.innerHTML = '<em style="color:var(--muted)">(organized knowledge not ready)</em>'
+            return
+        }
+        if (k.organizedStatus === 'stale') {
+            const stale = document.createElement('div')
+            stale.className = 'hint'
+            stale.style.marginBottom = '10px'
+            stale.textContent = 'Files changed. This TOC is stale — click Organize now to rebuild it.'
+            knowledgeTree.appendChild(stale)
+        }
+        for (const group of tree) {
+            const section = document.createElement('section')
+            section.style.borderBottom = '1px solid var(--border)'
+            section.style.padding = '8px 0'
+            const head = document.createElement('button')
+            head.type = 'button'
+            head.className = 'subtle'
+            head.style.fontWeight = '700'
+            head.style.width = '100%'
+            head.style.textAlign = 'left'
+            head.textContent = '▾ ' + String(group.title || group.name || 'Untitled')
+            const summary = document.createElement('div')
+            summary.className = 'hint'
+            summary.style.margin = '4px 0 6px 22px'
+            summary.textContent = String(group.summary || '')
+            const children = document.createElement('div')
+            children.style.marginLeft = '18px'
+            for (const node of Array.isArray(group.children) ? group.children : []) {
+                const btn = document.createElement('button')
+                btn.type = 'button'
+                btn.className = 'subtle'
+                btn.style.display = 'block'
+                btn.style.width = '100%'
+                btn.style.textAlign = 'left'
+                btn.style.margin = '4px 0'
+                btn.innerHTML = `<strong>${escapeAttr(node.title || node.name || 'Untitled')}</strong>${node.summary ? `<span class="hint"> · ${escapeAttr(node.summary)}</span>` : ''}`
+                btn.addEventListener('click', () => openKnowledgeNode(node, k))
+                children.appendChild(btn)
+            }
+            head.addEventListener('click', () => {
+                const hidden = children.style.display === 'none'
+                children.style.display = hidden ? '' : 'none'
+                summary.style.display = hidden ? '' : 'none'
+                head.textContent = (hidden ? '▾ ' : '▸ ') + String(group.title || group.name || 'Untitled')
+            })
+            section.appendChild(head)
+            section.appendChild(summary)
+            section.appendChild(children)
+            knowledgeTree.appendChild(section)
+        }
+    }
+
+    function markKnowledgeStale(k) {
+        if (Array.isArray(k?.organizedTree?.roots) && k.organizedTree.roots.length) k.organizedStatus = 'stale'
+        else k.organizedStatus = 'empty'
+        delete k.organizedError
+        return k
+    }
 
     async function reorganizeCurrentKnowledge() {
         const cur = await getKnowledge()
         if (!(cur.docs || []).length) {
             cur.organized = ''
             cur.organizedTree = null
+            cur.tree = []
+            cur.nodeContents = {}
             cur.organizedStatus = 'empty'
             delete cur.organizedError
             cur.organizedAt = Date.now()
@@ -442,13 +577,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (knowledgeStatus) knowledgeStatus.textContent = 'Reorganizing current knowledge…'
         cur.organizedStatus = 'organizing'
+        cur.tree = []
+        cur.nodeContents = {}
         await setKnowledge(cur)
         try {
-            const organized = await reorganizeKnowledge()
+            const organized = await reorganizeKnowledge({ maxChars: premiumState?.paid === true ? 0 : 5000 })
             const latest = await getKnowledge()
             latest.organizedTree = organized.tree
             latest.organized = organized.markdown
-            latest.organizedStatus = 'ready'
+            latest.tree = organized.tree?.roots || []
+            latest.nodeContents = {}
+            latest.organizedStatus = organized.tree?.roots?.length ? 'ready' : 'failed'
             delete latest.organizedError
             latest.organizedAt = Date.now()
             await setKnowledge(latest)
@@ -462,26 +601,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Raw files remain local. A model call happens only after the user explicitly
-    // changes the library, to rebuild the organized knowledge from current files.
+    // Raw file changes never call the model. Only the explicit Organize now action
+    // rebuilds organized knowledge from the current library.
     async function refreshKnowledge() {
         if (!knowledgeList) return
         const paid = premiumState?.paid === true
-        if (knowledgeUpload) knowledgeUpload.disabled = !paid
-        if (knowledgePremiumNote) knowledgePremiumNote.style.display = paid ? 'none' : ''
+        if (knowledgeUpload) knowledgeUpload.disabled = false
+        if (knowledgeTestQuestion) knowledgeTestQuestion.disabled = false
+        if (knowledgeTestBtn) knowledgeTestBtn.disabled = false
+        if (knowledgePlanNote) knowledgePlanNote.textContent = paid
+            ? 'Premium · organized knowledge has no artificial character limit.'
+            : 'Free · final organized knowledge is limited to 5,000 characters. Premium removes this limit.'
         const k = await getKnowledge()
+        renderOrganizedKnowledge(k)
         const total = totalBytes(k)
         const totalKb = (total / 1024).toFixed(1)
         const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
-        if (knowledgeTree) {
-            const tree = k.organizedTree?.roots ? { title: 'Knowledge', children: k.organizedTree.roots, content: [] } : parseKnowledgeTree(k.organized)
-            const renderNode = (node) => `<details class="knowledge-tree-node" data-knowledge-node><summary>${esc(node.title)}</summary>${
-                node.content.length ? `<div class="knowledge-tree-content">${node.content.map(line => `<div>${esc(line)}</div>`).join('')}</div>` : ''
-            }${node.children.map(renderNode).join('')}</details>`
-            knowledgeTree.innerHTML = tree
-                ? `<div class="knowledge-tree" aria-label="Organized knowledge">${tree.children.map(renderNode).join('')}</div>`
-                : ''
-        }
         if (!k.docs.length) {
             knowledgeList.innerHTML = '<em style="color:var(--muted)">(no docs yet)</em>'
             if (knowledgeStatus) knowledgeStatus.textContent = 'No organized knowledge yet.'
@@ -495,7 +630,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div style="display:flex; align-items:center; gap:8px">
                     <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${esc(d.name)}</span>
                     <span style="font-size:11px; color:var(--muted)">${kb} KB</span>
-                    <button class="subtle" data-knowledge-delete="${esc(d.id)}" ${paid ? '' : 'disabled'}>Remove</button>
+                    <button class="subtle" data-knowledge-delete="${esc(d.id)}">Remove</button>
                 </div>
             </li>`)
         }
@@ -505,20 +640,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             knowledgeStatus.textContent = k.organizedStatus === 'organizing'
                 ? 'Reorganizing current knowledge…'
                 : k.organizedStatus === 'failed'
-                    ? `Knowledge changed, but reorganization failed: ${k.organizedError || 'unknown error'}`
-                    : k.organized
-                        ? 'Knowledge organized from current files.'
-                        : 'Knowledge has not been organized yet.'
+                    ? `Organization failed: ${k.organizedError || 'unknown error'}`
+                    : k.organizedStatus === 'stale'
+                        ? 'Files changed · click Organize now to rebuild organized knowledge.'
+                        : Array.isArray(k.tree) && k.tree.length
+                            ? 'Knowledge organized from current files.'
+                            : 'Knowledge has not been organized yet · click Organize now.'
         }
         knowledgeList.querySelectorAll('[data-knowledge-delete]').forEach(btn => {
             btn.addEventListener('click', async () => {
-                if (premiumState?.paid !== true) return
                 const id = btn.getAttribute('data-knowledge-delete')
                 const cur = await getKnowledge()
                 cur.docs = (cur.docs || []).filter(d => d.id !== id)
                 try {
+                    markKnowledgeStale(cur)
                     await setKnowledge(cur)
-                    await reorganizeCurrentKnowledge()
                 } catch (err) {
                     alert(`Could not update knowledge library — browser storage is full or unavailable: ${err.message || err}`)
                 }
@@ -526,9 +662,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             })
         })
     }
+    if (knowledgeOrganizeBtn) {
+        knowledgeOrganizeBtn.addEventListener('click', async () => {
+            knowledgeOrganizeBtn.disabled = true
+            try {
+                await reorganizeCurrentKnowledge()
+                await refreshKnowledge()
+            } finally {
+                knowledgeOrganizeBtn.disabled = false
+            }
+        })
+    }
+
     if (knowledgeUpload) {
         knowledgeUpload.addEventListener('change', async (e) => {
-            if (premiumState?.paid !== true) { alert('Knowledge Library is a Premium feature.'); knowledgeUpload.value = ''; return }
             const files = Array.from(e.target.files || [])
             if (!files.length) return
             const cur = await getKnowledge()
@@ -554,8 +701,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             try {
+                markKnowledgeStale(cur)
                 await setKnowledge(cur)
-                await reorganizeCurrentKnowledge()
             } catch (err) {
                 alert(`Could not save knowledge library — browser storage is full or unavailable: ${err.message || err}`)
             }
@@ -563,5 +710,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             refreshKnowledge()
         })
     }
+    if (knowledgeTestBtn) {
+        knowledgeTestBtn.addEventListener('click', async () => {
+            const q = String(knowledgeTestQuestion?.value || '').trim()
+            if (!q) {
+                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = 'Enter a question to test.'
+                return
+            }
+            const cur = await getKnowledge()
+            if (!(cur.docs || []).length) {
+                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = 'Upload at least one knowledge document first.'
+                return
+            }
+            knowledgeTestBtn.disabled = true
+            if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = 'Testing Q&A…'
+            try {
+                const answer = await testKnowledgeQnA(q)
+                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = answer || '(no answer)'
+            } catch (err) {
+                if (knowledgeTestAnswer) knowledgeTestAnswer.textContent = err?.message || String(err)
+            } finally {
+                knowledgeTestBtn.disabled = false
+            }
+        })
+    }
+
     refreshKnowledge()
 })
