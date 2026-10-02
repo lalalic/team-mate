@@ -30,7 +30,7 @@ export function createPremiumEntitlementService({
                 await setLocal({ [PREMIUM_ENTITLEMENT_KEY]: entitlement })
             } else {
                 try {
-                    const entitlementUrl = buildEntitlementStatusUrl(endpoint, entitlement.sessionId, product)
+                    const entitlementUrl = buildEntitlementStatusUrl(endpoint, entitlement.sessionId, product, entitlement.purchaseMode)
                     const response = await fetchImpl(entitlementUrl, { cache: "no-store" })
                     if (!response.ok) throw new Error(`Entitlement service returned ${response.status}`)
                     const remote = await response.json()
@@ -53,7 +53,7 @@ export function createPremiumEntitlementService({
         const activatedAt = now()
         let remote
         try {
-            const verificationUrl = buildEntitlementStatusUrl(endpoint, sessionId, product)
+            const verificationUrl = buildEntitlementStatusUrl(endpoint, sessionId, product, purchaseMode === "weekly" ? "weekly" : "one_time")
             if (!verificationUrl) throw new Error("Invalid Stripe Checkout session id.")
             const response = await fetchImpl(verificationUrl, { cache: "no-store" })
             if (!response.ok) throw new Error(`Entitlement service returned ${response.status}`)

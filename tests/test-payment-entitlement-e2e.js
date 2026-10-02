@@ -21,7 +21,8 @@ function respondOnce(response) {
 
 const server = http.createServer((request, response) => {
     const url = new URL(request.url, "http://payment-service.invalid")
-    if (url.pathname !== "/v1/entitlement" || url.search !== `?${expectedQuery}`) {
+    const query = url.search.slice(1)
+    if (url.pathname !== "/v1/entitlement" || !query.startsWith(expectedQuery) || !["one_time", "weekly"].includes(url.searchParams.get("purchase_mode"))) {
         response.writeHead(404, { "content-type": "application/json" })
         response.end(JSON.stringify({ active: false, status: "not_found" }))
         return
@@ -51,7 +52,7 @@ try {
         active: true,
         product: "team-mate",
         plan: "one_time",
-        status: "complete",
+        status: "paid",
         currentPeriodEnd: null,
     }
     const oneTime = createVerifiedStripeEntitlement(sessionId, completedOneTime, "one_time", now)
@@ -112,7 +113,8 @@ try {
         /purchase mode/,
     )
 
-    assert.deepEqual(requests, [expectedQuery, expectedQuery, expectedQuery, expectedQuery])
+    assert.equal(requests.length, 4)
+    for (const request of requests) assert.ok(request.startsWith(expectedQuery))
 } finally {
     server.close()
 }

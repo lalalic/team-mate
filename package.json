@@ -9,7 +9,7 @@
     "verify:release": "node ./scripts/verify-release-build.mjs",
     "dev": "webpack -c ./webpack.config.js --watch",
     "qiniu": "python3 ./scripts/upload_cdn.py",
-    "test": "node ./tests/test-focused-helpers.js && node ./tests/test-conf-merge.js && node ./tests/test-feedback-entry.js && node ./tests/test-premium-state.js && node ./tests/test-payment-entitlement-e2e.js && node ./tests/test-meeting-files.js",
+    "test": "node ./tests/test-focused-helpers.js && node ./tests/test-conf-merge.js && node ./tests/test-feedback-entry.js && node ./tests/test-premium-state.js && node ./tests/test-premium-payment-verification.js && node ./tests/test-stripe-entitlement-server.js && node ./tests/test-payment-entitlement-e2e.js && node ./tests/test-meeting-files.js",
     "publish:cws": "node ./scripts/publish.mjs",
     "publish:cws:dry": "node ./scripts/publish.mjs --dry-run",
     "publish:cws:draft": "node ./scripts/publish.mjs --draft",

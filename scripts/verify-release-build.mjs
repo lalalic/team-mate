@@ -21,5 +21,10 @@ if (expectedLinkCount === 0 && !source.includes("Payment Link is not configured 
 if (/sk_(?:test|live)_[A-Za-z0-9]+|whsec_[A-Za-z0-9]+/.test(source)) {
     throw new Error("Stripe secret material was found in the extension bundle.")
 }
+for (const forbiddenMarker of ["createStripeTestProvider", "tests/support/stripe-test-provider", "server/stripe-entitlement"]) {
+    if (source.includes(forbiddenMarker)) {
+        throw new Error(`Test/server-only payment code leaked into the extension bundle (${forbiddenMarker}).`)
+    }
+}
 
 console.log(`Release bundle check passed (one-time=${expectOneTime ? "configured" : "unconfigured"}, weekly=${expectWeekly ? "configured" : "unconfigured"}; no Stripe secrets).`)

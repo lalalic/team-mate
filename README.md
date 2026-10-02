@@ -59,12 +59,12 @@ flowchart LR
 - **Stripe Premium** — production builds expose two Stripe-hosted purchase paths:
   US$1.99 for a 7-day pass via `STRIPE_ONE_TIME_PAYMENT_LINK`, or US$1.99/week
   recurring via `STRIPE_WEEKLY_PAYMENT_LINK`. The success URL returns the Checkout
-  session plus `purchase=one_time|weekly`. Before granting access, the extension
-  verifies with the entitlement service that checkout is active and belongs to
-  Team Mate with the selected mode. No Stripe secret is shipped in the extension,
-  and development Preview remains separate from real purchase state. Successful
-  entitlement is cached locally; weekly Premium is rechecked at cache expiry or
-  explicit refresh, and cancellation revokes access.
+  session plus `purchase=one_time|weekly`. Before granting access, the entitlement
+  endpoint verifies that Checkout is completed/paid or actively subscribed,
+  belongs to Team Mate, and matches the selected mode. No Stripe secret is shipped
+  in the extension, and development Preview remains separate from real purchase
+  state. A verified entitlement is cached locally; weekly Premium is rechecked at
+  cache expiry or explicit refresh, and cancellation revokes access.
 
 ## What was removed (and is not coming back)
 
@@ -148,9 +148,16 @@ and matching `plan=one_time|weekly`:
 - one-time: `https://<public-host>/premium-success.html?session_id={CHECKOUT_SESSION_ID}&purchase=one_time`
 - weekly: `https://<public-host>/premium-success.html?session_id={CHECKOUT_SESSION_ID}&purchase=weekly`
 
-Never put `STRIPE_SECRET_KEY` in this
-repository or the extension bundle. The extension contains no ExtensionPay
-runtime or dependency.
+Activation calls `STRIPE_ENTITLEMENT_ENDPOINT` with the Checkout session id,
+the `team-mate` product id, and the expected purchase mode. The server verifies
+that the Stripe Checkout Session exists and is complete; accepts a paid one-time
+Payment-mode session or an active/trialing Team Mate weekly subscription; and
+validates the mode and `team-mate` product metadata before returning an active
+entitlement. Arbitrary well-formed session ids remain inactive.
+
+Deploy `server/stripe-entitlement.js` with `STRIPE_SECRET_KEY` as a server
+secret. Never put `STRIPE_SECRET_KEY` in this repository or the extension
+bundle. The extension contains no ExtensionPay runtime or dependency.
 
 Load unpacked: `chrome://extensions/` → Developer mode → "Load unpacked" →
 point at `team-mate/extension/`.
@@ -242,4 +249,8 @@ UNLICENSED — proprietary.
 
 ### Stripe entitlement metadata
 
-The Team Mate Payment Links/Checkouts must carry Stripe metadata `product=team-mate` and must identify `plan=one_time` or `plan=weekly`. Team Mate sends `product=team-mate` to the shared `https://stripe.qili2.com/v1/entitlement` service, and the extension rejects responses for another product or purchase mode. Other apps/extensions reuse the same service with their own stable lowercase kebab-case product id.
+Both Payment Links must carry Stripe metadata `product=team-mate` and identify
+`plan=one_time` or `plan=weekly`. The endpoint also receives the extension's
+expected `purchase_mode`, then rejects another product, plan, Checkout mode, or a
+one-time session that is not paid. Other apps can reuse the same stateless
+service with their own stable lowercase kebab-case product id.

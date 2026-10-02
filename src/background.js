@@ -1,29 +1,15 @@
 // src/background.js
 //
 // Service worker. Owns badge/icon state, VTT export, and direct provider HTTP.
-// There is no MeetMate AI relay/account server. Provider calls are proxied here
-// to avoid content-script CORS. Stripe checkout activation is a soft local gate;
-// no Stripe secret or payment verification code is shipped in the extension.
+// Provider calls are proxied here to avoid content-script CORS. Payment
+// activation calls the server-side entitlement endpoint; no Stripe secret or
+// secret-bearing verification code is shipped in the extension.
 
 const { initConf, getConf } = require("./util");
 const { DEFAULT_SHORTCUTS } = require("./focused");
-const { premiumState, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
+const { premiumState, STRIPE_ENTITLEMENT_PRODUCT_ID, PREMIUM_ENTITLEMENT_KEY, PREMIUM_PREVIEW_KEY } = require("./premium-state");
 const { createPremiumEntitlementService } = require("./premium-runtime");
 const { sanitizeMeetingFileName, buildMeetingDownloadPaths } = require("./meeting-files");
-
-const STRIPE_ONE_TIME_PAYMENT_LINK = typeof __STRIPE_ONE_TIME_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_ONE_TIME_PAYMENT_LINK__ || "").trim() : "";
-const STRIPE_WEEKLY_PAYMENT_LINK = typeof __STRIPE_WEEKLY_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_WEEKLY_PAYMENT_LINK__ || "").trim() : "";
-const STRIPE_PAYMENT_LINKS = { one_time: STRIPE_ONE_TIME_PAYMENT_LINK, weekly: STRIPE_WEEKLY_PAYMENT_LINK };
-const STRIPE_ENTITLEMENT_ENDPOINT = typeof __STRIPE_ENTITLEMENT_ENDPOINT__ !== "undefined" ? String(__STRIPE_ENTITLEMENT_ENDPOINT__ || "").replace(/\/$/, "") : "";
-const STRIPE_ENTITLEMENT_PRODUCT = "team-mate";
-
-const premiumService = createPremiumEntitlementService({
-    getLocal,
-    setLocal,
-    paymentLinks: STRIPE_PAYMENT_LINKS,
-    endpoint: STRIPE_ENTITLEMENT_ENDPOINT,
-    product: STRIPE_ENTITLEMENT_PRODUCT,
-});
 
 function getLocal(keys) {
     return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
@@ -32,6 +18,20 @@ function getLocal(keys) {
 function setLocal(value) {
     return new Promise((resolve) => chrome.storage.local.set(value, resolve));
 }
+
+const STRIPE_ONE_TIME_PAYMENT_LINK = typeof __STRIPE_ONE_TIME_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_ONE_TIME_PAYMENT_LINK__ || "").trim() : "";
+const STRIPE_WEEKLY_PAYMENT_LINK = typeof __STRIPE_WEEKLY_PAYMENT_LINK__ !== "undefined" ? String(__STRIPE_WEEKLY_PAYMENT_LINK__ || "").trim() : "";
+const STRIPE_PAYMENT_LINKS = { one_time: STRIPE_ONE_TIME_PAYMENT_LINK, weekly: STRIPE_WEEKLY_PAYMENT_LINK };
+const STRIPE_ENTITLEMENT_ENDPOINT = typeof __STRIPE_ENTITLEMENT_ENDPOINT__ !== "undefined" ? String(__STRIPE_ENTITLEMENT_ENDPOINT__ || "").replace(/\/$/, "") : "";
+const STRIPE_ENTITLEMENT_PRODUCT = STRIPE_ENTITLEMENT_PRODUCT_ID;
+
+const premiumService = createPremiumEntitlementService({
+    getLocal,
+    setLocal,
+    paymentLinks: STRIPE_PAYMENT_LINKS,
+    endpoint: STRIPE_ENTITLEMENT_ENDPOINT,
+    product: STRIPE_ENTITLEMENT_PRODUCT,
+});
 
 const premiumStatus = (options) => premiumService.premiumStatus(options);
 
