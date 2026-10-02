@@ -1,7 +1,7 @@
 {
   "name": "team-mate",
-  "version": "4.5.8",
-  "description": "MeetMate — real-time AI assistant for Microsoft Teams meetings",
+  "version": "4.5.9",
+  "description": "MeetMate \u2014 real-time AI assistant for Microsoft Teams meetings",
   "private": true,
   "scripts": {
     "zip": "cd ./extension && zip -r ../team-mate.zip . -x *.map -x .DS_Store -x images/.DS_Store -x *.LICENSE.txt",
