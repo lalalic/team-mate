@@ -24,6 +24,12 @@ import {
     buildAskMessages,
     DEFAULT_ASK_SYSTEM_PROMPT,
     KNOWLEDGE_SEARCH_TOOL,
+    KNOWLEDGE_SET_TREE_TOOL,
+    KNOWLEDGE_SET_NODE_CONTENT_TOOL,
+    normalizeKnowledgeTree,
+    setKnowledgeNodeContent,
+    missingKnowledgeLeafContent,
+    knowledgeTreeToMarkdown,
     formatKnowledgeToolResult,
     buildKnowledgeWiki,
     rankTranscriptSources,
@@ -43,6 +49,12 @@ export {
     formatMeetingTimeline,
     buildAskMessages,
     KNOWLEDGE_SEARCH_TOOL,
+    KNOWLEDGE_SET_TREE_TOOL,
+    KNOWLEDGE_SET_NODE_CONTENT_TOOL,
+    normalizeKnowledgeTree,
+    setKnowledgeNodeContent,
+    missingKnowledgeLeafContent,
+    knowledgeTreeToMarkdown,
     formatKnowledgeToolResult,
     buildKnowledgeWiki,
     rankTranscriptSources,
@@ -217,17 +229,65 @@ export async function reorganizeKnowledge({ signal } = {}) {
     const conf = (await getConf()) || {};
     const state = await getKnowledgeState();
     const docs = Array.isArray(state.docs) ? state.docs : [];
-    if (!docs.length) return "";
+    if (!docs.length) return { tree: null, markdown: "" };
 
+    const previousKnowledge = knowledgeTreeToMarkdown(state.organizedTree) || String(state.organized || "");
     const messages = buildKnowledgeReorganizeMessages({
-        previousKnowledge: state.organized || "",
+        previousKnowledge,
         preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
     });
-    const { response } = await completeWithKnowledgeTool(messages, signal, true, {
-        maxSearches: 10,
-        maxRounds: 10,
-    });
-    return String(response?.choices?.[0]?.message?.content || "").trim();
+    const tools = [KNOWLEDGE_SEARCH_TOOL, KNOWLEDGE_SET_TREE_TOOL, KNOWLEDGE_SET_NODE_CONTENT_TOOL];
+    let working = messages.slice();
+    let searches = 0;
+    let tree = null;
+
+    for (let round = 0; round < 30; round++) {
+        const response = await chatCompletion({ messages: working, tools, tool_choice: "auto", signal });
+        const assistant = response?.choices?.[0]?.message || {};
+        const calls = Array.isArray(assistant.tool_calls) ? assistant.tool_calls : [];
+        if (!calls.length) {
+            const missing = tree ? missingKnowledgeLeafContent(tree) : ["<tree-not-set>"];
+            if (tree && !missing.length) return { tree, markdown: knowledgeTreeToMarkdown(tree) };
+            working.push({ role: "assistant", content: assistant.content ?? null });
+            working.push({ role: "user", content: tree
+                ? `Continue using the tools. Populate these leaf node IDs with set_knowledge_node_content: ${missing.join(", ")}.`
+                : "Continue using the tools. You must call set_knowledge_tree before finishing." });
+            continue;
+        }
+
+        working.push({ role: "assistant", content: assistant.content ?? null, tool_calls: calls });
+        for (const call of calls) {
+            const name = call?.function?.name || "";
+            const args = parseToolArguments(call?.function?.arguments);
+            let content;
+            try {
+                if (name === "search_knowledge") {
+                    if (searches >= 20) throw new Error("Knowledge search limit reached (20).");
+                    const query = String(args?.query || "").trim();
+                    if (!query) throw new Error("search_knowledge requires a non-empty query.");
+                    searches++;
+                    content = formatKnowledgeToolResult(query, await searchKnowledge(query, args?.limit));
+                } else if (name === "set_knowledge_tree") {
+                    tree = normalizeKnowledgeTree(args?.roots);
+                    content = JSON.stringify({ ok: true, node_count: (() => { let n = 0; const walk = xs => { for (const x of xs || []) { n++; walk(x.children); } }; walk(tree.roots); return n; })(), leaf_ids: missingKnowledgeLeafContent(tree) });
+                } else if (name === "set_knowledge_node_content") {
+                    if (!tree) throw new Error("Call set_knowledge_tree before set_knowledge_node_content.");
+                    const node = setKnowledgeNodeContent(tree, args?.node_id, args?.content);
+                    content = JSON.stringify({ ok: true, node_id: node.id });
+                } else {
+                    throw new Error(`Unknown tool: ${name || "(missing)"}`);
+                }
+            } catch (error) {
+                content = JSON.stringify({ error: error?.message || String(error) });
+            }
+            working.push({ role: "tool", tool_call_id: call?.id || `organize-${round}-${working.length}`, content });
+        }
+
+        if (tree && !missingKnowledgeLeafContent(tree).length) {
+            return { tree, markdown: knowledgeTreeToMarkdown(tree) };
+        }
+    }
+    throw new Error("Knowledge organizer did not finish the structured tree within 30 tool rounds.");
 }
 
 // ── Explicit ask (the ONLY path that calls the LLM in a meeting) ───────────

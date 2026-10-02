@@ -21,6 +21,13 @@ import {
     buildKnowledgeWiki,
     parseKnowledgeTree,
     KNOWLEDGE_SEARCH_TOOL,
+    KNOWLEDGE_SET_TREE_TOOL,
+    KNOWLEDGE_SET_NODE_CONTENT_TOOL,
+    normalizeKnowledgeTree,
+    findKnowledgeNode,
+    setKnowledgeNodeContent,
+    missingKnowledgeLeafContent,
+    knowledgeTreeToMarkdown,
     formatKnowledgeToolResult,
     rankTranscriptSources,
     buildAskMessages,
@@ -108,6 +115,46 @@ test("mergeKnowledgeDocs: same-name upload replaces stale content case-insensiti
     assert.equal(out.find(d => d.name === "Other.md").content, "keep")
 })
 
+test("structured knowledge tools: expose set-tree and set-node-content contracts", () => {
+    assert.equal(KNOWLEDGE_SET_TREE_TOOL.function.name, "set_knowledge_tree")
+    assert.equal(KNOWLEDGE_SET_NODE_CONTENT_TOOL.function.name, "set_knowledge_node_content")
+    assert.deepEqual(KNOWLEDGE_SET_NODE_CONTENT_TOOL.function.parameters.required, ["node_id", "content"])
+})
+
+test("normalizeKnowledgeTree: validates hierarchy, ids, and leaf content lifecycle", () => {
+    const tree = normalizeKnowledgeTree([{
+        id: "projects", title: "Projects", summary: "Active projects", children: [{
+            id: "atlas", title: "Atlas", summary: "Release facts", children: []
+        }]
+    }])
+    assert.equal(tree.version, 1)
+    assert.equal(findKnowledgeNode(tree, "atlas").title, "Atlas")
+    assert.deepEqual(missingKnowledgeLeafContent(tree), ["atlas"])
+    setKnowledgeNodeContent(tree, "atlas", "- Ships November 22\n- Owner: Maggie")
+    assert.deepEqual(findKnowledgeNode(tree, "atlas").content, ["Ships November 22", "Owner: Maggie"])
+    assert.deepEqual(missingKnowledgeLeafContent(tree), [])
+    const markdown = knowledgeTreeToMarkdown(tree)
+    assert.ok(markdown.includes("## Projects"))
+    assert.ok(markdown.includes("### Atlas"))
+    assert.ok(markdown.includes("- Owner: Maggie"))
+})
+
+test("normalizeKnowledgeTree: rejects duplicate ids, excessive depth, and unknown content targets", () => {
+    assert.throws(() => normalizeKnowledgeTree([
+        { id: "same", title: "A", summary: "", children: [] },
+        { id: "same", title: "B", summary: "", children: [] },
+    ]), /Duplicate knowledge node id/)
+    assert.throws(() => normalizeKnowledgeTree([{
+        id: "a", title: "A", summary: "", children: [{
+            id: "b", title: "B", summary: "", children: [{
+                id: "c", title: "C", summary: "", children: [{ id: "d", title: "D", summary: "", children: [] }]
+            }]
+        }]
+    }]), /depth cannot exceed 3/)
+    const tree = normalizeKnowledgeTree([{ id: "a", title: "A", summary: "", children: [] }])
+    assert.throws(() => setKnowledgeNodeContent(tree, "missing", "x"), /Unknown knowledge node id/)
+})
+
 test("buildKnowledgeReorganizeMessages: fixed prompt rebuilds current user knowledge and drops unsupported stale facts", () => {
     const uploaded = [
         { id: "a1", name: "extreme-auth.md", content: "Users authenticate with passkeys. Admin access requires an organization role." },
@@ -129,6 +176,9 @@ test("buildKnowledgeReorganizeMessages: fixed prompt rebuilds current user knowl
     assert.ok(messages[0].content.includes("Use search_knowledge repeatedly"));
     assert.ok(messages[0].content.includes("never by filenames"));
     assert.ok(messages[0].content.includes("Drop anything"));
+    assert.ok(messages[0].content.includes("set_knowledge_tree"));
+    assert.ok(messages[0].content.includes("set_knowledge_node_content"));
+    assert.ok(messages[0].content.includes("Do not return the knowledge tree as Markdown"));
     assert.ok(messages[1].content.includes("Passkeys are mandatory"));
     assert.ok(messages[1].content.includes("structural continuity only"));
     assert.ok(!messages[0].content.includes("extreme-auth.md"));

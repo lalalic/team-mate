@@ -311,12 +311,14 @@ RULES:
 6. Organize by concepts and content, never by filenames or upload order.
 7. Preserve important concrete names, decisions, constraints, APIs, dates, numbers, and definitions when supported.
 8. Never invent facts.
-9. Return only concise Markdown organized into a useful 2-3 level hierarchy.
-10. Preferred language: ${String(preferredLanguage || "auto")}.`;
+9. Build the organized knowledge only through the provided write tools: call set_knowledge_tree to establish the complete hierarchy, then set_knowledge_node_content for factual node content. Do not return the knowledge tree as Markdown or prose.
+10. Use stable, descriptive node IDs. Keep the hierarchy to 2-3 levels, with concise titles and summaries.
+11. After setting the tree, populate every leaf node with set_knowledge_node_content.
+12. Preferred language: ${String(preferredLanguage || "auto")}.`;
 
     const user = previous
         ? `Reorganize the current knowledge library now. Here is the PREVIOUS organized knowledge for structural continuity only:\n\n<previous-organized-knowledge>\n${previous}\n</previous-organized-knowledge>`
-        : "Organize the current knowledge library now into a concise 2-3 level knowledge structure.";
+        : "Organize the current knowledge library now into a concise 2-3 level knowledge structure using the provided tools.";
     return [{ role: "system", content: system }, { role: "user", content: user }];
 }
 
@@ -473,6 +475,127 @@ export function formatKnowledgeToolResult(query, hits = []) {
             score: Number(h?.score) || 0,
         })),
     });
+}
+
+function knowledgeTreeNodeSchema(depth = 1) {
+    const properties = {
+        id: { type: "string", minLength: 1, description: "Stable unique node id." },
+        title: { type: "string", minLength: 1, description: "Short display title." },
+        summary: { type: "string", description: "One-line description of what belongs in this node." },
+        children: depth >= 3
+            ? { type: "array", maxItems: 0, description: "Third-level nodes are leaves." }
+            : { type: "array", items: knowledgeTreeNodeSchema(depth + 1), description: "Child knowledge nodes." }
+    };
+    return {
+        type: "object",
+        properties,
+        required: ["id", "title", "summary", "children"],
+        additionalProperties: false
+    };
+}
+
+const KNOWLEDGE_TREE_NODE_SCHEMA = knowledgeTreeNodeSchema();
+
+export const KNOWLEDGE_SET_TREE_TOOL = {
+    type: "function",
+    function: {
+        name: "set_knowledge_tree",
+        description: "Replace the complete organized knowledge hierarchy. Call this before setting node content. The runtime validates unique IDs and a maximum depth of 3.",
+        parameters: {
+            type: "object",
+            properties: {
+                roots: { type: "array", minItems: 1, items: KNOWLEDGE_TREE_NODE_SCHEMA }
+            },
+            required: ["roots"],
+            additionalProperties: false
+        }
+    }
+};
+
+export const KNOWLEDGE_SET_NODE_CONTENT_TOOL = {
+    type: "function",
+    function: {
+        name: "set_knowledge_node_content",
+        description: "Set grounded factual content for one existing knowledge-tree node by id. Prefer concise complete prose or bullets. Every leaf node must receive content.",
+        parameters: {
+            type: "object",
+            properties: {
+                node_id: { type: "string", minLength: 1 },
+                content: { type: "string", minLength: 1 }
+            },
+            required: ["node_id", "content"],
+            additionalProperties: false
+        }
+    }
+};
+
+function normalizeKnowledgeNode(raw, depth, seen) {
+    if (!raw || typeof raw !== "object") throw new Error("Knowledge tree nodes must be objects.");
+    if (depth > 3) throw new Error("Knowledge tree depth cannot exceed 3 levels.");
+    const id = String(raw.id || "").trim();
+    const title = String(raw.title || raw.name || "").trim();
+    const summary = String(raw.summary || "").trim();
+    if (!id || !title) throw new Error("Every knowledge node requires a non-empty id and title.");
+    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(id)) throw new Error(`Invalid knowledge node id: ${id}`);
+    if (seen.has(id)) throw new Error(`Duplicate knowledge node id: ${id}`);
+    seen.add(id);
+    const children = Array.isArray(raw.children) ? raw.children.map(child => normalizeKnowledgeNode(child, depth + 1, seen)) : [];
+    return { id, title, summary, children, content: [] };
+}
+
+export function normalizeKnowledgeTree(roots = []) {
+    if (!Array.isArray(roots) || !roots.length) throw new Error("set_knowledge_tree requires at least one root node.");
+    const seen = new Set();
+    return { version: 1, roots: roots.map(root => normalizeKnowledgeNode(root, 1, seen)) };
+}
+
+export function findKnowledgeNode(tree, nodeId) {
+    const wanted = String(nodeId || "").trim();
+    let found = null;
+    const walk = (nodes) => {
+        for (const node of Array.isArray(nodes) ? nodes : []) {
+            if (node.id === wanted) { found = node; return; }
+            walk(node.children);
+            if (found) return;
+        }
+    };
+    walk(tree?.roots);
+    return found;
+}
+
+export function setKnowledgeNodeContent(tree, nodeId, content) {
+    const node = findKnowledgeNode(tree, nodeId);
+    if (!node) throw new Error(`Unknown knowledge node id: ${String(nodeId || "")}`);
+    const text = String(content || "").trim();
+    if (!text) throw new Error("set_knowledge_node_content requires non-empty content.");
+    node.content = text.split(/\r?\n/).map(line => line.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, "").trim()).filter(Boolean);
+    return node;
+}
+
+export function missingKnowledgeLeafContent(tree) {
+    const missing = [];
+    const walk = (nodes) => {
+        for (const node of Array.isArray(nodes) ? nodes : []) {
+            if (node.children.length) walk(node.children);
+            else if (!Array.isArray(node.content) || !node.content.length) missing.push(node.id);
+        }
+    };
+    walk(tree?.roots);
+    return missing;
+}
+
+export function knowledgeTreeToMarkdown(tree) {
+    const lines = [];
+    const walk = (nodes, depth) => {
+        for (const node of Array.isArray(nodes) ? nodes : []) {
+            lines.push(`${"#".repeat(Math.max(1, Math.min(6, depth)))} ${node.title}`);
+            if (node.summary) lines.push(node.summary);
+            for (const line of Array.isArray(node.content) ? node.content : []) lines.push(`- ${line}`);
+            walk(node.children, depth + 1);
+        }
+    };
+    walk(tree?.roots, 2);
+    return lines.join("\n").trim();
 }
 
 // -- Ask payload -----------------------------------------------------------

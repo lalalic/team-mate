@@ -420,6 +420,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cur = await getKnowledge()
         if (!(cur.docs || []).length) {
             cur.organized = ''
+            cur.organizedTree = null
             cur.organizedStatus = 'empty'
             delete cur.organizedError
             cur.organizedAt = Date.now()
@@ -433,7 +434,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const organized = await reorganizeKnowledge()
             const latest = await getKnowledge()
-            latest.organized = organized
+            latest.organizedTree = organized.tree
+            latest.organized = organized.markdown
             latest.organizedStatus = 'ready'
             delete latest.organizedError
             latest.organizedAt = Date.now()
@@ -460,7 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const totalKb = (total / 1024).toFixed(1)
         const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
         if (knowledgeTree) {
-            const tree = parseKnowledgeTree(k.organized)
+            const tree = k.organizedTree?.roots ? { title: 'Knowledge', children: k.organizedTree.roots, content: [] } : parseKnowledgeTree(k.organized)
             const renderNode = (node) => `<details class="knowledge-tree-node" data-knowledge-node><summary>${esc(node.title)}</summary>${
                 node.content.length ? `<div class="knowledge-tree-content">${node.content.map(line => `<div>${esc(line)}</div>`).join('')}</div>` : ''
             }${node.children.map(renderNode).join('')}</details>`
