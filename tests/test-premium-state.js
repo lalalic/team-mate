@@ -24,12 +24,17 @@ assert.equal(isPaidEntitlement(weekly, 1_000 + ONE_TIME_DURATION_MS), false)
 assert.equal(shouldRefreshWeeklyEntitlement(weekly, { now: 1_000 }), false)
 assert.equal(shouldRefreshWeeklyEntitlement(weekly, { now: weekly.expiresAt }), true)
 assert.equal(shouldRefreshWeeklyEntitlement(weekly, { force: true, now: 1_000 }), true)
-const refreshed = applyWeeklyEntitlementStatus(weekly, { active: true, status: "active", currentPeriodEnd: new Date(1_000 + 2 * ONE_TIME_DURATION_MS).toISOString() }, 1_000 + ONE_TIME_DURATION_MS)
+const refreshed = applyWeeklyEntitlementStatus(
+    weekly,
+    { active: true, product: "team-mate", plan: "weekly", status: "active", currentPeriodEnd: new Date(1_000 + 2 * ONE_TIME_DURATION_MS).toISOString() },
+    1_000 + ONE_TIME_DURATION_MS,
+)
 assert.equal(refreshed.paid, true)
 assert.equal(refreshed.expiresAt, 1_000 + 2 * ONE_TIME_DURATION_MS)
 const revoked = applyWeeklyEntitlementStatus(weekly, { active: false, status: "canceled", currentPeriodEnd: null }, weekly.expiresAt)
 assert.equal(revoked.paid, false)
-assert.equal(buildEntitlementStatusUrl("https://stripe.qili2.com/", session, "team-mate"), `https://stripe.qili2.com/v1/entitlement?session_id=${session}&product=team-mate`)
+assert.equal(buildEntitlementStatusUrl("https://stripe.qili2.com/", session, "team-mate"), `https://stripe.qili2.com/v1/entitlement?session_id=${session}&product=team-mate&purchase_mode=one_time`)
+assert.equal(buildEntitlementStatusUrl("https://stripe.qili2.com/", session, "team-mate", "weekly"), `https://stripe.qili2.com/v1/entitlement?session_id=${session}&product=team-mate&purchase_mode=weekly`)
 assert.equal(buildEntitlementStatusUrl("https://stripe.qili2.com", session, "Family Tutor"), "")
 
 assert.equal(isPaidEntitlement({ paid: true, source: "extensionpay", sessionId: session }), false)

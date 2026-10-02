@@ -1,4 +1,4 @@
-const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, testKnowledgeQnA, mergeKnowledgeDocs } = require("./util")
+const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, testKnowledgeQnA, mergeKnowledgeDocs, parseKnowledgeTree } = require("./util")
 const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
 const { extractStripeSessionId, extractStripePurchaseMode } = require("./premium-state")
 
@@ -427,7 +427,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderShortcuts(normalizeShortcuts((conf && conf.shortcuts) || null))
 
     // --- Knowledge (uploaded reference docs) -------------------------------
-    // Storage: chrome.storage.local under 'knowledge' = { docs: [{id, name, size, addedAt, content}] }
+    // Storage: chrome.storage.local under 'knowledge' = { docs: [{id, name, size, mimeType, addedAt, fileData, content?}] }
     async function getKnowledge() {
         return new Promise(r => chrome.storage.local.get('knowledge', x => r(x.knowledge || { docs: [] })))
     }
@@ -441,7 +441,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
     }
     function bytesOf(s) { return new Blob([s || '']).size }
-    function totalBytes(k) { return (k.docs || []).reduce((n, d) => n + bytesOf(d.content), 0) }
+    function totalBytes(k) { return (k.docs || []).reduce((n, d) => n + (Number(d.size) || bytesOf(d.fileData || d.content)), 0) }
     function readFileAsText(f) {
         return new Promise((resolve, reject) => {
             const r = new FileReader()
@@ -450,14 +450,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             r.readAsText(f)
         })
     }
+
+    function readFileAsDataURL(f) {
+        return new Promise((resolve, reject) => {
+            const r = new FileReader()
+            r.onerror = () => reject(r.error)
+            r.onload = () => resolve(String(r.result || ''))
+            r.readAsDataURL(f)
+        })
+    }
+    function isTextLikeFile(f) {
+        return /^text\//i.test(String(f.type || '')) || /\.(?:txt|md|markdown|json|html?|csv|xml|ya?ml|log|js|jsx|ts|tsx|css|py|java|c|cc|cpp|h|hpp|go|rs|sh|sql)$/i.test(String(f.name || ''))
+    }
     const knowledgeList = document.querySelector('#knowledgeList')
+    const knowledgeTree = document.querySelector('#knowledgeTree')
     const knowledgeUpload = document.querySelector('#knowledgeUpload')
     const knowledgeStatus = document.querySelector('#knowledgeStatus')
     const knowledgeTestQuestion = document.querySelector('#knowledgeTestQuestion')
     const knowledgeTestBtn = document.querySelector('#knowledgeTestBtn')
     const knowledgeTestAnswer = document.querySelector('#knowledgeTestAnswer')
     const knowledgeOrganizeBtn = document.querySelector('#knowledgeOrganizeBtn')
-    const knowledgeTree = document.querySelector('#knowledgeTree')
     const knowledgeNodeModal = document.querySelector('#knowledgeNodeModal')
     const knowledgeNodeModalTitle = document.querySelector('#knowledgeNodeModalTitle')
     const knowledgeNodeModalSummary = document.querySelector('#knowledgeNodeModalSummary')
@@ -467,9 +479,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function openKnowledgeNode(node, k) {
         if (!knowledgeNodeModal || !node) return
-        if (knowledgeNodeModalTitle) knowledgeNodeModalTitle.textContent = node.name || 'Knowledge'
+        if (knowledgeNodeModalTitle) knowledgeNodeModalTitle.textContent = node.title || node.name || 'Knowledge'
         if (knowledgeNodeModalSummary) knowledgeNodeModalSummary.textContent = node.summary || ''
-        if (knowledgeNodeModalContent) knowledgeNodeModalContent.textContent = String(k?.nodeContents?.[node.id] || '(no organized content for this node)')
+        if (knowledgeNodeModalContent) knowledgeNodeModalContent.textContent = Array.isArray(node.content) && node.content.length ? node.content.join('\n') : '(no organized content for this node)'
         knowledgeNodeModal.hidden = false
     }
 
@@ -488,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderOrganizedKnowledge(k) {
         if (!knowledgeTree) return
         knowledgeTree.innerHTML = ''
-        const tree = Array.isArray(k?.tree) ? k.tree : []
+        const tree = Array.isArray(k?.organizedTree?.roots) ? k.organizedTree.roots : []
         if (!tree.length) {
             knowledgeTree.innerHTML = '<em style="color:var(--muted)">(organized knowledge not ready)</em>'
             return
@@ -510,7 +522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             head.style.fontWeight = '700'
             head.style.width = '100%'
             head.style.textAlign = 'left'
-            head.textContent = '▾ ' + String(group.name || 'Untitled')
+            head.textContent = '▾ ' + String(group.title || group.name || 'Untitled')
             const summary = document.createElement('div')
             summary.className = 'hint'
             summary.style.margin = '4px 0 6px 22px'
@@ -525,7 +537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.style.width = '100%'
                 btn.style.textAlign = 'left'
                 btn.style.margin = '4px 0'
-                btn.innerHTML = `<strong>${escapeAttr(node.name || 'Untitled')}</strong>${node.summary ? `<span class="hint"> · ${escapeAttr(node.summary)}</span>` : ''}`
+                btn.innerHTML = `<strong>${escapeAttr(node.title || node.name || 'Untitled')}</strong>${node.summary ? `<span class="hint"> · ${escapeAttr(node.summary)}</span>` : ''}`
                 btn.addEventListener('click', () => openKnowledgeNode(node, k))
                 children.appendChild(btn)
             }
@@ -533,7 +545,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const hidden = children.style.display === 'none'
                 children.style.display = hidden ? '' : 'none'
                 summary.style.display = hidden ? '' : 'none'
-                head.textContent = (hidden ? '▾ ' : '▸ ') + String(group.name || 'Untitled')
+                head.textContent = (hidden ? '▾ ' : '▸ ') + String(group.title || group.name || 'Untitled')
             })
             section.appendChild(head)
             section.appendChild(summary)
@@ -543,7 +555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function markKnowledgeStale(k) {
-        if (Array.isArray(k?.tree) && k.tree.length) k.organizedStatus = 'stale'
+        if (Array.isArray(k?.organizedTree?.roots) && k.organizedTree.roots.length) k.organizedStatus = 'stale'
         else k.organizedStatus = 'empty'
         delete k.organizedError
         return k
@@ -552,6 +564,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function reorganizeCurrentKnowledge() {
         const cur = await getKnowledge()
         if (!(cur.docs || []).length) {
+            cur.organized = ''
+            cur.organizedTree = null
             cur.tree = []
             cur.nodeContents = {}
             cur.organizedStatus = 'empty'
@@ -569,9 +583,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const organized = await reorganizeKnowledge({ maxChars: premiumState?.paid === true ? 0 : 5000 })
             const latest = await getKnowledge()
-            latest.tree = organized.tree || []
-            latest.nodeContents = organized.nodeContents || {}
-            latest.organizedStatus = latest.tree.length ? 'ready' : 'failed'
+            latest.organizedTree = organized.tree
+            latest.organized = organized.markdown
+            latest.tree = organized.tree?.roots || []
+            latest.nodeContents = {}
+            latest.organizedStatus = organized.tree?.roots?.length ? 'ready' : 'failed'
             delete latest.organizedError
             latest.organizedAt = Date.now()
             await setKnowledge(latest)
@@ -666,13 +682,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             cur.docs = cur.docs || []
             for (const f of files) {
                 try {
-                    const content = await readFileAsText(f)
-                    if (!content.trim()) { alert(`Skipping ${f.name} \u2014 empty`); continue }
+                    const fileData = await readFileAsDataURL(f)
+                    if (!fileData) { alert(`Skipping ${f.name} \u2014 empty`); continue }
+                    const content = isTextLikeFile(f) ? await readFileAsText(f) : ''
                     const doc = {
                         id: `k-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                         name: f.name,
-                        size: bytesOf(content),
+                        size: Number(f.size) || bytesOf(fileData),
+                        mimeType: f.type || 'application/octet-stream',
                         addedAt: Date.now(),
+                        fileData,
                         content,
                     }
                     cur.docs = mergeKnowledgeDocs(cur.docs, [doc])

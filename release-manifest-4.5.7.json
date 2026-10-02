@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-02T19:30:00Z",
+  "task": {
+    "jobId": "team-mate-market-revenue-v3",
+    "taskId": "revenue-v3-release-publish-verify",
+    "pullRequestUrl": "https://github.com/lalalic/team-mate/pull/12",
+    "objective": "Publish and verify the approved release candidate across configured release targets."
+  },
+  "result": {
+    "status": "blocked",
+    "rootCause": "not_applicable",
+    "summary": "GitHub Release, CDN, Stripe links, and controlled entitlement probes are verified. Chrome Web Store publication is blocked before listing upload because there is no approved 4.5.7 Market Package and its required fresh media remains incomplete.",
+    "implementedReleaseSolution": "Published immutable release artifact v4.5.7 from the managed release commit, uploaded the public site to Qiniu, refreshed the remaining stale cache entry, verified the configured production bundle and both live Payment Links, and probed entitlement activation without submitting a payment.",
+    "deviations": "No Chrome Web Store draft upload, listing update, or review submission was made because the required approved 4.5.7 listing inputs were absent."
+  },
+  "releaseCandidate": {
+    "repository": "https://github.com/lalalic/team-mate",
+    "pullRequest": "https://github.com/lalalic/team-mate/pull/12",
+    "branch": "revenue/v3",
+    "approvedTaskHead": "deed6cde3146892bd32cfdab26213ff53276b1d3",
+    "releaseHead": "0d4881acfcf424ca8f642b3299d5a7c00ea89c74",
+    "version": "4.5.7",
+    "packageJsonVersion": "4.5.7",
+    "manifestJsonVersion": "4.5.7",
+    "tests": {
+      "command": "npm test",
+      "result": "passed",
+      "scope": "35 focused helper checks plus configuration, feedback, Premium-state, and meeting-file checks"
+    },
+    "releaseWorkflow": {
+      "runId": 37051627501,
+      "url": "https://github.com/lalalic/team-mate/actions/runs/37051627501",
+      "headSha": "0d4881acfcf424ca8f642b3299d5a7c00ea89c74",
+      "result": "success",
+      "configuredProductionBundleCheck": "passed for one-time and weekly Payment Links with no Stripe secret material"
+    }
+  },
+  "targets": [
+    {
+      "id": "github-release",
+      "requested": "publish immutable release artifact",
+      "state": "published",
+      "identity": "https://github.com/lalalic/team-mate/releases/tag/v4.5.7",
+      "version": "4.5.7",
+      "verification": {
+        "releaseState": "published; draft=false; prerelease=false",
+        "artifact": "https://github.com/lalalic/team-mate/releases/download/v4.5.7/team-mate.zip",
+        "artifactSizeBytes": 128539,
+        "artifactSha256": "f8d3b972febab120de0443a9fd47c499b709f5b505b75c0b53e3844623084bc0",
+        "downloadedManifestVersion": "4.5.7",
+        "downloadedArchiveTest": "passed",
+        "observedAt": "2026-10-02T19:12:00Z"
+      }
+    },
+    {
+      "id": "qiniu-public-site",
+      "requested": "publish and exact-verify public surface",
+      "state": "published",
+      "identity": "https://cdn.qili2.com/pub/teams/index.html",
+      "verification": {
+        "method": "Downloaded every www/ object and compared SHA-256 with the release checkout; privacy.html was additionally verified through its exact Content-MD5 header because Cloudflare email-protection rewrites its rendered HTML body.",
+        "privacyRefreshTasks": [
+          "6ac00213ae4f84025748043c",
+          "6ac004337911048d074844d3"
+        ],
+        "objects": [
+          {"key": "feedback.js", "httpStatus": 200, "sha256": "5b72404a74a5f7be1f279a78db4494960fee0abdea64c0d41af4669fb9719905", "matchesSource": true},
+          {"key": "index.html", "httpStatus": 200, "sha256": "c44694af00cf940c64cf3a31a83cda03dd2e2704723d076531579727753f1a67", "matchesSource": true},
+          {"key": "premium-success.html", "httpStatus": 200, "sha256": "ac724307fd832c20ca48c748d03a64967ef899824d208c41014a18accdc48625", "matchesSource": true},
+          {"key": "privacy.html", "httpStatus": 200, "contentMd5": "AU1PtP0JBNIEFiFD+uvVIg==", "matchesSource": true, "renderedBodyNote": "Cloudflare email-protection changes the rendered body and injected script, so SHA-256 is not stable across requests."},
+          {"key": "screenshots/logo-128.png", "httpStatus": 200, "sha256": "b1365e79f342945a74565f6bc0a1455a366fa7536e04bc16c5bc62a8fdd30f69", "matchesSource": true},
+          {"key": "screenshots/meetmate-4.4.9-ask-in-context.png", "httpStatus": 200, "sha256": "f1ac2004ec598e3fbdcb231a39ccb51b919a79891c86dd5a284af4937dfd1927", "matchesSource": true},
+          {"key": "screenshots/meetmate-4.4.9-knowledge-shortcuts.png", "httpStatus": 200, "sha256": "9af5afcd4081fb2c71aa8ef097bff948a0854e1acbc30872e5c89cd73143c548", "matchesSource": true},
+          {"key": "support.html", "httpStatus": 200, "sha256": "5f20d453fcf208e09e88642dcfc6959424abbdfa13985171532ba5f69562c81f", "matchesSource": true},
+          {"key": "team-mate-demo.mp4", "httpStatus": 200, "sha256": "91c484bba25a5824fe35b9e9d7f50878aab87e1d0f1456fa19eab7d1ed18bd1f", "matchesSource": true}
+        ],
+        "observedAt": "2026-10-02T19:19:00Z"
+      }
+    },
+    {
+      "id": "stripe-production-payment-links",
+      "requested": "verify configured public payment surfaces without purchase",
+      "state": "verified",
+      "verification": {
+        "purchaseSubmitted": false,
+        "paymentCharged": false,
+        "secretsInBundle": false,
+        "links": [
+          {
+            "mode": "one_time",
+            "publicId": "28E14neM886q1QL3XH24009",
+            "url": "https://buy.stripe.com/28E14neM886q1QL3XH24009",
+            "httpStatus": 200,
+            "observedProduct": "MeetMate Premium One Time",
+            "observedUsdPrice": "$1.99",
+            "observedCadence": "one-time",
+            "visualEvidence": "Rendered Stripe Checkout page showed $1.99 USD and CA$2.95 currency options; no Pay button was used."
+          },
+          {
+            "mode": "weekly",
+            "publicId": "dRmcN5cE0euO9jd0Lv2400a",
+            "url": "https://buy.stripe.com/dRmcN5cE0euO9jd0Lv2400a",
+            "httpStatus": 200,
+            "observedProduct": "MeetMate Premium Weekly",
+            "observedUsdPrice": "$1.99",
+            "observedCadence": "weekly recurring",
+            "visualEvidence": "Rendered Stripe Checkout page showed Subscribe to MeetMate Premium Weekly, CA$2.95 per week, billed weekly, and the USD authorization at $1.99; no Subscribe button was used."
+          }
+        ],
+        "successDestination": "https://cdn.qili2.com/pub/teams/premium-success.html",
+        "successDestinationHttpStatus": 200,
+        "observedAt": "2026-10-02T19:25:00Z"
+      }
+    },
+    {
+      "id": "stripe-entitlement-onboarding",
+      "requested": "verify controlled invalid-session behavior without purchase",
+      "state": "verified",
+      "verification": {
+        "endpoint": "https://stripe.qili2.com/v1/entitlement",
+        "productId": "team-mate",
+        "purchaseSubmitted": false,
+        "probes": [
+          {"sessionId": "not-a-session", "httpStatus": 400, "response": {"error": "invalid_session_id"}},
+          {"sessionId": "cs_live_probeinvalid000000000000000000", "httpStatus": 200, "response": {"active": false, "product": "team-mate", "plan": null, "status": "not_found", "currentPeriodEnd": null}}
+        ],
+        "successPageValidation": "Invalid or missing session IDs render the explicit missing-or-invalid state and remove the activation link.",
+        "observedAt": "2026-10-02T19:22:00Z"
+      }
+    },
+    {
+      "id": "chrome-web-store",
+      "requested": "publish exact 4.5.7 listing for review",
+      "state": "blocked",
+      "itemId": "immkojolaicdjhkbbhkldmndhfjbehmf",
+      "publisherId": "b6ef2f52-fb3e-4af5-bbbf-ad73d2b79348",
+      "publicUrl": "https://chromewebstore.google.com/detail/immkojolaicdjhkbbhkldmndhfjbehmf",
+      "observedPublicState": {
+        "title": "MeetMate — Live Facts, Knowledge, Speaking Coach & Memory for Teams",
+        "version": "4.2.0",
+        "observedAt": "2026-10-02T19:18:00Z"
+      },
+      "preparationEvidence": {
+        "publisherAuthentication": "verified",
+        "browserWorkspaceDryRun": "validated the exact 4.5.7 ZIP",
+        "listingUploadOrSubmit": "not performed"
+      },
+      "blockers": [
+        {
+          "type": "missing_approved_market_package",
+          "evidence": ".specs/market-package-v1.md is titled and scoped to candidate 4.5.6; no approved package declares 4.5.7 listing content.",
+          "requiredAction": "Market Agent must refresh and approve the package for candidate 4.5.7 without changing approved pricing or entitlement semantics."
+        },
+        {
+          "type": "missing_approved_fresh_media",
+          "evidence": "The approved package explicitly rejects 4.4.9 media for the new listing and leaves fresh screenshots unchecked; it also states the demo video is pending and must not be reused.",
+          "requiredAction": "Produce and obtain visual approval for fresh 4.5.7 screenshots; obtain approval for optional fresh demo media or omit it."
+        },
+        {
+          "type": "publication_requires_listing_acceptance",
+          "evidence": "Release policy requires both the approved package/media and explicit listing acceptance before Chrome Web Store submission.",
+          "requiredAction": "After inputs are approved, upload the exact v4.5.7 ZIP, apply the approved title/copy/media, obtain listing acceptance, then submit for review."
+        }
+      ],
+      "nextTerminalStates": [
+        "approved listing submitted for Chrome Web Store review",
+        "external review observed and exact public version verified",
+        "rejected listing diagnosed and returned for corrected approved inputs"
+      ]
+    }
+  ],
+  "externalAuthorizationBoundaries": {
+    "stripePurchaseOrCharge": "not performed and not authorized",
+    "chromeWebStoreReviewSubmission": "not performed pending approved listing inputs",
+    "humanMfaOrConsent": "publisher authentication was already available; no MFA bypass was attempted"
+  }
+}

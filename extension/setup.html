@@ -243,7 +243,7 @@
                 </div>
             </div>
 
-            <!-- Premium: Stripe Payment Link + local soft entitlement -->
+            <!-- Premium: Stripe Payment Link + server-verified local entitlement cache -->
             <div class="card" id="premiumCard" data-settings-panel="premium" hidden>
                 <h3>MeetMate Premium</h3>
                 <p class="desc">Premium unlocks the full meeting assistant and private knowledge workflow.</p>
@@ -284,20 +284,21 @@
                 <h3>Knowledge</h3>
                 <p class="desc">
                     Add or update your knowledge files, then click <strong>Organize now</strong> when you want MeetMate to rebuild the organized knowledge tree.
-                    File changes never trigger the model automatically. During meetings, the assistant can still call
-                    <code>search_knowledge</code> against the current files for supporting detail.
+                    File changes never trigger the model automatically. During meetings, the assistant can call
+                    <code>search_knowledge</code> against the organized tree for supporting detail.
                 </p>
                 <div class="row">
                     <label>Documents</label>
                     <div>
                         <input type="file" id="knowledgeUpload" multiple />
                         <div class="hint" style="grid-column:auto">
-                            Choose any file type. How well its content can be understood depends on the configured provider/model.
-                            Stored locally in <code>chrome.storage.local</code>; capacity follows the browser's available extension storage.
+                            Upload original files directly, including PDF, DOCX, PPTX, spreadsheets, text, and other formats supported by the configured provider/model.
+                            Files are stored locally and sent to the configured AI provider only when you click <strong>Organize now</strong>.
                         </div>
                     </div>
                 </div>
                 <div id="knowledgePlanNote" class="hint" style="margin:8px 0; color:var(--muted)">Free · final organized knowledge is limited to 5,000 characters. Premium removes this limit.</div>
+                <div id="knowledgeTree" style="margin-top:10px"></div>
                 <div id="knowledgeList" style="margin-top:10px"></div>
                 <div style="display:flex; align-items:center; gap:8px; margin-top:10px">
                     <button id="knowledgeOrganizeBtn" class="primary" type="button">Organize now</button>
