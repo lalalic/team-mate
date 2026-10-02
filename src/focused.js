@@ -320,6 +320,25 @@ RULES:
     return [{ role: "system", content: system }, { role: "user", content: user }];
 }
 
+export function parseKnowledgeTree(markdown = "") {
+    const root = { title: "Knowledge", children: [], content: [] };
+    const stack = [{ level: 0, node: root }];
+    for (const raw of String(markdown || "").split(/\r?\n/)) {
+        const heading = raw.match(/^(#{1,6})\s+(.+?)\s*$/);
+        if (heading) {
+            const level = heading[1].length;
+            const node = { title: heading[2], children: [], content: [] };
+            while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+            (stack[stack.length - 1]?.node || root).children.push(node);
+            stack.push({ level, node });
+            continue;
+        }
+        const text = raw.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, "").trim();
+        if (text) (stack[stack.length - 1]?.node || root).content.push(text);
+    }
+    return root.children.length || root.content.length ? root : null;
+}
+
 export function knowledgeSearch(docs, query, k = 5) {
     const qTokens = knowledgeTokenize(query);
     if (!qTokens.length) return [];

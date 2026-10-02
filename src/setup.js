@@ -1,4 +1,4 @@
-const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, mergeKnowledgeDocs } = require("./util")
+const { initSetupPage, changeConf, normalizeShortcuts, FREE_SHORTCUT_SHOW_LIMIT, relayChat, fetchModels, reorganizeKnowledge, mergeKnowledgeDocs, parseKnowledgeTree } = require("./util")
 const { getPremiumStatus, openPremiumUpgrade, openPremiumLogin, setPremiumPreview, activateStripeSession } = require("./premium")
 const { extractStripeSessionId, extractStripePurchaseMode } = require("./premium-state")
 
@@ -411,6 +411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
     }
     const knowledgeList = document.querySelector('#knowledgeList')
+    const knowledgeTree = document.querySelector('#knowledgeTree')
     const knowledgeUpload = document.querySelector('#knowledgeUpload')
     const knowledgeStatus = document.querySelector('#knowledgeStatus')
     const knowledgePremiumNote = document.querySelector('#knowledgePremiumNote')
@@ -458,6 +459,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const total = totalBytes(k)
         const totalKb = (total / 1024).toFixed(1)
         const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
+        if (knowledgeTree) {
+            const tree = parseKnowledgeTree(k.organized)
+            const renderNode = (node) => `<details class="knowledge-tree-node" data-knowledge-node><summary>${esc(node.title)}</summary>${
+                node.content.length ? `<div class="knowledge-tree-content">${node.content.map(line => `<div>${esc(line)}</div>`).join('')}</div>` : ''
+            }${node.children.map(renderNode).join('')}</details>`
+            knowledgeTree.innerHTML = tree
+                ? `<div class="knowledge-tree" aria-label="Organized knowledge">${tree.children.map(renderNode).join('')}</div>`
+                : ''
+        }
         if (!k.docs.length) {
             knowledgeList.innerHTML = '<em style="color:var(--muted)">(no docs yet)</em>'
             if (knowledgeStatus) knowledgeStatus.textContent = 'No organized knowledge yet.'

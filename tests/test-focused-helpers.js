@@ -19,6 +19,7 @@ import {
     mergeKnowledgeDocs,
     buildKnowledgeReorganizeMessages,
     buildKnowledgeWiki,
+    parseKnowledgeTree,
     KNOWLEDGE_SEARCH_TOOL,
     formatKnowledgeToolResult,
     rankTranscriptSources,
@@ -276,6 +277,14 @@ test("buildKnowledgeWiki: gives the model only a small high-level catalog", () =
 
 test("buildKnowledgeWiki: empty library is explicit", () => {
     assert.equal(buildKnowledgeWiki([]), "(no private knowledge configured)")
+})
+
+test("parseKnowledgeTree: preserves two-level headings and their content", () => {
+    const tree = parseKnowledgeTree("# Release\n## Rollback\n- Verify backups\n## Launch\n- Notify support")
+    assert.equal(tree.children[0].title, "Release")
+    assert.equal(tree.children[0].children[0].title, "Rollback")
+    assert.deepEqual(tree.children[0].children[0].content, ["Verify backups"])
+    assert.deepEqual(tree.children[0].children[1].content, ["Notify support"])
 })
 
 test("search_knowledge tool is the only knowledge capability exposed", () => {
