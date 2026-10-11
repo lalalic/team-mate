@@ -1,4 +1,4 @@
-// MeetMate Premium — deliberately soft local gating for a Stripe purchase.
+// MeetMate Premium — verified Stripe activation with a local entitlement cache.
 
 function runtimeRequest(message, payload = {}) {
     return new Promise((resolve, reject) => {

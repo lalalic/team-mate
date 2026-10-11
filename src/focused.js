@@ -296,22 +296,93 @@ export function mergeKnowledgeDocs(existing = [], incoming = []) {
     return Array.from(byName.values());
 }
 
-export function buildKnowledgeAskMessages({ question, knowledgeWiki = "", preferredLanguage = "auto", customInstructions = "" } = {}) {
-    const q = String(question || "").trim();
-    const system = `You are MeetMate Knowledge, a private-document research assistant.
+export function buildKnowledgeReorganizeMessages({ documents = [], currentTree = null, preferredLanguage = "auto" } = {}) {
+    const docs = Array.isArray(documents) ? documents : [];
+    const tree = currentTree?.roots ? currentTree : null;
+    const system = `You are MeetMate's knowledge organizer.
 
-KNOWLEDGE CATALOG (orientation only; not evidence):
+Rebuild the user's organized knowledge from the COMPLETE CURRENT uploaded file library attached to the user message.
+
+RULES:
+1. The attached current files are the only factual source of truth. Read the files directly with the model/provider's native file-reading capability. Do not use search/retrieval tools.
+2. The supplied CURRENT TREE is only a structure/continuity hint. It is NOT factual evidence. If you need old node content for continuity, call get_knowledge_node_content(node_id).
+3. Drop anything from the old tree/content that is no longer supported by the current uploaded files.
+4. Merge duplicates and reconcile overlapping material.
+5. Organize by concepts and content, never by filenames or upload order.
+6. Preserve important concrete names, decisions, constraints, APIs, dates, numbers, and definitions when supported by the files.
+7. Never invent facts.
+8. Call set_knowledge_tree to establish the complete 2-3 level hierarchy, then call set_knowledge_node_content for every leaf node.
+9. Use stable, descriptive node IDs where the concept still exists; create new IDs for genuinely new concepts.
+10. Do not return the knowledge tree as Markdown or prose. Finish only after all leaf content has been written through tools.
+11. Preferred language: ${String(preferredLanguage || "auto")}.`;
+
+    const currentTreeText = tree ? JSON.stringify(tree, null, 2) : "(no current tree)";
+    const legacyTextDocs = docs
+        .filter(doc => !doc?.fileData && String(doc?.content || "").trim())
+        .map(doc => `\n<legacy-text-file name=${JSON.stringify(String(doc?.name || "untitled"))}>\n${String(doc.content)}\n</legacy-text-file>`)
+        .join("\n");
+    const content = [{
+        type: "text",
+        text: `Organize the complete attached file library.\n\nCURRENT TREE (structure only):\n${currentTreeText}${legacyTextDocs}`,
+    }];
+    for (const doc of docs) {
+        const fileData = String(doc?.fileData || "").trim();
+        if (!fileData) continue;
+        content.push({
+            type: "file",
+            file: {
+                filename: String(doc?.name || "document"),
+                file_data: fileData,
+            },
+        });
+    }
+    return [{ role: "system", content: system }, { role: "user", content }];
+}
+
+export function capOrganizedKnowledge(text, maxChars = 0) {
+    const value = String(text || "").trim();
+    const limit = Number(maxChars) || 0;
+    if (limit <= 0 || value.length <= limit) return value;
+    return value.slice(0, limit).trimEnd();
+}
+
+
+export function buildKnowledgeQATestMessages({ question, knowledgeWiki = "", preferredLanguage = "auto", customInstructions = "" } = {}) {
+    const q = String(question || "").trim();
+    const system = `You are MeetMate's knowledge Q&A diagnostic.
+
+CURRENT ORGANIZED KNOWLEDGE (orientation only; not factual evidence by itself):
 ${String(knowledgeWiki || "(empty)")}
 
 RULES:
-1. The user's uploaded documents are the only knowledge source for document-specific facts.
-2. Use search_knowledge repeatedly with focused queries whenever needed. Broad synthesis requests usually require multiple searches.
-3. Search results are evidence. The catalog and filenames are not evidence and must not determine the semantic hierarchy of the answer.
-4. Organize the final answer by content and concepts, not by source filenames.
-5. Never invent unsupported facts. Say what could not be established when evidence is insufficient.
+1. Answer only from the user's current uploaded knowledge library.
+2. Use search_knowledge whenever factual support is needed; the organized knowledge is orientation only.
+3. If the current library does not support an answer, say so plainly.
+4. Do not use meeting transcript context or invent facts.
+5. Keep the answer concise and useful for verifying knowledge retrieval.
 6. Preferred language: ${String(preferredLanguage || "auto")}.
 ${customInstructions ? `7. User instructions: ${String(customInstructions)}` : ""}`;
     return [{ role: "system", content: system }, { role: "user", content: q }];
+}
+
+
+export function parseKnowledgeTree(markdown = "") {
+    const root = { title: "Knowledge", children: [], content: [] };
+    const stack = [{ level: 0, node: root }];
+    for (const raw of String(markdown || "").split(/\r?\n/)) {
+        const heading = raw.match(/^(#{1,6})\s+(.+?)\s*$/);
+        if (heading) {
+            const level = heading[1].length;
+            const node = { title: heading[2], children: [], content: [] };
+            while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+            (stack[stack.length - 1]?.node || root).children.push(node);
+            stack.push({ level, node });
+            continue;
+        }
+        const text = raw.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, "").trim();
+        if (text) (stack[stack.length - 1]?.node || root).content.push(text);
+    }
+    return root.children.length || root.content.length ? root : null;
 }
 
 export function knowledgeSearch(docs, query, k = 5) {
@@ -448,6 +519,180 @@ export function formatKnowledgeToolResult(query, hits = []) {
             score: Number(h?.score) || 0,
         })),
     });
+}
+
+function knowledgeTreeNodeSchema(depth = 1) {
+    const properties = {
+        id: { type: "string", minLength: 1, description: "Stable unique node id." },
+        title: { type: "string", minLength: 1, description: "Short display title." },
+        summary: { type: "string", description: "One-line description of what belongs in this node." },
+        children: depth >= 3
+            ? { type: "array", maxItems: 0, description: "Third-level nodes are leaves." }
+            : { type: "array", items: knowledgeTreeNodeSchema(depth + 1), description: "Child knowledge nodes." }
+    };
+    return {
+        type: "object",
+        properties,
+        required: ["id", "title", "summary", "children"],
+        additionalProperties: false
+    };
+}
+
+const KNOWLEDGE_TREE_NODE_SCHEMA = knowledgeTreeNodeSchema();
+
+export const KNOWLEDGE_GET_NODE_CONTENT_TOOL = {
+    type: "function",
+    function: {
+        name: "get_knowledge_node_content",
+        description: "Read the previous organized content for one node from the current tree. Use only for continuity; attached current files remain the factual source of truth.",
+        parameters: {
+            type: "object",
+            properties: {
+                node_id: { type: "string", minLength: 1 },
+            },
+            required: ["node_id"],
+            additionalProperties: false
+        }
+    }
+};
+
+export function knowledgeTreeStructure(tree) {
+    const clean = (nodes) => (Array.isArray(nodes) ? nodes : []).map(node => ({
+        id: String(node?.id || ""),
+        title: String(node?.title || ""),
+        summary: String(node?.summary || ""),
+        children: clean(node?.children),
+    }));
+    return tree?.roots ? { version: Number(tree.version) || 1, roots: clean(tree.roots) } : null;
+}
+
+export function getKnowledgeNodeContent(tree, nodeId) {
+    const node = findKnowledgeNode(tree, nodeId);
+    if (!node) throw new Error(`Unknown knowledge node id: ${String(nodeId || "")}`);
+    return Array.isArray(node.content) ? node.content.join("\n") : String(node.content || "");
+}
+
+export const KNOWLEDGE_SET_TREE_TOOL = {
+    type: "function",
+    function: {
+        name: "set_knowledge_tree",
+        description: "Replace the complete organized knowledge hierarchy. Call this before setting node content. The runtime validates unique IDs and a maximum depth of 3.",
+        parameters: {
+            type: "object",
+            properties: {
+                roots: { type: "array", minItems: 1, items: KNOWLEDGE_TREE_NODE_SCHEMA }
+            },
+            required: ["roots"],
+            additionalProperties: false
+        }
+    }
+};
+
+export const KNOWLEDGE_SET_NODE_CONTENT_TOOL = {
+    type: "function",
+    function: {
+        name: "set_knowledge_node_content",
+        description: "Set grounded factual content for one existing knowledge-tree node by id. Prefer concise complete prose or bullets. Every leaf node must receive content.",
+        parameters: {
+            type: "object",
+            properties: {
+                node_id: { type: "string", minLength: 1 },
+                content: { type: "string", minLength: 1 }
+            },
+            required: ["node_id", "content"],
+            additionalProperties: false
+        }
+    }
+};
+
+function normalizeKnowledgeNode(raw, depth, seen) {
+    if (!raw || typeof raw !== "object") throw new Error("Knowledge tree nodes must be objects.");
+    if (depth > 3) throw new Error("Knowledge tree depth cannot exceed 3 levels.");
+    const id = String(raw.id || "").trim();
+    const title = String(raw.title || raw.name || "").trim();
+    const summary = String(raw.summary || "").trim();
+    if (!id || !title) throw new Error("Every knowledge node requires a non-empty id and title.");
+    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(id)) throw new Error(`Invalid knowledge node id: ${id}`);
+    if (seen.has(id)) throw new Error(`Duplicate knowledge node id: ${id}`);
+    seen.add(id);
+    const children = Array.isArray(raw.children) ? raw.children.map(child => normalizeKnowledgeNode(child, depth + 1, seen)) : [];
+    return { id, title, summary, children, content: [] };
+}
+
+export function normalizeKnowledgeTree(roots = []) {
+    if (!Array.isArray(roots) || !roots.length) throw new Error("set_knowledge_tree requires at least one root node.");
+    const seen = new Set();
+    return { version: 1, roots: roots.map(root => normalizeKnowledgeNode(root, 1, seen)) };
+}
+
+export function findKnowledgeNode(tree, nodeId) {
+    const wanted = String(nodeId || "").trim();
+    let found = null;
+    const walk = (nodes) => {
+        for (const node of Array.isArray(nodes) ? nodes : []) {
+            if (node.id === wanted) { found = node; return; }
+            walk(node.children);
+            if (found) return;
+        }
+    };
+    walk(tree?.roots);
+    return found;
+}
+
+export function setKnowledgeNodeContent(tree, nodeId, content) {
+    const node = findKnowledgeNode(tree, nodeId);
+    if (!node) throw new Error(`Unknown knowledge node id: ${String(nodeId || "")}`);
+    const text = String(content || "").trim();
+    if (!text) throw new Error("set_knowledge_node_content requires non-empty content.");
+    node.content = text.split(/\r?\n/).map(line => line.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, "").trim()).filter(Boolean);
+    return node;
+}
+
+export function missingKnowledgeLeafContent(tree) {
+    const missing = [];
+    const walk = (nodes) => {
+        for (const node of Array.isArray(nodes) ? nodes : []) {
+            if (node.children.length) walk(node.children);
+            else if (!Array.isArray(node.content) || !node.content.length) missing.push(node.id);
+        }
+    };
+    walk(tree?.roots);
+    return missing;
+}
+
+export function knowledgeTreeToSearchDocs(tree) {
+    const docs = [];
+    const walk = (nodes, path = []) => {
+        for (const node of Array.isArray(nodes) ? nodes : []) {
+            const nextPath = [...path, String(node?.title || "").trim()].filter(Boolean);
+            const summary = String(node?.summary || "").trim();
+            const content = Array.isArray(node?.content) ? node.content.join("\n") : String(node?.content || "").trim();
+            if (content || summary) {
+                docs.push({
+                    id: String(node?.id || ""),
+                    name: nextPath.join(" > ") || String(node?.id || "knowledge"),
+                    content: [nextPath.join(" > "), summary, content].filter(Boolean).join("\n"),
+                });
+            }
+            walk(node?.children, nextPath);
+        }
+    };
+    walk(tree?.roots);
+    return docs;
+}
+
+export function knowledgeTreeToMarkdown(tree) {
+    const lines = [];
+    const walk = (nodes, depth) => {
+        for (const node of Array.isArray(nodes) ? nodes : []) {
+            lines.push(`${"#".repeat(Math.max(1, Math.min(6, depth)))} ${node.title}`);
+            if (node.summary) lines.push(node.summary);
+            for (const line of Array.isArray(node.content) ? node.content : []) lines.push(`- ${line}`);
+            walk(node.children, depth + 1);
+        }
+    };
+    walk(tree?.roots, 2);
+    return lines.join("\n").trim();
 }
 
 // -- Ask payload -----------------------------------------------------------

@@ -17,9 +17,21 @@ import {
     buildMeetingContextMessages,
     knowledgeSearch,
     mergeKnowledgeDocs,
-    buildKnowledgeAskMessages,
+    buildKnowledgeReorganizeMessages,
     buildKnowledgeWiki,
+    parseKnowledgeTree,
     KNOWLEDGE_SEARCH_TOOL,
+    KNOWLEDGE_GET_NODE_CONTENT_TOOL,
+    KNOWLEDGE_SET_TREE_TOOL,
+    KNOWLEDGE_SET_NODE_CONTENT_TOOL,
+    normalizeKnowledgeTree,
+    knowledgeTreeStructure,
+    getKnowledgeNodeContent,
+    findKnowledgeNode,
+    setKnowledgeNodeContent,
+    missingKnowledgeLeafContent,
+    knowledgeTreeToMarkdown,
+    knowledgeTreeToSearchDocs,
     formatKnowledgeToolResult,
     rankTranscriptSources,
     buildAskMessages,
@@ -107,17 +119,97 @@ test("mergeKnowledgeDocs: same-name upload replaces stale content case-insensiti
     assert.equal(out.find(d => d.name === "Other.md").content, "keep")
 })
 
-test("buildKnowledgeAskMessages: knowledge-only prompt is independent of meeting context and filenames are not hierarchy", () => {
-    const messages = buildKnowledgeAskMessages({
-        question: "Create a three-level structure",
-        knowledgeWiki: "- Extreme-auth.md — topics: Auth",
+test("structured knowledge organizer exposes get-current-content plus two write tools", () => {
+    assert.equal(KNOWLEDGE_GET_NODE_CONTENT_TOOL.function.name, "get_knowledge_node_content")
+    assert.equal(KNOWLEDGE_SET_TREE_TOOL.function.name, "set_knowledge_tree")
+    assert.equal(KNOWLEDGE_SET_NODE_CONTENT_TOOL.function.name, "set_knowledge_node_content")
+    assert.deepEqual(KNOWLEDGE_GET_NODE_CONTENT_TOOL.function.parameters.required, ["node_id"])
+    assert.deepEqual(KNOWLEDGE_SET_NODE_CONTENT_TOOL.function.parameters.required, ["node_id", "content"])
+})
+
+test("normalizeKnowledgeTree: validates hierarchy, ids, and leaf content lifecycle", () => {
+    const tree = normalizeKnowledgeTree([{
+        id: "projects", title: "Projects", summary: "Active projects", children: [{
+            id: "atlas", title: "Atlas", summary: "Release facts", children: []
+        }]
+    }])
+    assert.equal(tree.version, 1)
+    assert.equal(findKnowledgeNode(tree, "atlas").title, "Atlas")
+    assert.deepEqual(missingKnowledgeLeafContent(tree), ["atlas"])
+    setKnowledgeNodeContent(tree, "atlas", "- Ships November 22\n- Owner: Maggie")
+    assert.deepEqual(findKnowledgeNode(tree, "atlas").content, ["Ships November 22", "Owner: Maggie"])
+    assert.deepEqual(missingKnowledgeLeafContent(tree), [])
+    const markdown = knowledgeTreeToMarkdown(tree)
+    assert.ok(markdown.includes("## Projects"))
+    assert.ok(markdown.includes("### Atlas"))
+    assert.ok(markdown.includes("- Owner: Maggie"))
+})
+
+test("normalizeKnowledgeTree: rejects duplicate ids, excessive depth, and unknown content targets", () => {
+    assert.throws(() => normalizeKnowledgeTree([
+        { id: "same", title: "A", summary: "", children: [] },
+        { id: "same", title: "B", summary: "", children: [] },
+    ]), /Duplicate knowledge node id/)
+    assert.throws(() => normalizeKnowledgeTree([{
+        id: "a", title: "A", summary: "", children: [{
+            id: "b", title: "B", summary: "", children: [{
+                id: "c", title: "C", summary: "", children: [{ id: "d", title: "D", summary: "", children: [] }]
+            }]
+        }]
+    }]), /depth cannot exceed 3/)
+    const tree = normalizeKnowledgeTree([{ id: "a", title: "A", summary: "", children: [] }])
+    assert.throws(() => setKnowledgeNodeContent(tree, "missing", "x"), /Unknown knowledge node id/)
+})
+
+test("buildKnowledgeReorganizeMessages: attaches original files, current tree structure, and no search instruction", () => {
+    const current = normalizeKnowledgeTree([{
+        id: "auth", title: "Authentication", summary: "How users authenticate", children: [{
+            id: "auth-sso", title: "SSO", summary: "SSO rules", children: []
+        }]
+    }])
+    setKnowledgeNodeContent(current, "auth-sso", "Old SSO content that should not be embedded in the prompt")
+    const messages = buildKnowledgeReorganizeMessages({
+        documents: [
+            { name: "guide.pdf", fileData: "data:application/pdf;base64,JVBERi0xLjQ=" },
+            { name: "notes.txt", fileData: "data:text/plain;base64,SGVsbG8=", content: "Hello" },
+        ],
+        currentTree: knowledgeTreeStructure(current),
         preferredLanguage: "English",
     })
     assert.equal(messages.length, 2)
-    assert.equal(messages[1].content, "Create a three-level structure")
-    assert.ok(messages[0].content.includes("Use search_knowledge repeatedly"))
-    assert.ok(messages[0].content.includes("filenames are not evidence"))
-    assert.ok(!messages[0].content.includes("MEETING TRANSCRIPT"))
+    assert.ok(messages[0].content.includes("attached current files are the only factual source of truth"))
+    assert.ok(messages[0].content.includes("get_knowledge_node_content"))
+    assert.ok(messages[0].content.includes("set_knowledge_tree"))
+    assert.ok(messages[0].content.includes("set_knowledge_node_content"))
+    assert.ok(messages[0].content.includes("Do not use search/retrieval tools"))
+    assert.equal(Array.isArray(messages[1].content), true)
+    assert.equal(messages[1].content.filter(part => part.type === "file").length, 2)
+    assert.equal(messages[1].content[1].file.filename, "guide.pdf")
+    assert.equal(messages[1].content[1].file.file_data, "data:application/pdf;base64,JVBERi0xLjQ=")
+    assert.ok(messages[1].content[0].text.includes('"id": "auth-sso"'))
+    assert.ok(!messages[1].content[0].text.includes("Old SSO content"))
+})
+
+test("knowledgeTreeStructure and getKnowledgeNodeContent separate structure from old node body", () => {
+    const tree = normalizeKnowledgeTree([{ id: "root", title: "Root", summary: "Root summary", children: [{ id: "leaf", title: "Leaf", summary: "Leaf summary", children: [] }] }])
+    setKnowledgeNodeContent(tree, "leaf", "line one\nline two")
+    const structure = knowledgeTreeStructure(tree)
+    assert.deepEqual(structure.roots[0].children[0], { id: "leaf", title: "Leaf", summary: "Leaf summary", children: [] })
+    assert.equal(getKnowledgeNodeContent(tree, "leaf"), "line one\nline two")
+})
+
+test("knowledgeTreeToSearchDocs indexes organized leaf content instead of raw file text", () => {
+    const tree = normalizeKnowledgeTree([{ id: "project", title: "Project Orion", summary: "Release project", children: [
+        { id: "release", title: "Release", summary: "Schedule and owner", children: [] },
+        { id: "risk", title: "Risk", summary: "Known risks", children: [] },
+    ] }])
+    setKnowledgeNodeContent(tree, "release", "Release date: December 5\nOwner: Dana")
+    setKnowledgeNodeContent(tree, "risk", "Vendor certificate renewal")
+    const docs = knowledgeTreeToSearchDocs(tree)
+    assert.equal(docs.length, 3)
+    const hit = knowledgeSearch(docs, "Dana December 5", 3)
+    assert.equal(hit[0].doc, "Project Orion > Release")
+    assert.ok(hit[0].snippet.includes("Dana"))
 })
 
 // ── formatTranscript ─────────────────────────────────────────────────────
@@ -263,6 +355,14 @@ test("buildKnowledgeWiki: gives the model only a small high-level catalog", () =
 
 test("buildKnowledgeWiki: empty library is explicit", () => {
     assert.equal(buildKnowledgeWiki([]), "(no private knowledge configured)")
+})
+
+test("parseKnowledgeTree: preserves two-level headings and their content", () => {
+    const tree = parseKnowledgeTree("# Release\n## Rollback\n- Verify backups\n## Launch\n- Notify support")
+    assert.equal(tree.children[0].title, "Release")
+    assert.equal(tree.children[0].children[0].title, "Rollback")
+    assert.deepEqual(tree.children[0].children[0].content, ["Verify backups"])
+    assert.deepEqual(tree.children[0].children[1].content, ["Notify support"])
 })
 
 test("search_knowledge tool is the only knowledge capability exposed", () => {

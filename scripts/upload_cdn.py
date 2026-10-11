@@ -19,6 +19,7 @@ ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..', '..'))
 WWW = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'www'))
 
 env = {}
+env.update({key: value for key, value in os.environ.items() if key.startswith(('QINIU_', 'CDN_'))})
 for env_path in [
     os.path.join(ROOT, 'neox', '.env.local'),
     os.path.join(ROOT, '.env.local'),

@@ -14,7 +14,8 @@ questions you actually ask, grounded in **this meeting's transcript** plus
 transcript buffer and nothing else: no LLM call, no suggestion, no
 autonomous loop, no heartbeat.
 
-The model runs only when you ask, and every path goes through one function:
+The answer path runs when you ask through one function. Separately, a library
+change triggers Premium Knowledge organization:
 
 ```js
 ask(question)   // src/util.js
@@ -23,7 +24,9 @@ ask(question)   // src/util.js
 ```mermaid
 flowchart LR
     C[Teams captions] -->|append only| T[(Local transcript)]
-    K[(Uploaded knowledge<br/>chrome.storage.local)] --> R[TF-IDF retrieval]
+    K[(Uploaded knowledge<br/>chrome.storage.local)] -->|library change| O[organization request]
+    O --> S[(organized structure)]
+    S --> R[search_knowledge]
     T --> Q[context builder]
     R --> Q
     U[Shortcut tap] --> Q
@@ -41,24 +44,27 @@ flowchart LR
 - **Shortcuts** — configurable `{label, prompt}` buttons. Defaults: Reply,
   Facts, Question, Challenge. Edited in Setup → Shortcuts.
 - **Grounded answers** — the request carries the current transcript (bounded,
-  most recent first) and the top knowledge passages retrieved by TF-IDF over
-  chunked docs. The system prompt requires the model to distinguish
-  transcript from knowledge, to avoid inventing unsupported facts, and to say
-  plainly when the context does not support an answer.
+  most recent first), an organized knowledge catalog, and retrieval results.
+  The system prompt requires the model to distinguish transcript from
+  knowledge, to avoid inventing unsupported facts, and to say plainly when the
+  context does not support an answer.
 - **Concise by design** — answers are 1–4 short sentences: they are read while
   somebody else is still talking.
-- **Knowledge upload** — `.txt` / `.md` / `.json` / `.csv` / `.html` in
-  Setup → Knowledge. Uploads are local-only (no model call): the text is
-  stored as-is and retrieval stays a plain in-browser TF-IDF over chunks
-  (no vector DB, no new dependency).
+- **Premium Knowledge** — `.txt` / `.md` / `.json` / `.csv` / `.html` in
+  Setup → Premium Knowledge. After each upload, replacement, or removal,
+  MeetMate automatically rebuilds a two-level local library structure. During
+  an explicit ask, the model can call `search_knowledge` for supporting detail.
 - **Transcript export** — the meeting transcript is written to a `.vtt` file
   on Leave.
 - **Stripe Premium** — production builds expose two Stripe-hosted purchase paths:
   US$1.99 for a 7-day pass via `STRIPE_ONE_TIME_PAYMENT_LINK`, or US$1.99/week
   recurring via `STRIPE_WEEKLY_PAYMENT_LINK`. The success URL returns the Checkout
-  session plus `purchase=one_time|weekly`; the extension stores that as a local
-  soft entitlement. No Stripe secret is shipped in the extension, and development
-  Preview remains separate from real purchase state. Weekly Premium is cached locally for seven days; only expiry or an explicit Refresh calls the stateless Stripe entitlement Worker.
+  session plus `purchase=one_time|weekly`. Before granting access, the entitlement
+  endpoint verifies that Checkout is completed/paid or actively subscribed,
+  belongs to Team Mate, and matches the selected mode. No Stripe secret is shipped
+  in the extension, and development Preview remains separate from real purchase
+  state. A verified entitlement is cached locally; weekly Premium is rechecked at
+  cache expiry or explicit refresh, and cancellation revokes access.
 
 ## What was removed (and is not coming back)
 
@@ -83,7 +89,7 @@ src/focused.js       pure helpers: shortcut normalization, transcript
                      formatting/bounding, knowledge chunking + TF-IDF search,
                      ask payload construction. No chrome/DOM access.
 src/util.js          focused config/knowledge/ask helpers; `ask()` is the
-                     single LLM entry point
+                     answer entry point and organization has its own path
 src/relay.js         direct OpenAI-compatible client via background service worker
 src/background.js    badge/icon, VTT export, top-up
 src/setup.js         provider / shortcuts / knowledge
@@ -127,21 +133,31 @@ What did Bob say about prod?
 # from team-mate/
 npm install
 npm run build           # webpack production + zip → team-mate.zip
-npm test                # focused helper unit tests (node, no network)
+npm test                # focused checks and provider-faithful payment E2E (local node endpoint)
 npm run dev             # webpack --watch (no zip)
 ```
 
 For a production payment build, set `STRIPE_ONE_TIME_PAYMENT_LINK` and/or
 `STRIPE_WEEKLY_PAYMENT_LINK` before building. The one-time link is the US$1.99
 7-day pass; the weekly link is the US$1.99/week recurring subscription. Configure
-their Stripe success URLs with `{CHECKOUT_SESSION_ID}` and a static purchase mode:
+their Stripe success URLs with `{CHECKOUT_SESSION_ID}` and a static purchase mode.
+Activation requires `STRIPE_ENTITLEMENT_ENDPOINT` (default:
+`https://stripe.qili2.com`) to return an active checkout for `product=team-mate`
+and matching `plan=one_time|weekly`:
 
 - one-time: `https://<public-host>/premium-success.html?session_id={CHECKOUT_SESSION_ID}&purchase=one_time`
 - weekly: `https://<public-host>/premium-success.html?session_id={CHECKOUT_SESSION_ID}&purchase=weekly`
 
-Never put `STRIPE_SECRET_KEY` in this
-repository or the extension bundle. The extension contains no ExtensionPay
-runtime or dependency.
+Activation calls `STRIPE_ENTITLEMENT_ENDPOINT` with the Checkout session id,
+the `team-mate` product id, and the expected purchase mode. The server verifies
+that the Stripe Checkout Session exists and is complete; accepts a paid one-time
+Payment-mode session or an active/trialing Team Mate weekly subscription; and
+validates the mode and `team-mate` product metadata before returning an active
+entitlement. Arbitrary well-formed session ids remain inactive.
+
+Deploy `server/stripe-entitlement.js` with `STRIPE_SECRET_KEY` as a server
+secret. Never put `STRIPE_SECRET_KEY` in this repository or the extension
+bundle. The extension contains no ExtensionPay runtime or dependency.
 
 Load unpacked: `chrome://extensions/` → Developer mode → "Load unpacked" →
 point at `team-mate/extension/`.
@@ -184,7 +200,7 @@ All state lives in `chrome.storage.local`:
 | Key | Shape | Purpose |
 |---|---|---|
 | `conf` | `{author, relayModel, shortcuts: [{label, prompt}], usageWarnThreshold, ...}` | Profile + rail shortcuts + model |
-| `knowledge` | `{docs: [{id, name, size, addedAt, content}]}` | Uploaded reference docs |
+| `knowledge` | `{docs: [{id, name, size, addedAt, content}], organized, organizedStatus}` | Uploaded reference docs and automatically organized structure |
 | `usage` | `{cost, tokens}` | Cumulative LLM spend |
 
 Shortcuts are stored as typed. `normalizeShortcuts()` drops blank rows, caps
@@ -201,6 +217,7 @@ Covers the pure helpers only (no network, no DOM):
 - `normalizeShortcuts` — defaults, trimming, dedupe, caps
 - `formatTranscript` — line format, bounding, truncation marker
 - `knowledgeSearch` — ranking, snippets, no-match behaviour
+- `buildKnowledgeReorganizeMessages` — fixed prompt and library rebuild rules
 - `buildAskMessages` — transcript/knowledge/question blocks, no-knowledge
   note, grounding rules present, bounded payload, custom prompt fill-ins
 
@@ -208,7 +225,8 @@ Covers the pure helpers only (no network, no DOM):
 
 1. Reload the extension at `chrome://extensions/`.
 2. Setup: connect the account, pick a model, confirm the shortcuts list shows
-   Reply / Facts / Question / Challenge, upload a knowledge doc.
+   Reply / Facts / Question / Challenge, upload a knowledge doc, and confirm
+   automatic organization completes.
 3. Join a Teams meeting with live captions on. Confirm captions increment the
    badge and that **no** model call happens (relay logs stay empty).
 4. Ask something in the rail and tap each shortcut. Each tap produces exactly
@@ -231,4 +249,8 @@ UNLICENSED — proprietary.
 
 ### Stripe entitlement metadata
 
-The weekly Team Mate Payment Link/Subscription must carry Stripe metadata `product=team-mate` and should carry `plan=weekly`. Team Mate sends `product=team-mate` to the shared `https://stripe.qili2.com/v1/entitlement` service, which refuses subscriptions belonging to another product. Other apps/extensions reuse the same service with their own stable lowercase kebab-case product id.
+Both Payment Links must carry Stripe metadata `product=team-mate` and identify
+`plan=one_time` or `plan=weekly`. The endpoint also receives the extension's
+expected `purchase_mode`, then rejects another product, plan, Checkout mode, or a
+one-time session that is not paid. Other apps can reuse the same stateless
+service with their own stable lowercase kebab-case product id.

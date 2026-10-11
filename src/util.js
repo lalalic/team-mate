@@ -17,12 +17,25 @@ import {
     getShownShortcuts,
     knowledgeSearch,
     mergeKnowledgeDocs,
-    buildKnowledgeAskMessages,
+    buildKnowledgeReorganizeMessages,
+    capOrganizedKnowledge,
+    buildKnowledgeQATestMessages,
+    parseKnowledgeTree,
     formatTranscript,
     formatMeetingTimeline,
     buildAskMessages,
     DEFAULT_ASK_SYSTEM_PROMPT,
     KNOWLEDGE_SEARCH_TOOL,
+    KNOWLEDGE_GET_NODE_CONTENT_TOOL,
+    KNOWLEDGE_SET_TREE_TOOL,
+    KNOWLEDGE_SET_NODE_CONTENT_TOOL,
+    normalizeKnowledgeTree,
+    knowledgeTreeStructure,
+    getKnowledgeNodeContent,
+    setKnowledgeNodeContent,
+    missingKnowledgeLeafContent,
+    knowledgeTreeToMarkdown,
+    knowledgeTreeToSearchDocs,
     formatKnowledgeToolResult,
     buildKnowledgeWiki,
     rankTranscriptSources,
@@ -36,11 +49,24 @@ export {
     getShownShortcuts,
     knowledgeSearch,
     mergeKnowledgeDocs,
-    buildKnowledgeAskMessages,
+    buildKnowledgeReorganizeMessages,
+    capOrganizedKnowledge,
+    buildKnowledgeQATestMessages,
+    parseKnowledgeTree,
     formatTranscript,
     formatMeetingTimeline,
     buildAskMessages,
     KNOWLEDGE_SEARCH_TOOL,
+    KNOWLEDGE_GET_NODE_CONTENT_TOOL,
+    KNOWLEDGE_SET_TREE_TOOL,
+    KNOWLEDGE_SET_NODE_CONTENT_TOOL,
+    normalizeKnowledgeTree,
+    knowledgeTreeStructure,
+    getKnowledgeNodeContent,
+    setKnowledgeNodeContent,
+    missingKnowledgeLeafContent,
+    knowledgeTreeToMarkdown,
+    knowledgeTreeToSearchDocs,
     formatKnowledgeToolResult,
     buildKnowledgeWiki,
     rankTranscriptSources,
@@ -105,10 +131,14 @@ export async function getShortcuts() {
 // ── Knowledge ─────────────────────────────────────────────────────────────
 
 /** All uploaded knowledge docs: `{ docs: [{id, name, content, ...}] }`. */
-export async function getKnowledgeDocs() {
+export async function getKnowledgeState() {
     return new Promise((resolve) =>
-        chrome.storage.local.get("knowledge", (x) => resolve((x.knowledge && x.knowledge.docs) || []))
+        chrome.storage.local.get("knowledge", (x) => resolve(x.knowledge || { docs: [] }))
     );
+}
+
+export async function getKnowledgeDocs() {
+    return (await getKnowledgeState()).docs || [];
 }
 
 // Cache the ask system prompt (loaded from extension/agent-prompt.md) so the
@@ -133,10 +163,17 @@ async function loadAskSystemPrompt() {
 
 /** Execute the model's local knowledge-search tool. No document content
  * leaves the browser unless the model explicitly requests a search. */
+export async function getKnowledgeSearchDocs() {
+    const state = await getKnowledgeState();
+    const organized = state?.organizedStatus === "ready" ? knowledgeTreeToSearchDocs(state.organizedTree) : [];
+    if (organized.length) return organized;
+    return (Array.isArray(state?.docs) ? state.docs : []).filter(doc => String(doc?.content || "").trim());
+}
+
 export async function searchKnowledge(query, limit = 3) {
     const q = String(query || "").trim();
     if (!q) return [];
-    const docs = await getKnowledgeDocs();
+    const docs = await getKnowledgeSearchDocs();
     if (!docs.length) return [];
     const k = Math.max(1, Math.min(6, Number(limit) || 3));
     return knowledgeSearch(docs, q, k);
@@ -207,19 +244,84 @@ async function completeWithKnowledgeTool(messages, signal, knowledgeAvailable, {
     return { response, knowledgeHits };
 }
 
-export async function askKnowledge(question, { signal } = {}) {
+export async function reorganizeKnowledge({ signal } = {}) {
+    const conf = (await getConf()) || {};
+    const state = await getKnowledgeState();
+    const docs = Array.isArray(state.docs) ? state.docs : [];
+    if (!docs.length) return { tree: null, markdown: "" };
+
+    const previousTree = state.organizedTree?.roots ? state.organizedTree : null;
+    const messages = buildKnowledgeReorganizeMessages({
+        documents: docs,
+        currentTree: knowledgeTreeStructure(previousTree),
+        preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
+    });
+    const tools = [KNOWLEDGE_GET_NODE_CONTENT_TOOL, KNOWLEDGE_SET_TREE_TOOL, KNOWLEDGE_SET_NODE_CONTENT_TOOL];
+    let working = messages.slice();
+    let tree = null;
+
+    for (let round = 0; round < 30; round++) {
+        const response = await chatCompletion({ messages: working, tools, tool_choice: "auto", signal });
+        const assistant = response?.choices?.[0]?.message || {};
+        const calls = Array.isArray(assistant.tool_calls) ? assistant.tool_calls : [];
+        if (!calls.length) {
+            const missing = tree ? missingKnowledgeLeafContent(tree) : ["<tree-not-set>"];
+            if (tree && !missing.length) return { tree, markdown: knowledgeTreeToMarkdown(tree) };
+            working.push({ role: "assistant", content: assistant.content ?? null });
+            working.push({ role: "user", content: tree
+                ? `Continue using the write tools. Populate these leaf node IDs with set_knowledge_node_content: ${missing.join(", ")}.`
+                : "Continue using the write tools. You must call set_knowledge_tree before finishing." });
+            continue;
+        }
+
+        working.push({ role: "assistant", content: assistant.content ?? null, tool_calls: calls });
+        for (const call of calls) {
+            const name = call?.function?.name || "";
+            const args = parseToolArguments(call?.function?.arguments);
+            let content;
+            try {
+                if (name === "get_knowledge_node_content") {
+                    if (!previousTree) throw new Error("No previous knowledge tree is available.");
+                    content = JSON.stringify({ node_id: args?.node_id, content: getKnowledgeNodeContent(previousTree, args?.node_id) });
+                } else if (name === "set_knowledge_tree") {
+                    tree = normalizeKnowledgeTree(args?.roots);
+                    content = JSON.stringify({ ok: true, node_count: (() => { let n = 0; const walk = xs => { for (const x of xs || []) { n++; walk(x.children); } }; walk(tree.roots); return n; })(), leaf_ids: missingKnowledgeLeafContent(tree) });
+                } else if (name === "set_knowledge_node_content") {
+                    if (!tree) throw new Error("Call set_knowledge_tree before set_knowledge_node_content.");
+                    const node = setKnowledgeNodeContent(tree, args?.node_id, args?.content);
+                    content = JSON.stringify({ ok: true, node_id: node.id });
+                } else {
+                    throw new Error(`Unknown organizer tool: ${name || "(missing)"}`);
+                }
+            } catch (error) {
+                content = JSON.stringify({ error: error?.message || String(error) });
+            }
+            working.push({ role: "tool", tool_call_id: call?.id || `organize-${round}-${working.length}`, content });
+        }
+
+        if (tree && !missingKnowledgeLeafContent(tree).length) {
+            return { tree, markdown: knowledgeTreeToMarkdown(tree) };
+        }
+    }
+    throw new Error("Knowledge organizer did not finish the structured tree within 30 tool rounds.");
+}
+
+export async function testKnowledgeQnA(question, { signal } = {}) {
     const q = String(question || "").trim();
     if (!q) return "";
     const conf = (await getConf()) || {};
-    const docs = await getKnowledgeDocs();
+    const state = await getKnowledgeState();
+    const docs = Array.isArray(state.docs) ? state.docs : [];
     if (!docs.length) throw new Error("Upload at least one knowledge document first.");
-    const messages = buildKnowledgeAskMessages({
+    const organized = state.organizedStatus === "ready" ? knowledgeTreeToMarkdown(state.organizedTree) : "";
+    const messages = buildKnowledgeQATestMessages({
         question: q,
-        knowledgeWiki: buildKnowledgeWiki(docs),
+        knowledgeWiki: organized || buildKnowledgeWiki(docs),
         preferredLanguage: resolvePreferredLanguage(conf.preferredLanguage || "browser"),
         customInstructions: conf.customInstructions || "",
     });
-    const { response } = await completeWithKnowledgeTool(messages, signal, true, { maxSearches: 8, maxRounds: 8 });
+    const searchDocs = await getKnowledgeSearchDocs();
+    const { response } = await completeWithKnowledgeTool(messages, signal, searchDocs.length > 0, { maxSearches: 4, maxRounds: 5 });
     return String(response?.choices?.[0]?.message?.content || "").trim();
 }
 
@@ -259,8 +361,12 @@ export async function askDetailed({ question, transcripts = [], conversation = [
     if (responseMode === "report") {
         systemPrompt += `\n\nREPORT MODE: Override the short live-answer style. Produce a concise but complete Markdown meeting report with these sections: Summary, Decisions, Actions, My commitments, Open questions, Risks. Use bullets. Include owner and due date only when stated. Do not invent missing items.`;
     }
-    const knowledgeDocs = await getKnowledgeDocs();
-    const knowledgeWiki = buildKnowledgeWiki(knowledgeDocs);
+    const knowledgeState = await getKnowledgeState();
+    const knowledgeDocs = Array.isArray(knowledgeState.docs) ? knowledgeState.docs : [];
+    const organizedKnowledge = knowledgeState.organizedStatus === "ready"
+        ? String(knowledgeState.organized || "").trim()
+        : "";
+    const knowledgeWiki = organizedKnowledge || buildKnowledgeWiki(knowledgeDocs);
 
     const { messages } = buildAskMessages({
         question: q,
@@ -275,7 +381,8 @@ export async function askDetailed({ question, transcripts = [], conversation = [
         maxTranscriptChars: maxTranscriptChars || 6000,
     });
 
-    const { response, knowledgeHits } = await completeWithKnowledgeTool(messages, signal, knowledgeDocs.length > 0, {
+    const searchDocs = await getKnowledgeSearchDocs();
+    const { response, knowledgeHits } = await completeWithKnowledgeTool(messages, signal, searchDocs.length > 0, {
         stream,
         streamId,
     });
